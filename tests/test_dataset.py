@@ -56,37 +56,22 @@ def test_dataset_natural_photo_recursive(data_dir):
     assert len(dataset) > 10, "Should find images in natural_photo subdirectories"
 
 
-def test_dataset_stage1_label_mapping(data_dir):
-    """Test Stage 1 label mapping."""
+def test_dataset_three_class_label_mapping(data_dir):
+    """Test three-class label mapping."""
     from trainer.dataset import TwoInputDataset
 
     data_map = {
         "natural": ["natural_photo"],
         "screenshot": ["screenshot"],
-    }
-
-    dataset = TwoInputDataset(data_map=data_map, data_dir=data_dir)
-
-    labels = set()
-    for _, _, label in dataset:
-        labels.add(label)
-
-    assert labels == {0, 1}, f"Expected labels {{0, 1}}, got {labels}"
-
-
-def test_dataset_stage2_label_mapping(data_dir):
-    """Test Stage 2 label mapping."""
-    from trainer.dataset import TwoInputDataset
-
-    data_map = {
-        "screenshot": ["screenshot"],
         "screen_photo": ["screen_photo"],
     }
 
-    dataset = TwoInputDataset(data_map=data_map, data_dir=data_dir)
+    dataset = TwoInputDataset(
+        data_map=data_map, data_dir=data_dir, load_hard_negatives=False
+    )
 
     labels = set()
     for _, _, label in dataset:
         labels.add(label)
 
-    assert labels == {0, 1}, f"Expected labels {{0, 1}}, got {labels}"
+    assert labels == {0, 1, 2}, f"Expected labels {{0, 1, 2}}, got {labels}"
