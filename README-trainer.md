@@ -1,25 +1,25 @@
 # Screen Detector V3 - Trainer
 
-两阶段 CNN + FFT Branch 训练系统。
+单阶段 CNN + FFT Branch 三分类训练系统。
 
 ## 功能
 
-- 两阶段独立训练 (Stage 1: natural vs screen_like, Stage 2: screenshot vs screen_photo)
+- 单阶段三分类训练 (natural/screenshot/screen_photo)
 - EfficientNet-B0 + FFT Frequency Branch 融合模型
 - Mixed Precision Training (AMP)
 - 数据增强 (albumentations)
-- ONNX 双模型导出 (dynamic_axes)
+- ONNX 模型导出 (dynamic_axes)
 
 ## 快速开始
 
 ```bash
 uv sync --group train
 
-# 训练两个阶段
-uv run python -m trainer.train
+# 训练三分类模型
+uv run python -m trainer train
 
 # 导出 ONNX 模型
-uv run python -m trainer.export_onnx
+uv run python -m trainer export
 ```
 
 ## 目录结构
@@ -32,7 +32,7 @@ trainer/
 ├── model.py            # 融合模型 (EfficientNet + FFT Branch)
 ├── fft_branch.py       # Frequency Branch (ResBlock)
 ├── dataset.py          # 双输入数据集 (RGB + FFT)
-├── train.py            # 两阶段训练 (AMP)
+├── train.py            # 单阶段训练 (AMP)
 ├── validate.py         # 验证指标 (accuracy/precision/recall/f1/fpr)
 ├── augment.py          # 数据增强
 └── export_onnx.py      # ONNX 导出 (双输入 dynamic_axes)
@@ -43,33 +43,24 @@ trainer/
 ```
 data/input/
 ├── natural_photo/      # 自然照片 (含子目录递归扫描)
-├── screen_like/        # 屏幕内容 (截图/PPT/IDE)
-├── screenshot/         # 截图
+├── screenshot/         # 截图 + 屏幕内容
 ├── screen_photo/       # 拍屏照片
 └── hard_negative/      # 难例负样本 (UI 海报/深色模式/动漫 UI)
 ```
 
-**最低数据量要求**:
-- Stage 1: natural 3000+, screen_like 3000+
-- Stage 2: screenshot 2000+, screen_photo 2000+
-
-## 两阶段训练
-
-### Stage 1: natural vs screen_like
+**数据映射**:
 
 ```
 natural_photo/  →  "natural"
-screen_like/    →  "screen_like"
-screenshot/     →  "screen_like"
-hard_negative/  →  "screen_like"
-```
-
-### Stage 2: screenshot vs screen_photo
-
-```
 screenshot/     →  "screenshot"
+hard_negative/  →  "screenshot"
 screen_photo/   →  "screen_photo"
 ```
+
+**最低数据量要求**:
+- natural: 1000+
+- screenshot: 1000+
+- screen_photo: 500+
 
 ## 模型架构
 
@@ -80,28 +71,27 @@ Input Image
                     ↓
             Concat (1536)
                     ↓
-        Dropout→Linear(1536,512)→ReLU→Dropout→Linear(512,2)
+        Dropout→Linear(1536,512)→ReLU→Dropout→Linear(512,3)
 ```
 
 ## 配置
 
-`src/config.py` 中的关键配置:
+`trainer/config.py` 中的关键配置:
 
 - `IMAGE_SIZE = 224` - 输入尺寸
-- `BATCH_SIZE = 32` - 批次大小
-- `LEARNING_RATE = 1e-4` - 学习率
-- `NUM_EPOCHS = 30` - 训练轮数
+- `BATCH_SIZE = 16` - 批次大小
+- `LEARNING_RATE = 1e-3` - 学习率
+- `EPOCHS_HEAD = 10` - Head 训练轮数
+- `EPOCHS_FINETUNE = 40` - 微调轮数
 - `TRAIN_VAL_SPLIT = 0.8` - 训练/验证比例
-- `STAGE1_DATA_MAP` / `STAGE2_DATA_MAP` - 数据映射
+- `THREE_CLASS_DATA_MAP` - 数据映射
 
 ## 输出
 
-训练完成后在 `trainer/` 目录生成:
-- `stage1_best.pth` / `stage2_best.pth` - PyTorch 权重
-- `stage1_natural_vs_screenlike.onnx` - Stage 1 ONNX 模型
-- `stage2_screenlike_vs_screenphoto.onnx` - Stage 2 ONNX 模型
+训练完成后在 `trainer/checkpoints/` 目录生成:
+- `best.pth` - PyTorch 权重
 
-将 ONNX 模型复制到 `inference/models/` 即可用于推理。
+导出 ONNX 后复制到 `inference/models/cnn_fft_3class.onnx` 即可用于推理。
 
 ## 环境要求
 

@@ -1,10 +1,10 @@
 # Screen Detector V3 - Inference
 
-两阶段 CNN + FFT Branch 推理系统。
+单阶段 CNN + FFT Branch 三分类推理系统。
 
 ## 功能
 
-- 两阶段 CNN 推理 (EfficientNet-B0 + FFT Branch)
+- 单阶段 CNN 推理 (EfficientNet-B0 + FFT Branch, 3-class)
 - OOD 检测 (unknown 类别)
 - TTA (Test Time Augmentation)
 - FFT 预处理缓存
@@ -27,11 +27,10 @@ uv run python main.py
 inference/
 ├── README.md
 ├── models/
-│   ├── stage1_natural_vs_screenlike.onnx
-│   └── stage2_screenlike_vs_screenphoto.onnx
+│   └── cnn_fft_3class.onnx    # 单阶段 3-class 模型
 ├── api/                # FastAPI 服务
 ├── config.py           # 配置 (模型路径/阈值/标签)
-├── predictor.py        # 两阶段推理器
+├── predictor.py        # 单阶段推理器
 ├── preprocess.py       # RGB 预处理
 ├── fft_transform.py    # FFT 频谱变换
 ├── batch_detect.py     # 批量检测
@@ -51,6 +50,7 @@ curl -X POST http://localhost:8325/api/detect/upload \
 ```
 
 **响应:**
+
 ```json
 {
   "image_id": "uuid",
@@ -81,36 +81,35 @@ curl -X POST http://localhost:8325/api/detect \
 ## Python 调用
 
 ```python
-from inference.src.predictor import ScreenDetectorPredictor
+from inference.predictor import ScreenDetectorPredictor
 
 predictor = ScreenDetectorPredictor()
 result = predictor.predict("path/to/image.jpg")
 
-print(result["class"])        # natural/screen_like/screen_photo/unknown
+print(result["class"])        # natural/screenshot/screen_photo/unknown
 print(result["confidence"])   # 0.0 - 1.0
-print(result["stage"])        # 1 or 2
 print(result["confidence_tier"])  # high/medium/low/ood
+print(result["action"])       # accept/review/ignore
 ```
 
 ## 推理流程
 
 ```
-Image → Stage 1 CNN → natural/screen_like
-                         ↓ screen_like
-                    OOD 检测 (max_prob < 0.65 → unknown)
-                         ↓
-                    Stage 2 CNN → screenshot/screen_photo
-                         ↓
-                    置信度分级 (accept/review/ignore)
+Image → CNN+FFT 3-class → natural/screenshot/screen_photo
+                              ↓
+                         OOD 检测 (max_prob < 0.45 → unknown)
+                              ↓
+                         screen_photo 阈值 (prob >= 0.35)
+                              ↓
+                         置信度分级 (accept/review/ignore)
 ```
 
 ## 配置
 
-`src/config.py` 中的关键配置:
+`inference/config.py` 中的关键配置:
 
-- `STAGE1_MODEL_PATH` - Stage 1 模型路径
-- `STAGE2_MODEL_PATH` - Stage 2 模型路径
-- `OOD_THRESHOLD = 0.65` - OOD 检测阈值
-- `CONFIDENCE_HIGH = 0.92` - 高置信度阈值
-- `CONFIDENCE_MEDIUM = 0.75` - 中置信度阈值
-- `API_PORT = 8325` - API 端口
+- `model_path` - 3-class 模型路径 (`cnn_fft_3class.onnx`)
+- `ood_threshold = 0.45` - OOD 检测阈值
+- `confidence_high = 0.92` - 高置信度阈值
+- `confidence_medium = 0.75` - 中置信度阈值
+- `api_port = 8325` - API 端口

@@ -4,21 +4,18 @@
 
 ## 系统架构
 
-采用**两阶段 CNN + FFT Branch**架构：
+采用**单阶段 CNN + FFT Branch**架构，一次推理完成三分类：
 
 ```
 Image
    ↓
-Stage 1 CNN (EfficientNet-B0 + FFT Branch)
+CNN+FFT (EfficientNet-B0 + FFT Branch)
    ↓
-natural / screenshot?
-   ↓ natural → 返回 "natural"
-   ↓ screenshot
+natural / screenshot / screen_photo
    ↓
-Stage 2 CNN (EfficientNet-B0 + FFT Branch)
+OOD 检测 (max_prob < 0.45 → unknown)
    ↓
-screenshot / screen_photo?
-   ↓ → 返回 "screenshot" 或 "screen_photo"
+置信度分级 (accept/review/ignore)
 ```
 
 ### 标签体系
@@ -36,14 +33,7 @@ screenshot / screen_photo?
 | >= 0.92 | 直接输出 (accept) |
 | 0.75 - 0.92 | 人工审核 (review) |
 | < 0.75 | 忽略 (ignore) |
-| < 0.50 | OOD 检测，返回 unknown |
-
-### 训练准确率
-
-| 阶段 | 任务 | 验证准确率 |
-|------|------|-----------|
-| Stage 1 | natural vs screenshot | **96.12%** |
-| Stage 2 | screenshot vs screen_photo | **93.99%** |
+| < 0.45 | OOD 检测，返回 unknown |
 
 ## 快速开始
 
@@ -87,10 +77,9 @@ opencv-screen-detector/
 │   └── fft_transform.py            # FFT 频谱变换 (训练/推理共享)
 ├── inference/                      # 推理系统
 │   ├── models/
-│   │   ├── stage1_natural_vs_screenshot.onnx
-│   │   └── stage2_screenshot_vs_screenphoto.onnx
+│   │   └── cnn_fft_3class.onnx     # 单阶段 3-class 模型
 │   ├── config.py                   # 推理配置 (Settings dataclass)
-│   ├── predictor.py                # 两阶段推理器 (TTA/OOD)
+│   ├── predictor.py                # 单阶段推理器 (TTA/OOD)
 │   ├── model_loader.py             # ONNX 模型加载
 │   ├── fft_service.py              # FFT 缓存服务 (LRU)
 │   ├── preprocess.py               # RGB 预处理 (normalize_rgb)
@@ -108,7 +97,7 @@ opencv-screen-detector/
 │   ├── model.py                    # 融合模型 (EfficientNet + FFT Branch)
 │   ├── fft_branch.py               # Frequency Branch (ResBlock)
 │   ├── dataset.py                  # 双输入数据集
-│   ├── train.py                    # 两阶段训练 (AMP)
+│   ├── train.py                    # 单阶段训练 (AMP)
 │   ├── validate.py                 # 验证指标
 │   ├── augment.py                  # 数据增强
 │   └── export_onnx.py              # ONNX 导出
@@ -209,7 +198,7 @@ images_YYYYMMDD_HHMMSS.zip
 # 安装训练依赖
 uv sync --group train
 
-# 训练两个阶段
+# 训练三分类模型
 uv run python -m trainer train
 
 # 导出 ONNX 模型
