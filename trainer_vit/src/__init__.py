@@ -1,19 +1,31 @@
-"""ViT training pipeline for screen detector."""
+"""Screen detector training pipeline with DeiT models."""
 
 from .dataset import ScreenDetectorDataset, create_dataloaders
-from .export_onnx import export_to_onnx
-from .model import ViTScreenDetector, create_vit_model, load_vit_model
-from .train import train_model
+from .export_onnx import export_from_checkpoint
+from .model import (
+    DeiTScreenDetector,
+    DWTFFTDeiT,
+    FFTDeiT,
+    create_deit_model,
+    create_dwt_fft_deit_model,
+    create_fft_deit_model,
+    load_deit_model,
+)
+from .train import train
 from .validate import compute_metrics, validate_model
 
 __all__ = [
+    "DWTFFTDeiT",
+    "DeiTScreenDetector",
+    "FFTDeiT",
     "ScreenDetectorDataset",
-    "ViTScreenDetector",
     "compute_metrics",
     "create_dataloaders",
-    "create_vit_model",
-    "export_to_onnx",
-    "load_vit_model",
-    "train_model",
+    "create_deit_model",
+    "create_dwt_fft_deit_model",
+    "create_fft_deit_model",
+    "export_from_checkpoint",
+    "load_deit_model",
+    "train",
     "validate_model",
 ]
