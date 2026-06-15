@@ -123,13 +123,13 @@ async def stream_file_to_upload(file: UploadFile) -> ImageEntry:
 
 
 def run_detect(file_path: Path) -> bool:
-    """Run two-stage detection.
+    """Run single-stage 3-class detection.
 
     Flow:
-    1. Stage 1: natural vs screenshot (with TTA)
-    2. OOD detection: max_prob < 0.65 → unknown
-    3. If natural → return directly
-    4. Stage 2: screenshot vs screen_photo
+    1. CNN+FFT 3-class inference (with TTA)
+    2. OOD detection: max_prob < 0.45 → unknown
+    3. Threshold-based screen_photo classification (prob >= 0.35)
+    4. Confidence tiering: accept/review/ignore
     """
     predictor = get_predictor()
     if predictor is None:

@@ -35,8 +35,7 @@ def health_check() -> HealthResponse:
     error = load_error()
     return HealthResponse(
         status="healthy" if predictor else ("degraded" if error else "starting"),
-        stage1_model_loaded=predictor.stage1_available if predictor else False,
-        stage2_model_loaded=predictor.stage2_available if predictor else False,
+        model_loaded=predictor.model_available if predictor else False,
         load_error=error,
     )
 

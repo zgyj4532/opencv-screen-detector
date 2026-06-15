@@ -25,7 +25,7 @@ async def lifespan(_: object) -> AsyncGenerator[None]:
 
 app = FastAPI(
     title="Screen Detector API",
-    description="Screen detector with two-stage CNN + FFT Branch",
+    description="Screen detector with single-stage CNN + FFT Branch (3-class)",
     version="3.0.0",
     lifespan=lifespan,
 )

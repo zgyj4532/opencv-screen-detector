@@ -105,30 +105,26 @@ class ModelSession:
 
 
 class ModelLoader:
-    """Manages two-stage ONNX model sessions."""
+    """Manages ONNX model session for single-stage 3-class inference."""
 
-    def __init__(self, stage1_path: Path, stage2_path: Path) -> None:
-        self._stage1_session = ModelSession(stage1_path, "Stage 1")
-        self._stage2_session = ModelSession(stage2_path, "Stage 2")
+    def __init__(
+        self,
+        model_path: Path | None = None,
+    ) -> None:
+        self._model_session: ModelSession | None = None
 
-    @property
-    def stage1_available(self) -> bool:
-        return self._stage1_session.is_available()
-
-    @property
-    def stage2_available(self) -> bool:
-        return self._stage2_session.is_available()
+        if model_path is not None:
+            self._model_session = ModelSession(model_path, "CNN+FFT 3-class")
 
     @property
     def model_available(self) -> bool:
-        return self.stage1_available and self.stage2_available
+        """Check if single 3-class model is available."""
+        return self._model_session is not None and self._model_session.is_available()
 
-    def get_stage1_session(
+    def get_session(
         self,
     ) -> contextlib.AbstractContextManager[ort.InferenceSession]:
-        return self._stage1_session.load()
-
-    def get_stage2_session(
-        self,
-    ) -> contextlib.AbstractContextManager[ort.InferenceSession]:
-        return self._stage2_session.load()
+        """Get single 3-class model session."""
+        if self._model_session is None:
+            raise RuntimeError("No single model configured")
+        return self._model_session.load()

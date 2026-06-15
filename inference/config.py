@@ -1,6 +1,6 @@
 """Configuration for screen detector V3 inference.
 
-Two-stage CNN + FFT Branch architecture.
+Single-stage CNN + FFT Branch architecture (3-class).
 
 Usage:
     # Default settings (reads from filesystem layout)
@@ -14,6 +14,7 @@ Usage:
 import functools
 from pathlib import Path
 from typing import Any, Final, overload
+
 from pydantic import BaseModel, Field
 
 
@@ -53,12 +54,9 @@ class Settings(BaseModel):
 
     # Model paths
     @property
-    def stage1_model_path(self) -> Path:
-        return self.models_dir / "stage1_natural_vs_screenshot.onnx"
-
-    @property
-    def stage2_model_path(self) -> Path:
-        return self.models_dir / "stage2_screenshot_vs_screenphoto.onnx"
+    def model_path(self) -> Path:
+        """Single-stage 3-class model (CNN+FFT)."""
+        return self.models_dir / "cnn_fft_3class.onnx"
 
     # Image processing
     image_size: int = 224
@@ -72,7 +70,7 @@ class Settings(BaseModel):
     # Confidence thresholds
     confidence_high: float = 0.92  # >= accept
     confidence_medium: float = 0.75  # >= review
-    ood_threshold: float = 0.50  # < unknown
+    ood_threshold: float = 0.45  # < unknown (lowered for screen_photo recall)
 
     # API
     api_host: str = "0.0.0.0"  # noqa: S104

@@ -7,8 +7,7 @@ class HealthResponse(BaseModel):
     """Response model for health check."""
 
     status: str
-    stage1_model_loaded: bool
-    stage2_model_loaded: bool
+    model_loaded: bool = False
     load_error: str | None = None
 
 
