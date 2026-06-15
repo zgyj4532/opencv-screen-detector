@@ -1,7 +1,7 @@
 """CNN validation script to generate metrics.json for comparison with ViT.
 
 Generates metrics in the same format as ViT for comparison.
-Supports three-class classification: natural, screenshot, screen_photo.
+Supports single-stage three-class classification: natural, screenshot, screen_photo.
 """
 
 import json
@@ -25,28 +25,26 @@ LABEL_NAMES = ["natural", "screenshot", "screen_photo"]
 
 
 def compute_cnn_metrics_three_class(
-    model_stage1: torch.nn.Module,
-    model_stage2: torch.nn.Module,
+    model: torch.nn.Module,
     val_loader: torch.utils.data.DataLoader,
     device: torch.device,
 ) -> dict:
-    """Compute comprehensive metrics for CNN model (three-class).
+    """Compute comprehensive metrics for CNN model (single-stage three-class).
 
-    Uses two-stage inference:
-    - Stage 1: natural vs screen_like (screenshot + screen_photo)
-    - Stage 2: screenshot vs screen_photo
+    Uses single model with 3-class output:
+    - Class 0: natural
+    - Class 1: screenshot
+    - Class 2: screen_photo
 
     Args:
-        model_stage1: Stage 1 model (natural vs screen_like)
-        model_stage2: Stage 2 model (screenshot vs screen_photo)
+        model: Single 3-class CNN model (EfficientNet-B0 + FFT Branch)
         val_loader: Validation data loader
         device: Device to evaluate on
 
     Returns:
         Dictionary with all metrics (same format as ViT)
     """
-    model_stage1.eval()
-    model_stage2.eval()
+    model.eval()
 
     all_preds = []
     all_labels = []
@@ -60,31 +58,9 @@ def compute_cnn_metrics_three_class(
                 fft = fft.to(device)
                 labels = labels.to(device)
 
-                # Stage 1: natural vs screen_like
-                outputs_stage1 = model_stage1(rgb, fft)
-                probs_stage1 = torch.softmax(outputs_stage1, dim=1)
-
-                # Stage 2: screenshot vs screen_photo
-                outputs_stage2 = model_stage2(rgb, fft)
-                probs_stage2 = torch.softmax(outputs_stage2, dim=1)
-
-                # Combine predictions
-                # Stage 1: [natural_prob, screenlike_prob]
-                # Stage 2: [screenshot_prob, screenphoto_prob]
-                natural_prob = probs_stage1[:, 0]
-                screenlike_prob = probs_stage1[:, 1]
-
-                screenshot_prob = screenlike_prob * probs_stage2[:, 0]
-                screenphoto_prob = screenlike_prob * probs_stage2[:, 1]
-
-                # Combine into three-class probabilities
-                combined_probs = torch.stack([
-                    natural_prob,
-                    screenshot_prob,
-                    screenphoto_prob,
-                ], dim=1)
-
-                _, predicted = combined_probs.max(1)
+                # Single forward pass: 3-class output
+                outputs = model(rgb, fft)
+                _, predicted = outputs.max(1)
 
                 all_preds.extend(predicted.cpu().numpy())
                 all_labels.extend(labels.cpu().numpy())
@@ -125,7 +101,7 @@ def compute_cnn_metrics_three_class(
             confusion[name][name2] = int(cm[i][j])
 
     return {
-        "model": "CNN+FFT (EfficientNet-B0) - Two-stage",
+        "model": "CNN+FFT (EfficientNet-B0) - Single-stage 3-class",
         "accuracy": float(accuracy),
         "precision": float(precision_macro),
         "recall": float(recall_macro),
@@ -142,16 +118,10 @@ def main():
 
     parser = argparse.ArgumentParser(description="Generate CNN metrics")
     parser.add_argument(
-        "--checkpoint-stage1",
+        "--checkpoint",
         type=str,
-        default="trainer/checkpoints/stage1_best.pth",
-        help="Path to Stage 1 CNN model checkpoint",
-    )
-    parser.add_argument(
-        "--checkpoint-stage2",
-        type=str,
-        default="trainer/checkpoints/stage2_best.pth",
-        help="Path to Stage 2 CNN model checkpoint",
+        default="trainer/checkpoints/three_class_best.pth",
+        help="Path to 3-class CNN model checkpoint",
     )
     parser.add_argument(
         "--data-dir",
@@ -175,20 +145,14 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    # Load Stage 1 model
-    print(f"Loading Stage 1 CNN model from {args.checkpoint_stage1}...")
-    model_stage1 = load_model(args.checkpoint_stage1, str(device))
-    model_stage1 = model_stage1.to(device)
-
-    # Load Stage 2 model
-    print(f"Loading Stage 2 CNN model from {args.checkpoint_stage2}...")
-    model_stage2 = load_model(args.checkpoint_stage2, str(device))
-    model_stage2 = model_stage2.to(device)
+    # Load 3-class model
+    print(f"Loading 3-class CNN model from {args.checkpoint}...")
+    model = load_model(args.checkpoint, str(device))
+    model = model.to(device)
 
     # Create dataloaders with three-class data map
     print("Creating dataloaders...")
 
-    # Three-class data map
     data_map = {
         "natural": ["natural_photo"],
         "screenshot": ["screenshot"],
@@ -204,9 +168,7 @@ def main():
 
     # Compute metrics
     print("Computing metrics...")
-    metrics = compute_cnn_metrics_three_class(
-        model_stage1, model_stage2, val_loader, device
-    )
+    metrics = compute_cnn_metrics_three_class(model, val_loader, device)
 
     # Save metrics
     metrics_path = output_path / "cnn_metrics.json"

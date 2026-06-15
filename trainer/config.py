@@ -13,19 +13,7 @@ TRAINER_ROOT = PROJECT_ROOT / "trainer"
 CHECKPOINT_DIR = TRAINER_ROOT / "checkpoints"
 LOG_DIR = TRAINER_ROOT / "logs"
 
-# Legacy two-stage config (kept for backward compatibility)
-CLASS_NAMES_STAGE1 = ["natural", "screenshot"]
-STAGE1_DATA_MAP = {
-    "natural": ["natural_photo"],
-    "screenshot": ["screenshot", "hard_negative"],
-}
-CLASS_NAMES_STAGE2 = ["screenshot", "screen_photo"]
-STAGE2_DATA_MAP = {
-    "screenshot": ["screenshot"],
-    "screen_photo": ["screen_photo"],
-}
-
-# Three-class config (new single-stage approach)
+# Three-class config
 CLASS_NAMES_THREE_CLASS = ["natural", "screenshot", "screen_photo"]
 THREE_CLASS_DATA_MAP = {
     "natural": ["natural_photo"],
@@ -33,10 +21,10 @@ THREE_CLASS_DATA_MAP = {
     "screen_photo": ["screen_photo"],
 }
 
-# Class weights for imbalanced dataset (total=1828)
-# natural=910, screenshot=729, screen_photo=189
-# weight = total / (3 * class_count)
-CLASS_WEIGHTS_THREE_CLASS = [0.67, 0.84, 3.22]
+# Class weights for imbalanced dataset (total=1874)
+# natural=929, screenshot=709, screen_photo=236
+# Optimized via focal loss scan: gamma=1.5, alpha=[1,1,2]
+CLASS_WEIGHTS_THREE_CLASS = [1.0, 1.0, 2.0]
 
 # Model
 MODEL_NAME = "efficientnet_b0"
@@ -54,8 +42,8 @@ EPOCHS_FINETUNE = 40  # Increased for better convergence
 TRAIN_VAL_SPLIT = 0.8
 RANDOM_SEED = 42
 
-# Focal Loss
-FOCAL_LOSS_GAMMA = 2.0
+# Focal Loss (optimized: gamma=1.5, alpha=[1,1,2])
+FOCAL_LOSS_GAMMA = 1.5
 USE_FOCAL_LOSS = True
 
 # Oversampling

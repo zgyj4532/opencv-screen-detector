@@ -1,6 +1,6 @@
 """EfficientNet + FFT Branch model for screen detector V3.
 
-Two-stage CNN architecture with frequency domain analysis.
+Single-stage 3-class CNN architecture with frequency domain analysis.
 """
 
 # pyright: reportPrivateImportUsage=none

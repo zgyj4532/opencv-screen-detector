@@ -1,10 +1,7 @@
-"""Export trained models to ONNX format.
+"""Export trained 3-class model to ONNX format.
 
-Exports two models:
-- Stage 1: natural vs screenshot
-- Stage 2: screenshot vs screen_photo
-
-Both models have dual inputs (RGB + FFT) with dynamic batch axes (修正 #8).
+Exports single model with 3-class output (natural/screenshot/screen_photo).
+Model has dual inputs (RGB + FFT) with dynamic batch axes.
 """
 
 from pathlib import Path
@@ -30,7 +27,7 @@ def export_to_onnx(
     opset_version: int = 11,
     verify: bool = True,
 ):
-    """Export PyTorch model to ONNX format with dual inputs.
+    """Export PyTorch 3-class model to ONNX format with dual inputs.
 
     Args:
         checkpoint_path: Path to PyTorch checkpoint
@@ -48,7 +45,7 @@ def export_to_onnx(
     dummy_rgb = torch.randn(1, 3, config.IMAGE_SIZE, config.IMAGE_SIZE, device=device)
     dummy_fft = torch.randn(1, 1, config.IMAGE_SIZE, config.IMAGE_SIZE, device=device)
 
-    # Export to ONNX with dual inputs and dynamic axes (修正 #8)
+    # Export to ONNX with dual inputs and dynamic axes
     torch.onnx.export(
         model,
         (dummy_rgb, dummy_fft),
@@ -117,38 +114,29 @@ def export_to_torchscript(
 
 
 def main() -> None:
-    """Main entry point for exporting both stage models."""
+    """Main entry point for exporting 3-class model."""
     models_dir = config.PROJECT_ROOT / "inference" / "models"
     models_dir.mkdir(parents=True, exist_ok=True)
 
-    # Export Stage 1: natural vs screenshot
-    stage1_checkpoint = str(config.CHECKPOINT_DIR / "stage1_best.pth")
-    stage1_onnx = str(models_dir / "stage1_natural_vs_screenshot.onnx")
+    # Export 3-class model: natural/screenshot/screen_photo
+    checkpoint_path = str(config.CHECKPOINT_DIR / "three_class_best.pth")
+    onnx_path = str(models_dir / "three_class.onnx")
 
-    if Path(stage1_checkpoint).exists():
-        print("Exporting Stage 1 model...")
+    if Path(checkpoint_path).exists():
+        print("Exporting 3-class model...")
         export_to_onnx(
-            checkpoint_path=stage1_checkpoint,
-            onnx_path=stage1_onnx,
+            checkpoint_path=checkpoint_path,
+            onnx_path=onnx_path,
             opset_version=11,
             verify=True,
         )
-        print(f"Stage 1 exported to: {stage1_onnx}")
-    else:
-        print(f"Stage 1 checkpoint not found: {stage1_checkpoint}")
+        print(f"3-class model exported to: {onnx_path}")
 
-    # Export Stage 2: screenshot vs screen_photo
-    stage2_checkpoint = str(config.CHECKPOINT_DIR / "stage2_best.pth")
-    stage2_onnx = str(models_dir / "stage2_screenshot_vs_screenphoto.onnx")
-
-    if Path(stage2_checkpoint).exists():
-        print("Exporting Stage 2 model...")
-        export_to_onnx(
-            checkpoint_path=stage2_checkpoint,
-            onnx_path=stage2_onnx,
-            opset_version=11,
-            verify=True,
-        )
-        print(f"Stage 2 exported to: {stage2_onnx}")
+        # Also export TorchScript
+        torchscript_path = str(models_dir / "three_class.torchscript")
+        print("Exporting TorchScript model...")
+        export_to_torchscript(checkpoint_path, torchscript_path)
+        print(f"TorchScript model exported to: {torchscript_path}")
     else:
-        print(f"Stage 2 checkpoint not found: {stage2_checkpoint}")
+        print(f"3-class checkpoint not found: {checkpoint_path}")
+        print("Please train the 3-class model first: uv run python -m src.train")
