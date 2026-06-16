@@ -24,27 +24,18 @@ def get_train_transforms(image_size: int = 224) -> A.Compose:
     Returns:
         Albumentations compose transform
     """
-    return A.Compose([
-        A.Resize(image_size, image_size),
-        A.HorizontalFlip(p=0.5),
-        A.RandomBrightnessContrast(
-            brightness_limit=0.2,
-            contrast_limit=0.2,
-            p=0.5
-        ),
-        A.ShiftScaleRotate(
-            shift_limit=0.1,
-            scale_limit=0.1,
-            rotate_limit=15,
-            p=0.5
-        ),
-        A.Normalize(
-            mean=IMAGENET_MEAN,
-            std=IMAGENET_STD,
-            max_pixel_value=255.0
-        ),
-        ToTensorV2(),
-    ])
+    return A.Compose(
+        [
+            A.Resize(image_size, image_size),
+            A.HorizontalFlip(p=0.5),
+            A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.5),
+            A.ShiftScaleRotate(
+                shift_limit=0.1, scale_limit=0.1, rotate_limit=15, p=0.5
+            ),
+            A.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD, max_pixel_value=255.0),
+            ToTensorV2(),
+        ]
+    )
 
 
 def get_val_transforms(image_size: int = 224) -> A.Compose:
@@ -56,15 +47,13 @@ def get_val_transforms(image_size: int = 224) -> A.Compose:
     Returns:
         Albumentations compose transform
     """
-    return A.Compose([
-        A.Resize(image_size, image_size),
-        A.Normalize(
-            mean=IMAGENET_MEAN,
-            std=IMAGENET_STD,
-            max_pixel_value=255.0
-        ),
-        ToTensorV2(),
-    ])
+    return A.Compose(
+        [
+            A.Resize(image_size, image_size),
+            A.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD, max_pixel_value=255.0),
+            ToTensorV2(),
+        ]
+    )
 
 
 def get_inference_transforms(image_size: int = 224) -> A.Compose:

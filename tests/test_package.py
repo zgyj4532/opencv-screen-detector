@@ -4,6 +4,7 @@ import io
 import sqlite3
 import zipfile
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pytest
 
@@ -19,7 +20,7 @@ def client():
 
 
 @pytest.fixture
-def setup_test_images(tmp_path, monkeypatch):  # noqa: ARG001
+def setup_test_images(tmp_path, monkeypatch):
     """Create test images with different class names."""
     from inference.config import configure
     from inference.image_index import TABLE_SCHEMA
@@ -288,6 +289,8 @@ def test_package_size_limit_exceeded(client, setup_test_images, monkeypatch):
 
 def test_package_uses_temp_file_not_bytesio(client, setup_test_images):
     """Test that the optimized version uses temp files instead of BytesIO."""
+    import contextlib
+    import tempfile
     from unittest.mock import patch
 
     test_data = setup_test_images
@@ -299,18 +302,16 @@ def test_package_uses_temp_file_not_bytesio(client, setup_test_images):
     with patch("tempfile.NamedTemporaryFile") as mock_tmp:
         mock_tmp.return_value.__enter__ = lambda s: s
         mock_tmp.return_value.__exit__ = lambda s, *args: None
-        mock_tmp.return_value.name = "/tmp/test.zip"
+        mock_tmp.return_value.name = str(Path(tempfile.gettempdir()) / "test.zip")
         mock_tmp.return_value.close = lambda: None
 
         # The actual call will fail because we mocked the temp file,
         # but we can verify the optimization is in place
-        try:
+        with contextlib.suppress(Exception):
             client.post(
                 "/api/package",
                 json={"after_timestamp": timestamp},
             )
-        except Exception:
-            pass  # Expected to fail due to mocking
 
         # Verify NamedTemporaryFile was called (indicating temp file usage)
         # Note: This test verifies the optimization approach is implemented

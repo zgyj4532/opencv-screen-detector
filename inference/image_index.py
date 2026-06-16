@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS images (
 )
 """
 
+
 class ImageEntry(BaseModel):
     file_name: str
     file_hash: str

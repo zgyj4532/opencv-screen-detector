@@ -68,6 +68,3 @@ def get_val_transforms():
             ToTensorV2(),
         ]
     )
-
-
-

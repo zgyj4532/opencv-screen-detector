@@ -213,7 +213,7 @@ def iter_file(path: Path, chunk_size: int = CHUNK_SIZE) -> Generator[bytes, None
     Yields:
         Chunks of file data.
     """
-    with open(path, "rb") as f:
+    with path.open("rb") as f:
         while chunk := f.read(chunk_size):
             yield chunk
 

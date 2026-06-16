@@ -21,8 +21,8 @@ THREE_CLASS_DATA_MAP = {
     "screen_photo": ["screen_photo"],
 }
 
-# Class weights for imbalanced dataset (total=1874)
-# natural=929, screenshot=709, screen_photo=236
+# Class weights for imbalanced dataset (total=2770)
+# natural=935, screenshot=1043, screen_photo=278
 # Optimized via focal loss scan: gamma=1.5, alpha=[1,1,2]
 CLASS_WEIGHTS_THREE_CLASS = [1.0, 1.0, 2.0]
 

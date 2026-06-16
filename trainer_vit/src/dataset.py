@@ -23,8 +23,8 @@ from .transforms import get_train_transforms, get_val_transforms
 # Label mapping
 LABEL_MAP = {
     "natural_photo": 0,  # natural
-    "screenshot": 1,     # screenshot
-    "screen_photo": 2,   # screen_photo
+    "screenshot": 1,  # screenshot
+    "screen_photo": 2,  # screen_photo
 }
 
 LABEL_NAMES = ["natural", "screenshot", "screen_photo"]

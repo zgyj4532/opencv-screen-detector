@@ -111,11 +111,11 @@ class TwoInputDataset(Dataset):
         # 映射误判目录到真实标签
         misclass_to_true_label = {
             "screen_photo_to_screenshot": 2,  # 真实是 screen_photo
-            "screen_photo_to_natural": 2,     # 真实是 screen_photo
+            "screen_photo_to_natural": 2,  # 真实是 screen_photo
             "screenshot_to_screen_photo": 1,  # 真实是 screenshot
-            "screenshot_to_natural": 1,       # 真实是 screenshot
-            "natural_to_screenshot": 0,       # 真实是 natural
-            "natural_to_screen_photo": 0,     # 真实是 natural
+            "screenshot_to_natural": 1,  # 真实是 screenshot
+            "natural_to_screenshot": 0,  # 真实是 natural
+            "natural_to_screen_photo": 0,  # 真实是 natural
         }
 
         for misclass_dir, true_label in misclass_to_true_label.items():
@@ -138,7 +138,16 @@ class TwoInputDataset(Dataset):
         img_path, label = self.samples[idx]
 
         # Load image using PIL (RGB)
-        image = np.array(Image.open(img_path).convert("RGBA").convert("RGB"))
+        pil_image = Image.open(img_path).convert("RGBA").convert("RGB")
+
+        # Skip images larger than 10MB to avoid MemoryError
+        file_size_mb = Path(img_path).stat().st_size / (1024 * 1024)
+        if file_size_mb > 10:
+            # Return a blank image for oversized files
+            blank = np.zeros((self.image_size, self.image_size, 3), dtype=np.uint8)
+            image = blank
+        else:
+            image = np.array(pil_image)
 
         # RGB 分支
         if self.transform:
@@ -260,8 +269,7 @@ def create_data_loaders(
         class_counts = Counter(train_labels)
         total_samples = len(train_labels)
         class_weights = {
-            cls: total_samples / count
-            for cls, count in class_counts.items()
+            cls: total_samples / count for cls, count in class_counts.items()
         }
 
         # Assign weight to each sample

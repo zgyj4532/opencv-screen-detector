@@ -3,8 +3,8 @@
 Provides lazy singleton with explicit startup/shutdown and failure logging.
 """
 
-from collections.abc import Generator
 import contextlib
+from collections.abc import Generator
 
 from ..log import logger
 from ..predictor import ScreenDetectorPredictor

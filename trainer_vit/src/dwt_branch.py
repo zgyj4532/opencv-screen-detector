@@ -155,9 +155,9 @@ class DWTFeatureExtractor(nn.Module):
         dwt_coeffs = self.dwt(x)  # (B, 12, H/2, W/2)
 
         # Split into 4 subbands (each has 3 channels for RGB)
-        ll = dwt_coeffs[:, 0:3, :, :]   # Low-Low
-        lh = dwt_coeffs[:, 3:6, :, :]   # Low-High
-        hl = dwt_coeffs[:, 6:9, :, :]   # High-Low
+        ll = dwt_coeffs[:, 0:3, :, :]  # Low-Low
+        lh = dwt_coeffs[:, 3:6, :, :]  # Low-High
+        hl = dwt_coeffs[:, 6:9, :, :]  # High-Low
         hh = dwt_coeffs[:, 9:12, :, :]  # High-High
 
         return {

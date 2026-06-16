@@ -123,9 +123,7 @@ def validate_model(
                 else:
                     outputs = model(images)
             else:
-                raise ValueError(
-                    f"Unexpected batch format: {len(batch)} elements"
-                )
+                raise ValueError(f"Unexpected batch format: {len(batch)} elements")
 
             _, predicted = outputs.max(1)
             all_preds.extend(predicted.cpu().numpy())
@@ -205,28 +203,36 @@ def main() -> None:
     """Main validation entry point."""
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Validate screen detector model"
-    )
+    parser = argparse.ArgumentParser(description="Validate screen detector model")
     parser.add_argument(
-        "--checkpoint", type=str, required=True,
+        "--checkpoint",
+        type=str,
+        required=True,
         help="Path to model checkpoint",
     )
     parser.add_argument(
-        "--model-type", type=str, default="deit",
+        "--model-type",
+        type=str,
+        default="deit",
         choices=["deit", "fft_deit", "dwt_fft_deit"],
         help="Model type",
     )
     parser.add_argument(
-        "--data-dir", type=str, default="data/input",
+        "--data-dir",
+        type=str,
+        default="data/input",
         help="Path to data directory",
     )
     parser.add_argument(
-        "--output-dir", type=str, default="outputs",
+        "--output-dir",
+        type=str,
+        default="outputs",
         help="Path to output directory",
     )
     parser.add_argument(
-        "--device", type=str, default="cpu",
+        "--device",
+        type=str,
+        default="cpu",
         help="Device (cpu/cuda)",
     )
 

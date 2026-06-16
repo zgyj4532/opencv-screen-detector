@@ -15,6 +15,7 @@ def main() -> None:
     """Run ViT training with improved techniques."""
     # 设置代理环境变量
     import os
+
     os.environ["HTTP_PROXY"] = "http://localhost:7897"
     os.environ["HTTPS_PROXY"] = "http://localhost:7897"
 

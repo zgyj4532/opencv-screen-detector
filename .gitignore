@@ -24,6 +24,9 @@ trainer/logs
 scripts/
 *.json
 
+# ppt (presentation files)
+ppt/
+
 # claude
 .claude/
 CLAUDE.md

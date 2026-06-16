@@ -10,6 +10,7 @@
 import shutil
 from pathlib import Path
 
+import cv2
 import numpy as np
 import torch
 import torch.nn as nn
@@ -84,7 +85,10 @@ def find_misclassified_images(
             rgb_tensor = augmented["image"].unsqueeze(0).to(device)
         else:
             image_resized = cv2.resize(image, (config.IMAGE_SIZE, config.IMAGE_SIZE))
-            rgb_tensor = torch.from_numpy(image_resized).permute(2, 0, 1).float().unsqueeze(0) / 255.0
+            rgb_tensor = (
+                torch.from_numpy(image_resized).permute(2, 0, 1).float().unsqueeze(0)
+                / 255.0
+            )
             rgb_tensor = rgb_tensor.to(device)
 
         # FFT 分支
@@ -102,12 +106,14 @@ def find_misclassified_images(
         pred_class = class_names[pred_label]
 
         if true_label != pred_label:
-            misclassified[f"{true_class}_to_{pred_class}"].append({
-                "path": Path(img_path),
-                "true_class": true_class,
-                "pred_class": pred_class,
-                "confidence": probs[0][pred_label].item(),
-            })
+            misclassified[f"{true_class}_to_{pred_class}"].append(
+                {
+                    "path": Path(img_path),
+                    "true_class": true_class,
+                    "pred_class": pred_class,
+                    "confidence": probs[0][pred_label].item(),
+                }
+            )
 
         if (i + 1) % 100 == 0:
             print(f"  已处理 {i + 1}/{val_size} 张图片")
@@ -154,7 +160,9 @@ def copy_misclassified_to_hard_negative(
 
                 shutil.copy2(src_path, dst_path)
                 count += 1
-                print(f"  复制: {src_path.name} → {mis_type}/ (置信度: {confidence:.4f})")
+                print(
+                    f"  复制: {src_path.name} → {mis_type}/ (置信度: {confidence:.4f})"
+                )
 
         stats[mis_type] = count
 
@@ -174,7 +182,7 @@ def main():
     checkpoint_path = config.CHECKPOINT_DIR / "three_class_best.pth"
     if not checkpoint_path.exists():
         print(f"错误: 模型文件不存在 {checkpoint_path}")
-        return
+        return None
 
     print(f"加载模型: {checkpoint_path}")
     model = load_model(str(checkpoint_path), device=device)
@@ -221,7 +229,7 @@ def main():
     if sp_to_ss:
         print(f"共 {len(sp_to_ss)} 张图片被误判:")
         for i, item in enumerate(sp_to_ss[:10]):  # 只显示前10个
-            print(f"  {i+1}. {item['path'].name} (置信度: {item['confidence']:.4f})")
+            print(f"  {i + 1}. {item['path'].name} (置信度: {item['confidence']:.4f})")
     else:
         print("没有此类误判!")
 

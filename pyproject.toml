@@ -65,3 +65,24 @@ pythonPlatform = "All"
 typeCheckingMode = "basic"
 ignore = [ ".venv" ]
 disableBytesTypePromotions = true
+
+[tool.ruff]
+exclude = [
+    "ppt",
+    "scripts",
+    ".venv",
+]
+
+[tool.ruff.lint]
+ignore = [
+    "E501",   # Line too long (handled by formatter)
+    "T201",   # print found (allowed in scripts)
+    "ANN001", # Missing type annotation for function argument
+    "ANN201", # Missing return type annotation
+    "ARG001", # Unused function argument
+    "ARG005", # Unused lambda argument
+    "S108",   # Probable insecure usage of temporary file
+    "S110",   # try-except-pass detected
+    "SIM105", # Use contextlib.suppress
+    "PTH123", # open() should be replaced by Path.open()
+]

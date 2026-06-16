@@ -165,17 +165,11 @@ def export_from_checkpoint(
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
     if isinstance(model, DWTFFTDeiT):
-        export_dwt_fft_deit_to_onnx(
-            model, output_path, image_size, opset_version
-        )
+        export_dwt_fft_deit_to_onnx(model, output_path, image_size, opset_version)
     elif isinstance(model, FFTDeiT):
-        export_fft_deit_to_onnx(
-            model, output_path, image_size, opset_version
-        )
+        export_fft_deit_to_onnx(model, output_path, image_size, opset_version)
     elif isinstance(model, DeiTScreenDetector):
-        export_deit_to_onnx(
-            model, output_path, image_size, opset_version
-        )
+        export_deit_to_onnx(model, output_path, image_size, opset_version)
     else:
         raise TypeError(f"Unknown model type: {type(model)}")
 
@@ -184,23 +178,29 @@ def main() -> None:
     """Main export entry point."""
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Export screen detector model to ONNX"
-    )
+    parser = argparse.ArgumentParser(description="Export screen detector model to ONNX")
     parser.add_argument(
-        "--checkpoint", type=str, required=True,
+        "--checkpoint",
+        type=str,
+        required=True,
         help="Path to model checkpoint",
     )
     parser.add_argument(
-        "--output", type=str, default="outputs/model.onnx",
+        "--output",
+        type=str,
+        default="outputs/model.onnx",
         help="Path to save ONNX model",
     )
     parser.add_argument(
-        "--image-size", type=int, default=224,
+        "--image-size",
+        type=int,
+        default=224,
         help="Input image size",
     )
     parser.add_argument(
-        "--opset-version", type=int, default=17,
+        "--opset-version",
+        type=int,
+        default=17,
         help="ONNX opset version",
     )
 

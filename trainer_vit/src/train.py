@@ -121,11 +121,9 @@ def get_layerwise_lr_params(
         deit_model = model.rgb_stream
     else:
         # Fallback: all parameters with same learning rate
-        param_groups.append({
-            "params": list(model.parameters()),
-            "lr": lr,
-            "name": "all"
-        })
+        param_groups.append(
+            {"params": list(model.parameters()), "lr": lr, "name": "all"}
+        )
         return param_groups
 
     # Get model layers (for DeiT-Small: 12 transformer blocks)
@@ -139,65 +137,73 @@ def get_layerwise_lr_params(
             embed_params.append(deit_model.cls_token)
         if hasattr(deit_model, "pos_embed"):
             embed_params.append(deit_model.pos_embed)
-        param_groups.append({
-            "params": embed_params,
-            "lr": lr * (decay ** num_layers),
-            "name": "embeddings"
-        })
+        param_groups.append(
+            {
+                "params": embed_params,
+                "lr": lr * (decay**num_layers),
+                "name": "embeddings",
+            }
+        )
 
         # Transformer blocks (increasing learning rate)
         for i, block in enumerate(blocks):
             block_lr = lr * (decay ** (num_layers - i - 1))
-            param_groups.append({
-                "params": list(block.parameters()),
-                "lr": block_lr,
-                "name": f"block_{i}"
-            })
+            param_groups.append(
+                {
+                    "params": list(block.parameters()),
+                    "lr": block_lr,
+                    "name": f"block_{i}",
+                }
+            )
 
         # Head (highest learning rate)
         if hasattr(deit_model, "head"):
             head_params = list(deit_model.head.parameters())
-            param_groups.append({
-                "params": head_params,
-                "lr": lr,
-                "name": "head"
-            })
+            param_groups.append({"params": head_params, "lr": lr, "name": "head"})
     else:
         # Fallback: all parameters with same learning rate
-        param_groups.append({
-            "params": list(model.parameters()),
-            "lr": lr,
-            "name": "all"
-        })
+        param_groups.append(
+            {"params": list(model.parameters()), "lr": lr, "name": "all"}
+        )
 
     # Add FFT/DWT stream parameters if applicable
     if isinstance(model, FFTDeiT):
-        param_groups.append({
-            "params": list(model.fft_stream.parameters()),
-            "lr": lr * 0.5,
-            "name": "fft_stream"
-        })
-        param_groups.append({
-            "params": list(model.classifier.parameters()),
-            "lr": lr,
-            "name": "classifier"
-        })
+        param_groups.append(
+            {
+                "params": list(model.fft_stream.parameters()),
+                "lr": lr * 0.5,
+                "name": "fft_stream",
+            }
+        )
+        param_groups.append(
+            {
+                "params": list(model.classifier.parameters()),
+                "lr": lr,
+                "name": "classifier",
+            }
+        )
     elif isinstance(model, DWTFFTDeiT):
-        param_groups.append({
-            "params": list(model.fft_stream.parameters()),
-            "lr": lr * 0.5,
-            "name": "fft_stream"
-        })
-        param_groups.append({
-            "params": list(model.dwt_stream.parameters()),
-            "lr": lr * 0.5,
-            "name": "dwt_stream"
-        })
-        param_groups.append({
-            "params": list(model.classifier.parameters()),
-            "lr": lr,
-            "name": "classifier"
-        })
+        param_groups.append(
+            {
+                "params": list(model.fft_stream.parameters()),
+                "lr": lr * 0.5,
+                "name": "fft_stream",
+            }
+        )
+        param_groups.append(
+            {
+                "params": list(model.dwt_stream.parameters()),
+                "lr": lr * 0.5,
+                "name": "dwt_stream",
+            }
+        )
+        param_groups.append(
+            {
+                "params": list(model.classifier.parameters()),
+                "lr": lr,
+                "name": "classifier",
+            }
+        )
 
     return param_groups
 
@@ -274,9 +280,7 @@ def train_one_epoch(
             else:
                 outputs = model(images)
         else:
-            raise ValueError(
-                f"Unexpected batch format: {len(batch)} elements"
-            )
+            raise ValueError(f"Unexpected batch format: {len(batch)} elements")
 
         # Compute loss
         if labels_onehot.dim() > 1:
@@ -345,9 +349,7 @@ def validate(
                 else:
                     outputs = model(images)
             else:
-                raise ValueError(
-                    f"Unexpected batch format: {len(batch)} elements"
-                )
+                raise ValueError(f"Unexpected batch format: {len(batch)} elements")
 
             loss = criterion(outputs, labels)
             total_loss += loss.item()
@@ -464,22 +466,30 @@ def train(
         lr=learning_rate,
         weight_decay=weight_decay,
     )
-    scheduler = CosineAnnealingLR(
-        optimizer, T_max=stage1_epochs, eta_min=1e-6
-    )
+    scheduler = CosineAnnealingLR(optimizer, T_max=stage1_epochs, eta_min=1e-6)
 
     for epoch in range(stage1_epochs):
         train_metrics = train_one_epoch(
-            model, train_loader, criterion, optimizer, device,
-            epoch, model_type, mixup_cutmix,
+            model,
+            train_loader,
+            criterion,
+            optimizer,
+            device,
+            epoch,
+            model_type,
+            mixup_cutmix,
         )
         val_metrics = validate(
-            model, val_loader, criterion, device, model_type,
+            model,
+            val_loader,
+            criterion,
+            device,
+            model_type,
         )
         scheduler.step()
 
         logger.info(
-            f"Epoch {epoch+1}/{stage1_epochs} - "
+            f"Epoch {epoch + 1}/{stage1_epochs} - "
             f"Train Loss: {train_metrics['loss']:.4f} - "
             f"Train Acc: {train_metrics['accuracy']:.4f} - "
             f"Val Loss: {val_metrics['loss']:.4f} - "
@@ -497,8 +507,10 @@ def train(
         if val_metrics["accuracy"] > best_val_acc:
             best_val_acc = val_metrics["accuracy"]
             save_deit_model(
-                model, str(output_dir / "best.pth"),
-                epoch, model_type,
+                model,
+                str(output_dir / "best.pth"),
+                epoch,
+                model_type,
             )
 
     # Stage 2: Fine-tune all layers
@@ -506,31 +518,37 @@ def train(
     model.unfreeze_backbone()
 
     # Get layer-wise learning rate parameters
-    param_groups = get_layerwise_lr_params(
-        model, learning_rate, decay=0.85
-    )
+    param_groups = get_layerwise_lr_params(model, learning_rate, decay=0.85)
 
     optimizer = AdamW(
         param_groups,
         lr=learning_rate,
         weight_decay=weight_decay,
     )
-    scheduler = CosineAnnealingLR(
-        optimizer, T_max=stage2_epochs, eta_min=1e-6
-    )
+    scheduler = CosineAnnealingLR(optimizer, T_max=stage2_epochs, eta_min=1e-6)
 
     for epoch in range(stage2_epochs):
         train_metrics = train_one_epoch(
-            model, train_loader, criterion, optimizer, device,
-            epoch, model_type, mixup_cutmix,
+            model,
+            train_loader,
+            criterion,
+            optimizer,
+            device,
+            epoch,
+            model_type,
+            mixup_cutmix,
         )
         val_metrics = validate(
-            model, val_loader, criterion, device, model_type,
+            model,
+            val_loader,
+            criterion,
+            device,
+            model_type,
         )
         scheduler.step()
 
         logger.info(
-            f"Epoch {epoch+1}/{stage2_epochs} - "
+            f"Epoch {epoch + 1}/{stage2_epochs} - "
             f"Train Loss: {train_metrics['loss']:.4f} - "
             f"Train Acc: {train_metrics['accuracy']:.4f} - "
             f"Val Loss: {val_metrics['loss']:.4f} - "
@@ -548,8 +566,10 @@ def train(
         if val_metrics["accuracy"] > best_val_acc:
             best_val_acc = val_metrics["accuracy"]
             save_deit_model(
-                model, str(output_dir / "best.pth"),
-                stage1_epochs + epoch, model_type,
+                model,
+                str(output_dir / "best.pth"),
+                stage1_epochs + epoch,
+                model_type,
             )
 
     # Save training history
@@ -571,32 +591,42 @@ def main() -> None:
     """Main entry point for training."""
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Train screen detector model"
-    )
+    parser = argparse.ArgumentParser(description="Train screen detector model")
     parser.add_argument(
-        "--model-type", type=str, default="deit",
+        "--model-type",
+        type=str,
+        default="deit",
         choices=["deit", "fft_deit", "dwt_fft_deit"],
         help="Model type",
     )
     parser.add_argument(
-        "--data-dir", type=str, default="data/input",
+        "--data-dir",
+        type=str,
+        default="data/input",
         help="Path to data directory",
     )
     parser.add_argument(
-        "--output-dir", type=str, default="trainer_vit/checkpoints",
+        "--output-dir",
+        type=str,
+        default="trainer_vit/checkpoints",
         help="Path to output directory",
     )
     parser.add_argument(
-        "--epochs", type=int, default=100,
+        "--epochs",
+        type=int,
+        default=100,
         help="Total number of epochs",
     )
     parser.add_argument(
-        "--batch-size", type=int, default=32,
+        "--batch-size",
+        type=int,
+        default=32,
         help="Batch size",
     )
     parser.add_argument(
-        "--learning-rate", type=float, default=1e-3,
+        "--learning-rate",
+        type=float,
+        default=1e-3,
         help="Learning rate",
     )
 

@@ -20,11 +20,13 @@ OOD 检测 (max_prob < 0.45 → unknown)
 
 ### 标签体系
 
-| 标签 | 含义 | 包含内容 |
-|------|------|----------|
-| `natural` | 真实自然图像 | 风景、人像、室内、动物、食物、街景、天空、树木 |
-| `screenshot` | 屏幕内容 | 截图、PPT、IDE、UI、terminal、聊天记录、软件界面 |
-| `screen_photo` | 相机拍摄屏幕 | 手机拍摄的屏幕照片 |
+| 标签 | 含义 | 包含内容 | 样本数 |
+|------|------|----------|--------|
+| `natural` | 真实自然图像 | 风景、人像、室内、动物、食物、街景、天空、树木 | 935 |
+| `screenshot` | 屏幕内容 | 截图、PPT、IDE、UI、terminal、聊天记录、软件界面 | 1043 |
+| `screen_photo` | 相机拍摄屏幕 | 手机拍摄的屏幕照片 | 278 |
+
+> 注: 数据集包含 514 个 hard_negative 样本用于增强模型鲁棒性。
 
 ### 置信度分级
 
@@ -34,6 +36,31 @@ OOD 检测 (max_prob < 0.45 → unknown)
 | 0.75 - 0.92 | 人工审核 (review) |
 | < 0.75 | 忽略 (ignore) |
 | < 0.45 | OOD 检测，返回 unknown |
+
+### 模型性能
+
+**最新训练结果** (2026-06-15):
+
+| 指标 | 值 |
+|------|-----|
+| Overall Accuracy | 96.14% |
+| Macro Precision | 93.76% |
+| Macro Recall | 95.35% |
+| Macro F1 | 94.52% |
+
+**各类别指标**:
+
+| 类别 | Precision | Recall | F1 | FPR |
+|------|-----------|--------|-----|-----|
+| natural | 96.11% | 98.86% | 97.46% | 1.77% |
+| screenshot | 97.86% | 95.52% | 96.68% | 2.98% |
+| screen_photo | 87.30% | 91.67% | 89.43% | 1.57% |
+
+**训练配置**:
+- 数据集: 2846 张图片 (train: 2276, val: 570)
+- 架构: EfficientNet-B0 + FFT Branch
+- 损失函数: Focal Loss (gamma=1.5, alpha=[1,1,2])
+- 两阶段训练: Stage A (head only, 10 epochs) + Stage B (fine-tune, 40 epochs)
 
 ## 快速开始
 
@@ -108,14 +135,12 @@ opencv-screen-detector/
 │   ├── test_package.py
 │   └── test_classify_extracted.py
 ├── data/
-│   ├── input/
-│   │   ├── natural_photo/          # 自然照片
-│   │   ├── screenshot/             # 截图 + 屏幕内容
-│   │   ├── screen_photo/           # 拍屏照片
-│   │   └── hard_negative/          # 难例负样本
-│   └── upload/                     # API 上传缓存
-└── scripts/
-    └── fetch_natural_photos.py     # Unsplash 数据爬取脚本
+    ├── input/
+    │   ├── natural_photo/          # 自然照片
+    │   ├── screenshot/             # 截图 + 屏幕内容
+    │   ├── screen_photo/           # 拍屏照片
+    │   └── hard_negative/          # 难例负样本
+    └── upload/                     # API 上传缓存
 ```
 
 ## API 文档

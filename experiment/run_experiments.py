@@ -184,9 +184,7 @@ def train_epoch(
             else:
                 outputs = model(images)
         else:
-            raise ValueError(
-                f"Unexpected batch format: {len(batch)} elements"
-            )
+            raise ValueError(f"Unexpected batch format: {len(batch)} elements")
 
         loss = criterion(outputs, labels)
 
@@ -254,9 +252,7 @@ def evaluate(
                 else:
                     outputs = model(images)
             else:
-                raise ValueError(
-                    f"Unexpected batch format: {len(batch)} elements"
-                )
+                raise ValueError(f"Unexpected batch format: {len(batch)} elements")
 
             _, predicted = outputs.max(1)
             all_preds.extend(predicted.cpu().numpy())
@@ -266,15 +262,11 @@ def evaluate(
     all_labels = np.array(all_labels)
 
     accuracy = accuracy_score(all_labels, all_preds)
-    precision_macro = precision_score(
-        all_labels, all_preds, average="macro"
-    )
+    precision_macro = precision_score(all_labels, all_preds, average="macro")
     recall_macro = recall_score(all_labels, all_preds, average="macro")
     f1_macro = f1_score(all_labels, all_preds, average="macro")
 
-    precision_per_class = precision_score(
-        all_labels, all_preds, average=None
-    )
+    precision_per_class = precision_score(all_labels, all_preds, average=None)
     recall_per_class = recall_score(all_labels, all_preds, average=None)
     f1_per_class = f1_score(all_labels, all_preds, average=None)
 
@@ -335,18 +327,14 @@ def run_single_trial(
         Dictionary with trial results
     """
     if device is None:
-        device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu"
-        )
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     exp_name = exp_config["name"]
     model_type = exp_config["model_type"]
     input_mode = exp_config["input_mode"]
 
     logger.info(f"Trial {trial_idx + 1} - {exp_name}")
-    logger.info(
-        f"Model: {model_type}, Input: {input_mode}, Device: {device}"
-    )
+    logger.info(f"Model: {model_type}, Input: {input_mode}, Device: {device}")
 
     train_loader, val_loader = create_dataloaders(
         data_dir=data_dir,
@@ -355,9 +343,7 @@ def run_single_trial(
         input_mode=input_mode,
     )
 
-    model = create_experiment_model(
-        model_type, num_classes=3, pretrained=True
-    )
+    model = create_experiment_model(model_type, num_classes=3, pretrained=True)
     model = model.to(device)
 
     criterion = nn.CrossEntropyLoss()
@@ -416,7 +402,7 @@ def run_single_trial(
         # Checkpoint every 10 epochs
         if (epoch + 1) % 10 == 0:
             logger.info(
-                f"Epoch {epoch+1}/{epochs} - "
+                f"Epoch {epoch + 1}/{epochs} - "
                 f"Loss: {train_metrics['loss']:.4f} - "
                 f"Acc: {val_metrics['accuracy']:.4f} - "
                 f"F1: {val_metrics['f1_score']:.4f} - "
@@ -430,10 +416,7 @@ def run_single_trial(
             # Early stopping check
             if best_acc <= checkpoint_best_acc:
                 no_improvement_count += 1
-                logger.info(
-                    f"No improvement for {no_improvement_count} "
-                    f"checkpoint(s)"
-                )
+                logger.info(f"No improvement for {no_improvement_count} checkpoint(s)")
                 if no_improvement_count >= early_stopping_patience:
                     logger.info(
                         "Early stopping triggered - "
@@ -477,15 +460,11 @@ def run_experiment(
         Dictionary with experiment results
     """
     exp_config = EXPERIMENTS[exp_name]
-    device = torch.device(
-        "cuda" if torch.cuda.is_available() else "cpu"
-    )
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     logger.info(f"Running {exp_config['name']}")
     logger.info(f"Description: {exp_config['description']}")
-    logger.info(
-        f"Trials: {num_trials}, Epochs: {epochs}, Device: {device}"
-    )
+    logger.info(f"Trials: {num_trials}, Epochs: {epochs}, Device: {device}")
 
     trials = []
     for trial_idx in range(num_trials):
@@ -591,16 +570,18 @@ def generate_recall_ranking(
     best_recall = best["aggregated"]["screen_photo_recall_mean"]
     worst_recall = worst["aggregated"]["screen_photo_recall_mean"]
 
-    lines.extend([
-        f"- **Best**: {best['name']} with SP Recall = {best_recall:.4f}",
-        f"- **Worst**: {worst['name']} with SP Recall = {worst_recall:.4f}",
-        "",
-        "## Recommendations",
-        "",
-        "- For maximum recall: use the top-ranked model",
-        "- For balanced performance: consider high F1 score",
-        "- For production: consider speed vs accuracy trade-off",
-    ])
+    lines.extend(
+        [
+            f"- **Best**: {best['name']} with SP Recall = {best_recall:.4f}",
+            f"- **Worst**: {worst['name']} with SP Recall = {worst_recall:.4f}",
+            "",
+            "## Recommendations",
+            "",
+            "- For maximum recall: use the top-ranked model",
+            "- For balanced performance: consider high F1 score",
+            "- For production: consider speed vs accuracy trade-off",
+        ]
+    )
 
     return "\n".join(lines)
 
@@ -646,21 +627,23 @@ def save_results(
         with metrics_path.open("w", encoding="utf-8") as f:
             json.dump(metrics_output, f, indent=2, ensure_ascii=False)
 
-        best_trial = max(
-            result["trials"], key=lambda t: t["best_val_acc"]
-        )
+        best_trial = max(result["trials"], key=lambda t: t["best_val_acc"])
         confusion_path = confusion_dir / f"{exp_name}_confusion.json"
         with confusion_path.open("w", encoding="utf-8") as f:
             json.dump(
                 best_trial["metrics"]["confusion_matrix"],
-                f, indent=2, ensure_ascii=False,
+                f,
+                indent=2,
+                ensure_ascii=False,
             )
 
         logs_path = logs_dir / f"{exp_name}_log.json"
         with logs_path.open("w", encoding="utf-8") as f:
             json.dump(
                 [t["train_log"] for t in result["trials"]],
-                f, indent=2, ensure_ascii=False,
+                f,
+                indent=2,
+                ensure_ascii=False,
             )
 
     ranking_md = generate_recall_ranking(all_results)
@@ -688,18 +671,14 @@ def save_results(
             {
                 "rank": i + 1,
                 "name": r["name"],
-                "screen_photo_recall": r["aggregated"][
-                    "screen_photo_recall_mean"
-                ],
+                "screen_photo_recall": r["aggregated"]["screen_photo_recall_mean"],
                 "accuracy": r["aggregated"]["accuracy_mean"],
                 "f1_score": r["aggregated"]["f1_score_mean"],
             }
             for i, r in enumerate(
                 sorted(
                     all_results.values(),
-                    key=lambda x: x["aggregated"][
-                        "screen_photo_recall_mean"
-                    ],
+                    key=lambda x: x["aggregated"]["screen_photo_recall_mean"],
                     reverse=True,
                 )
             )
@@ -754,31 +733,45 @@ def main() -> None:
         description="Run screen detector ablation experiments"
     )
     parser.add_argument(
-        "--data-dir", type=str, default="data/input",
+        "--data-dir",
+        type=str,
+        default="data/input",
         help="Path to data directory",
     )
     parser.add_argument(
-        "--output-dir", type=str, default="data/output",
+        "--output-dir",
+        type=str,
+        default="data/output",
         help="Path to output directory",
     )
     parser.add_argument(
-        "--num-trials", type=int, default=5,
+        "--num-trials",
+        type=int,
+        default=5,
         help="Number of trials per experiment",
     )
     parser.add_argument(
-        "--epochs", type=int, default=50,
+        "--epochs",
+        type=int,
+        default=50,
         help="Number of training epochs per trial",
     )
     parser.add_argument(
-        "--batch-size", type=int, default=32,
+        "--batch-size",
+        type=int,
+        default=32,
         help="Batch size",
     )
     parser.add_argument(
-        "--learning-rate", type=float, default=1e-4,
+        "--learning-rate",
+        type=float,
+        default=1e-4,
         help="Learning rate",
     )
     parser.add_argument(
-        "--experiments", type=str, nargs="+",
+        "--experiments",
+        type=str,
+        nargs="+",
         default=list(EXPERIMENTS.keys()),
         help="Experiments to run",
     )
