@@ -30,9 +30,7 @@ def detect_batch(
 
     # Collect all image files
     image_extensions = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
-    image_files = [
-        f for f in input_path.rglob("*") if f.suffix.lower() in image_extensions
-    ]
+    image_files = [f for f in input_path.rglob("*") if f.suffix.lower() in image_extensions]
 
     # Run detection
     results = []

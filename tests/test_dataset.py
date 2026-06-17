@@ -66,9 +66,7 @@ def test_dataset_three_class_label_mapping(data_dir):
         "screen_photo": ["screen_photo"],
     }
 
-    dataset = TwoInputDataset(
-        data_map=data_map, data_dir=data_dir, load_hard_negatives=False
-    )
+    dataset = TwoInputDataset(data_map=data_map, data_dir=data_dir, load_hard_negatives=False)
 
     labels = set()
     for _, _, label in dataset:

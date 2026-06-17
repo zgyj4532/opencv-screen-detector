@@ -63,9 +63,7 @@ class Settings(BaseModel):
     input_channels: int = 3
 
     # Class names
-    class_names: list[str] = Field(
-        default_factory=lambda: ["natural", "screenshot", "screen_photo"]
-    )
+    class_names: list[str] = Field(default_factory=lambda: ["natural", "screenshot", "screen_photo"])
 
     # Confidence thresholds
     confidence_high: float = 0.92  # >= accept

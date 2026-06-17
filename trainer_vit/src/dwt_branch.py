@@ -11,6 +11,8 @@ This is critical for screen photo detection as moiré patterns and screen textur
 are captured in the LH/HL/HH subbands.
 """
 
+from typing import cast
+
 import torch
 import torch.nn as nn
 
@@ -49,7 +51,7 @@ class DWTForward(nn.Module):
             DWT coefficients (B, C*4, H/2, W/2)
         """
         b, c, h, w = x.shape
-        filters = self.filters.to(x.device)
+        filters = cast(torch.Tensor, self.filters.to(x.device))
 
         # Reshape for grouped convolution: (B*C, 1, H, W)
         x_grouped = x.reshape(b * c, 1, h, w)

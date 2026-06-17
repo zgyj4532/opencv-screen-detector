@@ -43,10 +43,7 @@ def _run_stage(
     probabilities = _softmax(logits)
 
     class_idx = np.argmax(probabilities)
-    probs_dict = {
-        name: float(prob)
-        for name, prob in zip(class_names, probabilities, strict=False)
-    }
+    probs_dict = {name: float(prob) for name, prob in zip(class_names, probabilities, strict=False)}
 
     return {
         "class": class_names[class_idx],

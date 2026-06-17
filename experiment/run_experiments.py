@@ -19,6 +19,7 @@ import json
 import sys
 import time
 from pathlib import Path
+from typing import cast
 
 # Add project root to path before imports
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -266,9 +267,9 @@ def evaluate(
     recall_macro = recall_score(all_labels, all_preds, average="macro")
     f1_macro = f1_score(all_labels, all_preds, average="macro")
 
-    precision_per_class = precision_score(all_labels, all_preds, average=None)
-    recall_per_class = recall_score(all_labels, all_preds, average=None)
-    f1_per_class = f1_score(all_labels, all_preds, average=None)
+    precision_per_class = cast(np.ndarray, precision_score(all_labels, all_preds, average=None))
+    recall_per_class = cast(np.ndarray, recall_score(all_labels, all_preds, average=None))
+    f1_per_class = cast(np.ndarray, f1_score(all_labels, all_preds, average=None))
 
     cm = confusion_matrix(all_labels, all_preds)
 
@@ -303,13 +304,13 @@ def evaluate(
 def run_single_trial(
     exp_config: dict,
     data_dir: Path,
+    output_dir: Path,
     trial_idx: int,
     epochs: int = 50,
     batch_size: int = 32,
     learning_rate: float = 1e-4,
     device: torch.device | None = None,
     early_stopping_patience: int = 2,
-    output_dir: Path | None = None,
 ) -> dict:
     """Run a single trial of an experiment with early stopping.
 
@@ -352,9 +353,7 @@ def run_single_trial(
         lr=learning_rate,
         weight_decay=1e-4,
     )
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        optimizer, T_max=epochs, eta_min=1e-6
-    )
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-6)
 
     best_acc = 0.0
     best_metrics = None
@@ -363,9 +362,7 @@ def run_single_trial(
     no_improvement_count = 0  # Count of checkpoints without improvement
 
     for epoch in range(epochs):
-        train_metrics = train_epoch(
-            model, train_loader, optimizer, criterion, device, model_type
-        )
+        train_metrics = train_epoch(model, train_loader, optimizer, criterion, device, model_type)
 
         val_metrics = evaluate(model, val_loader, device, model_type)
 
@@ -408,20 +405,14 @@ def run_single_trial(
                 f"F1: {val_metrics['f1_score']:.4f} - "
                 f"SP_Recall: {val_metrics['screen_photo_recall']:.4f}"
             )
-            logger.info(
-                f"Checkpoint - Best Acc: {best_acc:.4f} "
-                f"(prev: {checkpoint_best_acc:.4f})"
-            )
+            logger.info(f"Checkpoint - Best Acc: {best_acc:.4f} (prev: {checkpoint_best_acc:.4f})")
 
             # Early stopping check
             if best_acc <= checkpoint_best_acc:
                 no_improvement_count += 1
                 logger.info(f"No improvement for {no_improvement_count} checkpoint(s)")
                 if no_improvement_count >= early_stopping_patience:
-                    logger.info(
-                        "Early stopping triggered - "
-                        "no improvement for 2 consecutive checkpoints"
-                    )
+                    logger.info("Early stopping triggered - no improvement for 2 consecutive checkpoints")
                     break
             else:
                 no_improvement_count = 0
@@ -471,13 +462,13 @@ def run_experiment(
         trial_result = run_single_trial(
             exp_config=exp_config,
             data_dir=data_dir,
+            output_dir=OUTPUT_DIR / exp_name,
             trial_idx=trial_idx,
             epochs=epochs,
             batch_size=batch_size,
             learning_rate=learning_rate,
             device=device,
             early_stopping_patience=early_stopping_patience,
-            output_dir=OUTPUT_DIR / exp_name,
         )
         trials.append(trial_result)
 
@@ -729,9 +720,7 @@ def save_results(
 
 def main() -> None:
     """Main entry point for experiment runner."""
-    parser = argparse.ArgumentParser(
-        description="Run screen detector ablation experiments"
-    )
+    parser = argparse.ArgumentParser(description="Run screen detector ablation experiments")
     parser.add_argument(
         "--data-dir",
         type=str,

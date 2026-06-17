@@ -38,9 +38,7 @@ def test_classify_non_screen_photo(predictor, extracted_dir, output_dir):
 
     # Get all image files
     image_extensions = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
-    image_files = [
-        f for f in non_screen_dir.iterdir() if f.suffix.lower() in image_extensions
-    ]
+    image_files = [f for f in non_screen_dir.iterdir() if f.suffix.lower() in image_extensions]
 
     assert len(image_files) > 0, "No images found in non_screen_photo"
 
@@ -94,9 +92,7 @@ def test_copy_screen_photo(predictor, extracted_dir, output_dir):
 
     # Get all image files
     image_extensions = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
-    image_files = [
-        f for f in screen_dir.iterdir() if f.suffix.lower() in image_extensions
-    ]
+    image_files = [f for f in screen_dir.iterdir() if f.suffix.lower() in image_extensions]
 
     assert len(image_files) > 0, "No images found in screen_photo"
 
@@ -127,11 +123,7 @@ def test_verify_classification(output_dir):
         category_dir = output_dir / category
         if category_dir.exists():
             image_extensions = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
-            count = sum(
-                1
-                for f in category_dir.rglob("*")
-                if f.suffix.lower() in image_extensions
-            )
+            count = sum(1 for f in category_dir.rglob("*") if f.suffix.lower() in image_extensions)
             counts[category] = count
         else:
             counts[category] = 0

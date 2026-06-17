@@ -9,7 +9,9 @@ Supports:
 
 # pyright: reportPrivateImportUsage=none
 from collections import Counter
+from collections.abc import Sequence
 from pathlib import Path
+from typing import cast
 
 import albumentations as A
 import cv2
@@ -156,9 +158,7 @@ class TwoInputDataset(Dataset):
         else:
             # Default: resize and normalize
             image_resized = cv2.resize(image, (self.image_size, self.image_size))
-            rgb_tensor = (
-                torch.from_numpy(image_resized).permute(2, 0, 1).float() / 255.0
-            )
+            rgb_tensor = torch.from_numpy(image_resized).permute(2, 0, 1).float() / 255.0
 
         # FFT 分支
         fft_spectrum = compute_fft_spectrum(image, self.image_size)
@@ -268,9 +268,7 @@ def create_data_loaders(
         # Calculate class counts and weights
         class_counts = Counter(train_labels)
         total_samples = len(train_labels)
-        class_weights = {
-            cls: total_samples / count for cls, count in class_counts.items()
-        }
+        class_weights = {cls: total_samples / count for cls, count in class_counts.items()}
 
         # Assign weight to each sample
         # Hard negative samples get extra weight
@@ -287,7 +285,7 @@ def create_data_loaders(
         sample_weights_tensor = torch.tensor(sample_weights, dtype=torch.double)
 
         train_sampler = WeightedRandomSampler(
-            weights=sample_weights_tensor,
+            weights=cast(Sequence[int], sample_weights_tensor),
             num_samples=len(sample_weights_tensor),
             replacement=True,
         )

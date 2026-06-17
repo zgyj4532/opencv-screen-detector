@@ -8,6 +8,8 @@ Three model variants for ablation study:
 Uses DeiT-Small (deit_small_patch16_224) from timm.
 """
 
+from typing import cast
+
 import timm
 import torch
 import torch.nn as nn
@@ -90,7 +92,7 @@ class DeiTScreenDetector(nn.Module):
         Returns:
             Feature tensor (B, hidden_dim)
         """
-        features = self.model.forward_features(x)
+        features = cast(nn.Module, self.model.forward_features)(x)
         return features[:, 0]  # CLS token
 
 
@@ -140,7 +142,7 @@ class FFTDeiT(nn.Module):
         )
 
         # Get feature dimension from DeiT-Small
-        self.feat_dim = self.rgb_stream.num_features  # 384 for DeiT-Small
+        self.feat_dim = cast(int, self.rgb_stream.num_features)  # 384 for DeiT-Small
 
         # Feature normalization
         self.rgb_norm = nn.LayerNorm(self.feat_dim)
@@ -187,12 +189,12 @@ class FFTDeiT(nn.Module):
             Classification logits (B, num_classes)
         """
         # RGB stream
-        rgb_feat = self.rgb_stream.forward_features(rgb_input)  # (B, 384)
+        rgb_feat = cast(nn.Module, self.rgb_stream.forward_features)(rgb_input)  # (B, 384)
         rgb_feat = self.rgb_norm(rgb_feat[:, 0])  # CLS token
 
         # FFT stream: convert 1-channel to 3-channel for DeiT
         fft_3ch = fft_input.repeat(1, 3, 1, 1)  # (B, 3, 224, 224)
-        fft_feat = self.fft_stream.forward_features(fft_3ch)  # (B, 384)
+        fft_feat = cast(nn.Module, self.fft_stream.forward_features)(fft_3ch)  # (B, 384)
         fft_feat = self.fft_norm(fft_feat[:, 0])  # CLS token
 
         # Fusion
@@ -205,9 +207,9 @@ class FFTDeiT(nn.Module):
         fft_input: torch.Tensor,
     ) -> torch.Tensor:
         """Extract fused features without classification."""
-        rgb_feat = self.rgb_stream.forward_features(rgb_input)[:, 0]
+        rgb_feat = cast(nn.Module, self.rgb_stream.forward_features)(rgb_input)[:, 0]
         fft_3ch = fft_input.repeat(1, 3, 1, 1)
-        fft_feat = self.fft_stream.forward_features(fft_3ch)[:, 0]
+        fft_feat = cast(nn.Module, self.fft_stream.forward_features)(fft_3ch)[:, 0]
         return torch.cat([rgb_feat, fft_feat], dim=1)
 
 
@@ -264,7 +266,7 @@ class DWTFFTDeiT(nn.Module):
         self.dwt_stream = DWTCNNBranch(in_channels=12, out_features=dwt_out_features)
 
         # Get feature dimension from DeiT-Small
-        self.feat_dim = self.rgb_stream.num_features  # 384
+        self.feat_dim = cast(int, self.rgb_stream.num_features)  # 384
 
         # Feature normalization
         self.rgb_norm = nn.LayerNorm(self.feat_dim)
@@ -317,12 +319,12 @@ class DWTFFTDeiT(nn.Module):
             Classification logits (B, num_classes)
         """
         # RGB stream
-        rgb_feat = self.rgb_stream.forward_features(rgb_input)  # (B, 384)
+        rgb_feat = cast(nn.Module, self.rgb_stream.forward_features)(rgb_input)  # (B, 384)
         rgb_feat = self.rgb_norm(rgb_feat[:, 0])  # CLS token
 
         # FFT stream: convert 1-channel to 3-channel for DeiT
         fft_3ch = fft_input.repeat(1, 3, 1, 1)  # (B, 3, 224, 224)
-        fft_feat = self.fft_stream.forward_features(fft_3ch)  # (B, 384)
+        fft_feat = cast(nn.Module, self.fft_stream.forward_features)(fft_3ch)  # (B, 384)
         fft_feat = self.fft_norm(fft_feat[:, 0])  # CLS token
 
         # DWT stream: computed from RGB input
@@ -339,9 +341,9 @@ class DWTFFTDeiT(nn.Module):
         fft_input: torch.Tensor,
     ) -> torch.Tensor:
         """Extract fused features without classification."""
-        rgb_feat = self.rgb_stream.forward_features(rgb_input)[:, 0]
+        rgb_feat = cast(nn.Module, self.rgb_stream.forward_features)(rgb_input)[:, 0]
         fft_3ch = fft_input.repeat(1, 3, 1, 1)
-        fft_feat = self.fft_stream.forward_features(fft_3ch)[:, 0]
+        fft_feat = cast(nn.Module, self.fft_stream.forward_features)(fft_3ch)[:, 0]
         dwt_feat = self.dwt_stream(rgb_input)
         return torch.cat([rgb_feat, fft_feat, dwt_feat], dim=1)
 
@@ -402,7 +404,7 @@ def create_dwt_fft_deit_model(
 
 def load_deit_model(
     checkpoint_path: str,
-    device: str = "cpu",
+    device: str | torch.device = "cpu",
 ) -> nn.Module:
     """Load DeiT model from checkpoint.
 

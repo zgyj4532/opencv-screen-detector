@@ -203,9 +203,7 @@ def train_three_class(
     for epoch in range(epochs_head):
         start_time = time.time()
 
-        train_loss, train_acc = train_one_epoch(
-            model, train_loader, criterion, optimizer, device
-        )
+        train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer, device)
 
         val_metrics = validate_model(model, val_loader, device, class_names)
         val_acc = val_metrics["accuracy"]
@@ -256,9 +254,7 @@ def train_three_class(
     for epoch in range(epochs_finetune):
         start_time = time.time()
 
-        train_loss, train_acc = train_one_epoch(
-            model, train_loader, criterion, optimizer, device
-        )
+        train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer, device)
 
         val_metrics = validate_model(model, val_loader, device, class_names)
         val_acc = val_metrics["accuracy"]

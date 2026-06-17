@@ -59,7 +59,7 @@ def compute_fft_spectrum(image: np.ndarray, size: int = 224) -> np.ndarray:
     magnitude = np.log(np.abs(fshift) + 1)
 
     # Normalize to [0, 255]
-    magnitude = cv2.normalize(magnitude, None, 0, 255, cv2.NORM_MINMAX)
+    magnitude = cv2.normalize(magnitude, None, 0, 255, cv2.NORM_MINMAX)  # pyright: ignore[reportCallIssue, reportArgumentType]
 
     # Normalize to [0, 1] then ImageNet grayscale normalization
     magnitude = magnitude.astype(np.float32) / 255.0
@@ -111,15 +111,12 @@ class ScreenDetectorDataset(Dataset):
                 if img_path.suffix.lower() in IMAGE_EXTENSIONS:
                     self.samples.append((img_path, label))
 
-        logger.info(
-            f"[{self.split}] Loaded {len(self.samples)} samples "
-            f"(mode={self.input_mode})"
-        )
+        logger.info(f"[{self.split}] Loaded {len(self.samples)} samples (mode={self.input_mode})")
 
     def __len__(self) -> int:
         return len(self.samples)
 
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor, ...]:
+    def __getitem__(self, idx: int) -> tuple:
         """Get sample by index.
 
         Args:
