@@ -119,9 +119,7 @@ async def package_images(request: PackageRequest) -> StreamingResponse:
     """
     # Filter images after timestamp
     after_time = (
-        after_time.astimezone(UTC)
-        if (after_time := request.after_timestamp).tzinfo
-        else after_time.replace(tzinfo=UTC)
+        after_time.astimezone(UTC) if (after_time := request.after_timestamp).tzinfo else after_time.replace(tzinfo=UTC)
     )
 
     logger.info(f"Received package request for images after {after_time.isoformat()}")

@@ -64,9 +64,7 @@ class ImageIndex:
             await conn.commit()
             yield conn
 
-    async def _find_by_hash(
-        self, conn: aiosqlite.Connection, file_hash: str
-    ) -> ImageEntry | None:
+    async def _find_by_hash(self, conn: aiosqlite.Connection, file_hash: str) -> ImageEntry | None:
         cursor = await conn.execute(
             "SELECT file_name, class_name, created_at FROM images WHERE file_hash = ?",
             (file_hash,),
@@ -131,9 +129,7 @@ class ImageIndex:
             await conn.commit()
 
     @contextlib.asynccontextmanager
-    async def list_entries_after(
-        self, ts: datetime
-    ) -> AsyncGenerator[list[ImageEntry]]:
+    async def list_entries_after(self, ts: datetime) -> AsyncGenerator[list[ImageEntry]]:
         timestamp = ts.astimezone(UTC).timestamp()
         async with self._get_connection() as conn:
             cursor = await conn.execute(

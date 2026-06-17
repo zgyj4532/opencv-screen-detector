@@ -15,8 +15,10 @@
 7. Layer-wise Learning Rate Decay (LLRD)
 """
 
+from collections.abc import Sequence
 import json
 from pathlib import Path
+from typing import cast
 
 import torch
 import torch.nn as nn
@@ -99,9 +101,7 @@ def create_model_from_config(
     raise ValueError(f"Unknown model type: {model_type}")
 
 
-def get_layerwise_lr_params(
-    model: nn.Module, lr: float, decay: float = 0.85
-) -> list[dict]:
+def get_layerwise_lr_params(model: nn.Module, lr: float, decay: float = 0.85) -> list[dict]:
     """Get layer-wise learning rate parameters for LLRD.
 
     Args:
@@ -121,22 +121,20 @@ def get_layerwise_lr_params(
         deit_model = model.rgb_stream
     else:
         # Fallback: all parameters with same learning rate
-        param_groups.append(
-            {"params": list(model.parameters()), "lr": lr, "name": "all"}
-        )
+        param_groups.append({"params": list(model.parameters()), "lr": lr, "name": "all"})
         return param_groups
 
     # Get model layers (for DeiT-Small: 12 transformer blocks)
     if hasattr(deit_model, "blocks"):
-        blocks = deit_model.blocks
+        blocks = cast(Sequence[nn.Module], deit_model.blocks)
         num_layers = len(blocks)
 
         # Embedding layer (lowest learning rate)
-        embed_params = list(deit_model.patch_embed.parameters())
+        embed_params = list(cast(nn.Module, deit_model.patch_embed).parameters())
         if hasattr(deit_model, "cls_token"):
-            embed_params.append(deit_model.cls_token)
+            embed_params.append(cast(nn.Parameter, deit_model.cls_token))
         if hasattr(deit_model, "pos_embed"):
-            embed_params.append(deit_model.pos_embed)
+            embed_params.append(cast(nn.Parameter, deit_model.pos_embed))
         param_groups.append(
             {
                 "params": embed_params,
@@ -158,13 +156,11 @@ def get_layerwise_lr_params(
 
         # Head (highest learning rate)
         if hasattr(deit_model, "head"):
-            head_params = list(deit_model.head.parameters())
+            head_params = list(cast(nn.Module, deit_model.head).parameters())
             param_groups.append({"params": head_params, "lr": lr, "name": "head"})
     else:
         # Fallback: all parameters with same learning rate
-        param_groups.append(
-            {"params": list(model.parameters()), "lr": lr, "name": "all"}
-        )
+        param_groups.append({"params": list(model.parameters()), "lr": lr, "name": "all"})
 
     # Add FFT/DWT stream parameters if applicable
     if isinstance(model, FFTDeiT):

@@ -5,6 +5,7 @@ Compute accuracy, precision, recall, F1-score, confusion matrix.
 
 import json
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 import torch
@@ -50,9 +51,9 @@ def compute_metrics(
     f1_macro = f1_score(labels, preds, average="macro")
 
     # Per-class metrics
-    precision_per_class = precision_score(labels, preds, average=None)
-    recall_per_class = recall_score(labels, preds, average=None)
-    f1_per_class = f1_score(labels, preds, average=None)
+    precision_per_class = cast(np.ndarray, precision_score(labels, preds, average=None))
+    recall_per_class = cast(np.ndarray, recall_score(labels, preds, average=None))
+    f1_per_class = cast(np.ndarray, f1_score(labels, preds, average=None))
 
     # Confusion matrix
     cm = confusion_matrix(labels, preds)
@@ -136,7 +137,7 @@ def validate_from_checkpoint(
     checkpoint_path: str,
     data_dir: str,
     output_dir: str = "outputs",
-    device: str = "cpu",
+    device: str | torch.device = "cpu",
     model_type: str = "deit",
 ) -> dict:
     """Validate model from checkpoint.
@@ -163,7 +164,7 @@ def validate_from_checkpoint(
 
     # Load model
     logger.info("Loading model...")
-    model = load_deit_model(checkpoint_path, str(device))
+    model = load_deit_model(checkpoint_path, device)
 
     # Determine input mode
     input_mode = "rgb"

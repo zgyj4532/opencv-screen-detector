@@ -39,7 +39,7 @@ def export_deit_to_onnx(
     logger.info(f"Exporting DeiT model to {output_path}...")
     torch.onnx.export(
         model,
-        dummy_input,
+        (dummy_input,),
         output_path,
         opset_version=opset_version,
         input_names=["input"],

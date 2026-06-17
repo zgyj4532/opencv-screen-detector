@@ -8,7 +8,7 @@ from loguru import logger
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from src.train import train_model
+from src.train import train
 
 
 def main() -> None:
@@ -49,10 +49,10 @@ def main() -> None:
     logger.info(f"Mixup/CutMix: {config['use_mixup']}")
 
     # Run training
-    metrics = train_model(
+    metrics = train(
+        config=config,
         data_dir=str(data_dir),
         output_dir=str(output_dir),
-        config=config,
     )
 
     logger.info("\n=== Final Metrics ===")

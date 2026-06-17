@@ -166,9 +166,7 @@ def package_entries_to_temp_file(
         )
 
     # Calculate total size
-    total_size = sum(
-        entry.path.stat().st_size for entry in entries if entry.path.exists()
-    )
+    total_size = sum(entry.path.stat().st_size for entry in entries if entry.path.exists())
     if total_size > MAX_EXPORT_SIZE:
         raise HTTPException(
             status_code=status.HTTP_413_CONTENT_TOO_LARGE,

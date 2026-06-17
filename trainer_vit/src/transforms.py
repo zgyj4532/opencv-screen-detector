@@ -29,9 +29,7 @@ def get_train_transforms(image_size: int = 224) -> A.Compose:
             A.Resize(image_size, image_size),
             A.HorizontalFlip(p=0.5),
             A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.5),
-            A.ShiftScaleRotate(
-                shift_limit=0.1, scale_limit=0.1, rotate_limit=15, p=0.5
-            ),
+            A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.1, rotate_limit=15, p=0.5),
             A.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD, max_pixel_value=255.0),
             ToTensorV2(),
         ]
@@ -99,9 +97,7 @@ class MixUpCutMixWrapper:
         self.mixup = transforms_v2.MixUp(alpha=0.8, num_classes=num_classes)
         self.cutmix = transforms_v2.CutMix(alpha=1.0, num_classes=num_classes)
 
-    def __call__(
-        self, images: torch.Tensor, labels: torch.Tensor
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    def __call__(self, images: torch.Tensor, labels: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Apply Mixup or CutMix to batch.
 
         Args:

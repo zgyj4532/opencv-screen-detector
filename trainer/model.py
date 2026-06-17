@@ -90,9 +90,7 @@ class ScreenDetectorModel(nn.Module):
         fused = torch.cat([spatial_feat, freq_feat], dim=1)
         return self.classifier(fused)
 
-    def get_features(
-        self, rgb_input: torch.Tensor, fft_input: torch.Tensor
-    ) -> torch.Tensor:
+    def get_features(self, rgb_input: torch.Tensor, fft_input: torch.Tensor) -> torch.Tensor:
         """Extract fused features without classification."""
         spatial_feat = self.spatial_norm(self.backbone(rgb_input))
         freq_feat = self.freq_norm(self.freq_branch(fft_input))

@@ -39,9 +39,7 @@ class LoguruHandler(logging.Handler):  # pragma: no cover
             frame = frame.f_back
             depth += 1
 
-        logger.opt(depth=depth, exception=record.exc_info).log(
-            level, record.getMessage()
-        )
+        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
 
 LOGGING_CONFIG = {
@@ -61,9 +59,7 @@ LOGGING_CONFIG = {
 }
 
 
-log_format = (
-    "<g>{time:HH:mm:ss}</g> [<lvl>{level}</lvl>] <c><u>{name}</u></c> | {message}"
-)
+log_format = "<g>{time:HH:mm:ss}</g> [<lvl>{level}</lvl>] <c><u>{name}</u></c> | {message}"
 logger.remove()
 
 
