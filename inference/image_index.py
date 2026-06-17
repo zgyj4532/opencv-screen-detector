@@ -59,6 +59,7 @@ class ImageIndex:
 
     @contextlib.asynccontextmanager
     async def _get_connection(self) -> AsyncGenerator[aiosqlite.Connection]:
+        settings.index_db.parent.mkdir(parents=True, exist_ok=True)
         async with self._lock, aiosqlite.connect(settings.index_db) as conn:
             await conn.execute(TABLE_SCHEMA)
             await conn.commit()
