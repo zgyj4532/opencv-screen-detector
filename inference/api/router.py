@@ -1,3 +1,4 @@
+import contextlib
 from datetime import UTC, datetime
 from typing import Annotated
 
@@ -18,9 +19,7 @@ from .schema import (
     PackageRequest,
 )
 from .utils import (
-    cleanup_temp_file,
-    iter_file,
-    package_entries_to_temp_file,
+    package_entries_to_stream,
     run_detect,
     stream_file_to_upload,
     stream_url_to_upload,
@@ -107,12 +106,6 @@ async def classify_image(request: ClassifyRequest) -> ClassifyResponse:
 async def package_images(request: PackageRequest) -> StreamingResponse:
     """Package images uploaded after the given timestamp into a zip file.
 
-    Optimized for large exports:
-    - Uses temporary file instead of BytesIO (low memory usage)
-    - Uses ZIP_STORED or low compression level (fast, low CPU)
-    - Streams ZIP in 1MB chunks
-    - Auto-cleans temp file after download
-
     Returns a zip file containing:
     - /screen_photo/*: screen capture images
     - /normal_photo/*: non-screen images
@@ -124,30 +117,18 @@ async def package_images(request: PackageRequest) -> StreamingResponse:
 
     logger.info(f"Received package request for images after {after_time.isoformat()}")
 
-    async with image_index.list_entries_after(after_time) as matching_entries:
+    async with contextlib.AsyncExitStack() as stack:
+        matching_entries = await stack.enter_async_context(image_index.list_entries_after(after_time))
         if not matching_entries:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="No images found after the specified timestamp",
             )
 
-        logger.info(f"Found {len(matching_entries)} images to package")
-
-        # Create temp ZIP file on disk (low memory usage)
-        zip_path = await anyio.to_thread.run_sync(
-            package_entries_to_temp_file,
-            matching_entries,
-            1,  # compresslevel=1 for fast compression
+        zip_filename = f"images_{datetime.now(UTC):%Y%m%d_%H%M%S}.zip"
+        return StreamingResponse(
+            package_entries_to_stream(matching_entries),
+            media_type="application/zip",
+            headers={"Content-Disposition": f"attachment; filename={zip_filename}"},
+            background=BackgroundTask(stack.pop_all().aclose),
         )
-
-    # Generate filename with timestamp
-    zip_filename = f"images_{datetime.now(UTC):%Y%m%d_%H%M%S}.zip"
-    logger.info(f"Packaged {len(matching_entries)} images into {zip_filename}")
-
-    # Stream ZIP file with auto-cleanup
-    return StreamingResponse(
-        iter_file(zip_path),
-        media_type="application/zip",
-        headers={"Content-Disposition": f"attachment; filename={zip_filename}"},
-        background=BackgroundTask(cleanup_temp_file, zip_path),
-    )
