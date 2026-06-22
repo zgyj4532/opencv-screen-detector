@@ -1,11 +1,14 @@
+import functools
 import hashlib
 import tempfile
-import uuid
+from typing import ClassVar
 import zipfile
-from collections.abc import AsyncIterable, Generator
+from collections.abc import AsyncGenerator, AsyncIterable, Callable
 from pathlib import Path
 
 import anyio
+import anyio.to_thread
+import anyio.from_thread
 import fleep
 import httpx
 from fastapi import HTTPException, UploadFile, status
@@ -18,7 +21,6 @@ from .predictor import get_predictor
 MAX_FILES = 10000
 MAX_EXPORT_SIZE = 20 * 1024**3  # 20GB
 CHUNK_SIZE = 1024 * 1024  # 1MB
-PACKAGE_TEMP_DIR = settings.data_dir / "temp_packages"
 
 
 async def _stream_to_temp(
@@ -139,33 +141,40 @@ def run_detect(file_path: Path) -> bool:
     return result["class"] == "screen_photo"
 
 
-def package_entries_to_temp_file(
+class _Writer:
+    BUFFER_SIZE: ClassVar[int] = 1024 * 1024
+
+    def __init__(self, write: Callable[[bytes], object]) -> None:
+        self._write = write
+        self._buf = bytearray()
+
+    def write(self, s: bytes) -> int:
+        if len(s) > 0:
+            self._buf.extend(s)
+            if len(self._buf) > self.BUFFER_SIZE:
+                self._write(bytes(self._buf[: self.BUFFER_SIZE]))
+                del self._buf[: self.BUFFER_SIZE]
+        return len(s)
+
+    def flush(self) -> None:
+        if self._buf:
+            self._write(bytes(self._buf))
+            self._buf.clear()
+
+    def close(self) -> None:
+        self.flush()
+
+
+async def package_entries_to_stream(
     entries: list[ImageEntry],
     compress_level: int = 1,
-) -> Path:
-    """Package entries into a temporary ZIP file on disk.
-
-    Uses ZIP_STORED for already-compressed images (jpg/png/webp)
-    or low compression level to minimize CPU usage.
-
-    Args:
-        entries: List of ImageEntry objects to package.
-        compress_level: ZIP compression level (0-9). 0=ZIP_STORED, 1=fastest.
-
-    Returns:
-        Path to the temporary ZIP file.
-
-    Raises:
-        HTTPException: If export exceeds size or file limits.
-    """
-    # Check limits
+) -> AsyncGenerator[bytes]:
     if len(entries) > MAX_FILES:
         raise HTTPException(
             status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail=f"Export exceeds maximum file limit ({MAX_FILES} files)",
         )
 
-    # Calculate total size
     total_size = sum(entry.path.stat().st_size for entry in entries if entry.path.exists())
     if total_size > MAX_EXPORT_SIZE:
         raise HTTPException(
@@ -173,7 +182,6 @@ def package_entries_to_temp_file(
             detail=f"Export size exceeds limit ({MAX_EXPORT_SIZE // (1024**3)}GB)",
         )
 
-    # Choose compression
     if compress_level == 0:
         compression = zipfile.ZIP_STORED
         actual_level = 0
@@ -181,45 +189,24 @@ def package_entries_to_temp_file(
         compression = zipfile.ZIP_DEFLATED
         actual_level = compress_level
 
-    # Write ZIP to disk
-    tmp_path = PACKAGE_TEMP_DIR / f"{uuid.uuid4().hex}.zip"
-    tmp_path.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        with zipfile.ZipFile(
-            tmp_path,
-            "w",
-            compression=compression,
-            compresslevel=actual_level,
-        ) as zf:
+    send, recv = anyio.create_memory_object_stream[bytes](max_buffer_size=16)
+
+    def writer() -> None:
+        write = functools.partial(anyio.from_thread.run, send.send)
+        with (
+            send,
+            zipfile.ZipFile(
+                _Writer(write),
+                "w",
+                compression=compression,
+                compresslevel=actual_level,
+            ) as zf,
+        ):
             for entry in entries:
                 if entry.path.exists():
                     zf.write(entry.path, entry.path.relative_to(settings.upload_dir))
-    except Exception:
-        tmp_path.unlink(missing_ok=True)
-        raise
 
-    return tmp_path
-
-
-def iter_file(path: Path, chunk_size: int = CHUNK_SIZE) -> Generator[bytes, None, None]:
-    """Yield file contents in chunks for streaming.
-
-    Args:
-        path: Path to the file to stream.
-        chunk_size: Size of each chunk in bytes.
-
-    Yields:
-        Chunks of file data.
-    """
-    with path.open("rb") as f:
-        while chunk := f.read(chunk_size):
+    async with anyio.create_task_group() as tg, recv:
+        tg.start_soon(anyio.to_thread.run_sync, writer)
+        async for chunk in recv:
             yield chunk
-
-
-def cleanup_temp_file(path: Path) -> None:
-    """Delete a temporary file if it exists.
-
-    Args:
-        path: Path to the file to delete.
-    """
-    path.unlink(missing_ok=True)
