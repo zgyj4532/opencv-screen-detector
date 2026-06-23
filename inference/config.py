@@ -55,15 +55,17 @@ class Settings(BaseModel):
     # Model paths
     @property
     def model_path(self) -> Path:
-        """Single-stage 3-class model (CNN+FFT)."""
-        return self.models_dir / "cnn_fft_3class.onnx"
+        """Single-stage 3-class model (CNN+FFT+DWT)."""
+        return self.models_dir / "three_class.onnx"
 
     # Image processing
     image_size: int = 224
     input_channels: int = 3
 
     # Class names
-    class_names: list[str] = Field(default_factory=lambda: ["natural", "screenshot", "screen_photo"])
+    class_names: list[str] = Field(
+        default_factory=lambda: ["natural", "screenshot", "screen_photo"]
+    )
 
     # Confidence thresholds
     confidence_high: float = 0.92  # >= accept

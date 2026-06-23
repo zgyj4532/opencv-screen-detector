@@ -112,13 +112,17 @@ async def package_images(request: PackageRequest) -> StreamingResponse:
     """
     # Filter images after timestamp
     after_time = (
-        after_time.astimezone(UTC) if (after_time := request.after_timestamp).tzinfo else after_time.replace(tzinfo=UTC)
+        after_time.astimezone(UTC)
+        if (after_time := request.after_timestamp).tzinfo
+        else after_time.replace(tzinfo=UTC)
     )
 
     logger.info(f"Received package request for images after {after_time.isoformat()}")
 
     async with contextlib.AsyncExitStack() as stack:
-        matching_entries = await stack.enter_async_context(image_index.list_entries_after(after_time))
+        matching_entries = await stack.enter_async_context(
+            image_index.list_entries_after(after_time)
+        )
         if not matching_entries:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,

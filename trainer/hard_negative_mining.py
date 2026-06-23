@@ -85,7 +85,10 @@ def find_misclassified_images(
             rgb_tensor = augmented["image"].unsqueeze(0).to(device)
         else:
             image_resized = cv2.resize(image, (config.IMAGE_SIZE, config.IMAGE_SIZE))
-            rgb_tensor = torch.from_numpy(image_resized).permute(2, 0, 1).float().unsqueeze(0) / 255.0
+            rgb_tensor = (
+                torch.from_numpy(image_resized).permute(2, 0, 1).float().unsqueeze(0)
+                / 255.0
+            )
             rgb_tensor = rgb_tensor.to(device)
 
         # FFT 分支
@@ -157,7 +160,9 @@ def copy_misclassified_to_hard_negative(
 
                 shutil.copy2(src_path, dst_path)
                 count += 1
-                print(f"  复制: {src_path.name} → {mis_type}/ (置信度: {confidence:.4f})")
+                print(
+                    f"  复制: {src_path.name} → {mis_type}/ (置信度: {confidence:.4f})"
+                )
 
         stats[mis_type] = count
 

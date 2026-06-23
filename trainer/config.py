@@ -1,7 +1,11 @@
 """Configuration for screen detector V3 trainer.
 
-Single-stage CNN + FFT Branch architecture for 3-class classification:
+Single-stage CNN + FFT + DWT Branch architecture for 3-class classification:
 - natural, screenshot, screen_photo
+
+Frequency features:
+- FFT: log(abs(fft)) magnitude spectrum
+- DWT: Haar wavelet decomposition (LL, LH, HL, HH)
 """
 
 from pathlib import Path
@@ -21,10 +25,10 @@ THREE_CLASS_DATA_MAP = {
     "screen_photo": ["screen_photo"],
 }
 
-# Class weights for imbalanced dataset (total=2770)
-# natural=935, screenshot=1043, screen_photo=278
-# Optimized via focal loss scan: gamma=1.5, alpha=[1,1,2]
-CLASS_WEIGHTS_THREE_CLASS = [1.0, 1.0, 2.0]
+# Class weights for imbalanced dataset (total=2856)
+# natural=947, screenshot=1034, screen_photo=282
+# Optimized for screen_photo detection: alpha=[1,1,4]
+CLASS_WEIGHTS_THREE_CLASS = [1.0, 1.0, 4.0]
 
 # Model
 MODEL_NAME = "efficientnet_b0"
@@ -34,7 +38,7 @@ NUM_CLASSES = 3  # Three-class classification
 
 # Training
 BATCH_SIZE = 16
-NUM_WORKERS = 2
+NUM_WORKERS = 0
 LEARNING_RATE = 1e-3
 WEIGHT_DECAY = 1e-4
 EPOCHS_HEAD = 10
@@ -42,8 +46,8 @@ EPOCHS_FINETUNE = 40  # Increased for better convergence
 TRAIN_VAL_SPLIT = 0.8
 RANDOM_SEED = 42
 
-# Focal Loss (optimized: gamma=1.5, alpha=[1,1,2])
-FOCAL_LOSS_GAMMA = 1.5
+# Focal Loss (optimized for screen_photo: gamma=3, alpha=[1,1,4])
+FOCAL_LOSS_GAMMA = 3.0
 USE_FOCAL_LOSS = True
 
 # Oversampling
@@ -52,6 +56,11 @@ USE_WEIGHTED_SAMPLER = True
 # Hard Negative Mining
 HARD_NEGATIVE_WEIGHT = 5  # Hard negative 重复采样权重
 HARD_NEGATIVE_DIR = DATA_DIR / "hard_negative"
+
+# Best metric weights (prioritize screen_photo recall)
+# best_metric = 0.7 * screen_photo_recall + 0.3 * accuracy
+BEST_METRIC_RECALL_WEIGHT = 0.7
+BEST_METRIC_ACCURACY_WEIGHT = 0.3
 
 # Augmentation
 JPEG_QUALITY_RANGE = (50, 95)

@@ -27,6 +27,7 @@ from torch.utils.data import (
 )
 
 from shared.fft_transform import compute_fft_spectrum as _compute_fft_shared
+from shared.fft_transform import compute_dwt_features as _compute_dwt_shared
 
 from . import config
 
@@ -46,6 +47,20 @@ def compute_fft_spectrum(image_np: np.ndarray, size: int = 224) -> np.ndarray:
     """
     # shared 版本返回 (1, 1, H, W)，squeeze 掉 batch 维度
     return _compute_fft_shared(image_np, size, color_space="rgb").squeeze(0)
+
+
+def compute_dwt_features(image_np: np.ndarray, size: int = 224) -> np.ndarray:
+    """将图像转换为 DWT 小波特征
+
+    Args:
+        image_np: 输入图像 (RGB numpy array)
+        size: 输出尺寸
+
+    Returns:
+        DWT 特征图，形状 (4, H/2, W/2) 包含 [LL, LH, HL, HH]
+    """
+    # shared 版本返回 (1, 4, H/2, W/2)，squeeze 掉 batch 维度
+    return _compute_dwt_shared(image_np, size, color_space="rgb").squeeze(0)
 
 
 class TwoInputDataset(Dataset):
@@ -136,7 +151,9 @@ class TwoInputDataset(Dataset):
     def __len__(self) -> int:
         return len(self.samples)
 
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, int]:
+    def __getitem__(
+        self, idx: int
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, int]:
         img_path, label = self.samples[idx]
 
         # Load image using PIL (RGB)
@@ -158,13 +175,19 @@ class TwoInputDataset(Dataset):
         else:
             # Default: resize and normalize
             image_resized = cv2.resize(image, (self.image_size, self.image_size))
-            rgb_tensor = torch.from_numpy(image_resized).permute(2, 0, 1).float() / 255.0
+            rgb_tensor = (
+                torch.from_numpy(image_resized).permute(2, 0, 1).float() / 255.0
+            )
 
         # FFT 分支
         fft_spectrum = compute_fft_spectrum(image, self.image_size)
         fft_tensor = torch.from_numpy(fft_spectrum).float()
 
-        return rgb_tensor, fft_tensor, label
+        # DWT 分支
+        dwt_features = compute_dwt_features(image, self.image_size)
+        dwt_tensor = torch.from_numpy(dwt_features).float()
+
+        return rgb_tensor, fft_tensor, dwt_tensor, label
 
 
 class TransformSubset(Dataset):
@@ -172,7 +195,7 @@ class TransformSubset(Dataset):
 
     def __init__(
         self,
-        subset: Subset[tuple[torch.Tensor, torch.Tensor, int]],
+        subset: Subset[tuple[torch.Tensor, torch.Tensor, torch.Tensor, int]],
         transform: A.Compose | None = None,
     ) -> None:
         self.subset = subset
@@ -181,8 +204,10 @@ class TransformSubset(Dataset):
     def __len__(self) -> int:
         return len(self.subset)
 
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, int]:
-        rgb_tensor, fft_tensor, label = self.subset[idx]
+    def __getitem__(
+        self, idx: int
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, int]:
+        rgb_tensor, fft_tensor, dwt_tensor, label = self.subset[idx]
 
         # Convert tensor back to numpy for albumentations
         if isinstance(rgb_tensor, torch.Tensor):
@@ -195,7 +220,7 @@ class TransformSubset(Dataset):
             augmented = self.transform(image=image_np)
             rgb_tensor = augmented["image"]
 
-        return rgb_tensor, fft_tensor, label
+        return rgb_tensor, fft_tensor, dwt_tensor, label
 
 
 def create_data_loaders(
@@ -268,7 +293,9 @@ def create_data_loaders(
         # Calculate class counts and weights
         class_counts = Counter(train_labels)
         total_samples = len(train_labels)
-        class_weights = {cls: total_samples / count for cls, count in class_counts.items()}
+        class_weights = {
+            cls: total_samples / count for cls, count in class_counts.items()
+        }
 
         # Assign weight to each sample
         # Hard negative samples get extra weight

@@ -175,7 +175,9 @@ async def package_entries_to_stream(
             detail=f"Export exceeds maximum file limit ({MAX_FILES} files)",
         )
 
-    total_size = sum(entry.path.stat().st_size for entry in entries if entry.path.exists())
+    total_size = sum(
+        entry.path.stat().st_size for entry in entries if entry.path.exists()
+    )
     if total_size > MAX_EXPORT_SIZE:
         raise HTTPException(
             status_code=status.HTTP_413_CONTENT_TOO_LARGE,

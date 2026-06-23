@@ -22,7 +22,7 @@ from sklearn.metrics import (
 
 def validate_model(
     model: nn.Module,
-    val_loader: Iterable[tuple[torch.Tensor, torch.Tensor, torch.Tensor]],
+    val_loader: Iterable[tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]],
     device: str = "cpu",
     class_names: list[str] | None = None,  # noqa: ARG001
 ):
@@ -38,12 +38,13 @@ def validate_model(
     all_probs = []
 
     with torch.no_grad():
-        for rgb, fft, labels in val_loader:
+        for rgb, fft, dwt, labels in val_loader:
             rgb = rgb.to(device)
             fft = fft.to(device)
+            dwt = dwt.to(device)
             labels = labels.to(device)
 
-            outputs = model(rgb, fft)
+            outputs = model(rgb, fft, dwt)
             probs = torch.softmax(outputs, dim=1)
             _, preds = torch.max(outputs, 1)
 
@@ -62,7 +63,9 @@ def validate_model(
     f1 = f1_score(all_labels, all_preds, average=None, zero_division=0)
 
     # Overall metrics
-    precision_macro = precision_score(all_labels, all_preds, average="macro", zero_division=0)
+    precision_macro = precision_score(
+        all_labels, all_preds, average="macro", zero_division=0
+    )
     recall_macro = recall_score(all_labels, all_preds, average="macro", zero_division=0)
     f1_macro = f1_score(all_labels, all_preds, average="macro", zero_division=0)
 

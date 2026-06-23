@@ -1,6 +1,6 @@
 """ONNX predictor for screen detector V3 inference.
 
-Single-stage 3-class CNN+FFT model with TTA, OOD detection, and confidence tiering.
+Single-stage 3-class CNN+FFT+DWT model with TTA, OOD detection, and confidence tiering.
 """
 
 import functools
@@ -27,23 +27,28 @@ def _run_stage(
     session: ort.InferenceSession,
     rgb_input: np.ndarray,
     fft_input: np.ndarray,
+    dwt_input: np.ndarray,
     class_names: list[str],
 ) -> dict:
     """Run inference on a single stage and return structured result."""
     rgb_name = session.get_inputs()[0].name
     fft_name = session.get_inputs()[1].name
+    dwt_name = session.get_inputs()[2].name
     output_name = session.get_outputs()[0].name
 
     outputs: Any = session.run(
         [output_name],
-        {rgb_name: rgb_input, fft_name: fft_input},
+        {rgb_name: rgb_input, fft_name: fft_input, dwt_name: dwt_input},
     )
 
     logits = outputs[0][0]
     probabilities = _softmax(logits)
 
     class_idx = np.argmax(probabilities)
-    probs_dict = {name: float(prob) for name, prob in zip(class_names, probabilities, strict=False)}
+    probs_dict = {
+        name: float(prob)
+        for name, prob in zip(class_names, probabilities, strict=False)
+    }
 
     return {
         "class": class_names[class_idx],
@@ -84,7 +89,8 @@ class PredictTask:
         return normalize_rgb(self.original_image)
 
     @functools.cached_property
-    def fft_input(self) -> np.ndarray:
+    def fft_input(self) -> tuple[np.ndarray, np.ndarray]:
+        """Returns (fft_spectrum, dwt_features)"""
         return self.fft.get_fft_input(self.image_path)
 
     def run_single_stage(self) -> dict:
@@ -95,11 +101,17 @@ class PredictTask:
         class_names = settings.class_names
         flipped = cv2.flip(self.original_image, 1)
         flipped_rgb = normalize_rgb(flipped)
-        flipped_fft = self.fft.get_fft_input_from_array(flipped)
+        flipped_fft, flipped_dwt = self.fft.get_fft_input_from_array(flipped)
+
+        fft_input, dwt_input = self.fft_input
 
         with self.models.get_session() as session:
-            result = _run_stage(session, self.rgb_input, self.fft_input, class_names)
-            result_flip = _run_stage(session, flipped_rgb, flipped_fft, class_names)
+            result = _run_stage(
+                session, self.rgb_input, fft_input, dwt_input, class_names
+            )
+            result_flip = _run_stage(
+                session, flipped_rgb, flipped_fft, flipped_dwt, class_names
+            )
 
         # Average probabilities
         avg_probs: dict[str, float] = {}
@@ -126,9 +138,10 @@ class PredictTask:
     def _run_single_stage_with_ood(self) -> dict:
         """Single-stage inference with OOD detection.
 
-        Threshold-based screen_photo classification:
-        If screen_photo probability >= 0.35, classify as screen_photo.
-        This achieves F1=0.96, Recall=93.6%, Precision=98.7%.
+        Threshold-based screen_photo classification (recall-oriented):
+        1. If screen_photo probability >= 0.35, classify as screen_photo
+        2. If screenshot_prob > 0.5 AND screen_photo_prob > 0.25,
+           classify as screen_photo (宁可误报拍屏，不能漏报拍屏)
         """
         result = self.run_single_stage()
         probs = result["probabilities"]
@@ -143,9 +156,20 @@ class PredictTask:
                 "action": "ignore",
             }
 
-        # Threshold-based screen_photo classification
+        # screen_score 后处理：宁可误报拍屏，不能漏报拍屏
         sp_prob = probs.get("screen_photo", 0.0)
+        ss_prob = probs.get("screenshot", 0.0)
+
+        # Case 1: 直接判定为 screen_photo
         if sp_prob >= 0.35:
+            result = {
+                "class": "screen_photo",
+                "confidence": sp_prob,
+                "probabilities": probs,
+            }
+        # Case 2: screenshot 概率高但 screen_photo 也有一定概率
+        # 说明模型在两者之间犹豫，倾向判定为 screen_photo
+        elif ss_prob > 0.5 and sp_prob > 0.25:
             result = {
                 "class": "screen_photo",
                 "confidence": sp_prob,

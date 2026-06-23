@@ -4,16 +4,23 @@
 
 ## 系统架构
 
-采用**单阶段 CNN + FFT Branch**架构，一次推理完成三分类：
+采用**单阶段 CNN + FFT + DWT Branch**架构，一次推理完成三分类：
 
 ```
 Image
    ↓
-CNN+FFT (EfficientNet-B0 + FFT Branch)
+┌──────────────┬──────────────┬──────────────┐
+│   RGB Branch │  FFT Branch  │  DWT Branch  │
+│ EfficientNet │  全局频域特征 │  局部频域特征 │
+│   1280 dim   │   256 dim    │   256 dim    │
+└──────────────┴──────────────┴──────────────┘
+   ↓ Concat (1792 dim)
    ↓
 natural / screenshot / screen_photo
    ↓
 OOD 检测 (max_prob < 0.45 → unknown)
+   ↓
+screen_score 后处理 (宁可误报拍屏，不能漏报拍屏)
    ↓
 置信度分级 (accept/review/ignore)
 ```
@@ -22,11 +29,11 @@ OOD 检测 (max_prob < 0.45 → unknown)
 
 | 标签 | 含义 | 包含内容 | 样本数 |
 |------|------|----------|--------|
-| `natural` | 真实自然图像 | 风景、人像、室内、动物、食物、街景、天空、树木 | 935 |
-| `screenshot` | 屏幕内容 | 截图、PPT、IDE、UI、terminal、聊天记录、软件界面 | 1043 |
-| `screen_photo` | 相机拍摄屏幕 | 手机拍摄的屏幕照片 | 278 |
+| `natural` | 真实自然图像 | 风景、人像、室内、动物、食物、街景、天空、树木 | 947 |
+| `screenshot` | 屏幕内容 | 截图、PPT、IDE、UI、terminal、聊天记录、软件界面 | 1034 |
+| `screen_photo` | 相机拍摄屏幕 | 手机拍摄的屏幕照片 | 282 |
 
-> 注: 数据集包含 514 个 hard_negative 样本用于增强模型鲁棒性。
+> 注: 数据集包含 528 个 hard_negative 样本用于增强模型鲁棒性。
 
 ### 置信度分级
 
@@ -39,28 +46,41 @@ OOD 检测 (max_prob < 0.45 → unknown)
 
 ### 模型性能
 
-**最新训练结果** (2026-06-15):
+**最新训练结果** (2026-06-23, CNN+FFT+DWT):
+
+**验证集指标**:
 
 | 指标 | 值 |
 |------|-----|
-| Overall Accuracy | 96.14% |
-| Macro Precision | 93.76% |
-| Macro Recall | 95.35% |
-| Macro F1 | 94.52% |
+| Overall Accuracy | 81.07% |
+| Macro Precision | 75.63% |
+| Macro Recall | 85.81% |
+| Macro F1 | 76.62% |
 
-**各类别指标**:
+**各类别验证集指标**:
 
 | 类别 | Precision | Recall | F1 | FPR |
 |------|-----------|--------|-----|-----|
-| natural | 96.11% | 98.86% | 97.46% | 1.77% |
-| screenshot | 97.86% | 95.52% | 96.68% | 2.98% |
-| screen_photo | 87.30% | 91.67% | 89.43% | 1.57% |
+| natural | 92.43% | 91.94% | 92.18% | 3.74% |
+| screenshot | 95.06% | 72.64% | 82.35% | 4.96% |
+| screen_photo | 39.39% | **92.86%** | 55.32% | 15.87% |
+
+**20% 随机样本测试**:
+
+| 指标 | 值 |
+|------|-----|
+| Overall Accuracy | **93.57%** |
+| screen_photo Recall | **89.09%** |
 
 **训练配置**:
-- 数据集: 2846 张图片 (train: 2276, val: 570)
-- 架构: EfficientNet-B0 + FFT Branch
-- 损失函数: Focal Loss (gamma=1.5, alpha=[1,1,2])
+- 数据集: 2799 张图片 (train: 2239, val: 560)
+- 架构: EfficientNet-B0 + FFT Branch + DWT Branch
+- 损失函数: Focal Loss (gamma=3.0, alpha=[1,1,4])
+- 最佳模型选择: `best_metric = 0.7 * screen_photo_recall + 0.3 * accuracy`
 - 两阶段训练: Stage A (head only, 10 epochs) + Stage B (fine-tune, 40 epochs)
+- 数据增强: 强化增强（透视变换、运动模糊、噪声、随机擦除等）
+- 推理后处理: screen_score 阈值（宁可误报拍屏，不能漏报拍屏）
+- 训练时间: ~94 分钟 (RTX GPU)
 
 ## 快速开始
 
@@ -104,7 +124,9 @@ opencv-screen-detector/
 │   └── fft_transform.py            # FFT 频谱变换 (训练/推理共享)
 ├── inference/                      # 推理系统
 │   ├── models/
-│   │   └── cnn_fft_3class.onnx     # 单阶段 3-class 模型
+│   │   ├── cnn_fft_3class.onnx     # 旧版 3-class 模型
+│   │   ├── three_class.onnx        # 最新 3-class ONNX 模型
+│   │   └── three_class.torchscript # TorchScript 模型
 │   ├── config.py                   # 推理配置 (Settings dataclass)
 │   ├── predictor.py                # 单阶段推理器 (TTA/OOD)
 │   ├── model_loader.py             # ONNX 模型加载

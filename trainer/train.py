@@ -35,7 +35,9 @@ from .validate import (
 
 def train_one_epoch(
     model: nn.Module,
-    train_loader: Iterable[tuple[torch.Tensor, torch.Tensor, torch.Tensor]],
+    train_loader: Iterable[
+        tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+    ],
     criterion: nn.Module,
     optimizer: optim.Optimizer,
     device: str = "cpu",
@@ -45,7 +47,7 @@ def train_one_epoch(
 
     Args:
         model: Model to train
-        train_loader: Training data loader
+        train_loader: Training data loader (rgb, fft, dwt, labels)
         criterion: Loss function
         optimizer: Optimizer
         device: Device to use
@@ -64,14 +66,15 @@ def train_one_epoch(
     amp_device = "cuda" if device == "cuda" else "cpu"
     scaler = torch.amp.GradScaler(amp_device, enabled=use_amp)
 
-    for rgb, fft, labels in train_loader:
+    for rgb, fft, dwt, labels in train_loader:
         rgb = rgb.to(device)
         fft = fft.to(device)
+        dwt = dwt.to(device)
         labels = labels.to(device)
 
         # Forward pass with AMP
         with torch.amp.autocast("cuda" if device == "cuda" else "cpu", enabled=use_amp):
-            outputs = model(rgb, fft)
+            outputs = model(rgb, fft, dwt)
             loss = criterion(outputs, labels)
 
         # Backward pass
@@ -161,12 +164,13 @@ def train_three_class(
     val_size = len(full_dataset) - train_size
     print(f"Train/Val split: {train_size}/{val_size}")
 
-    # Create model with 3 classes
+    # Create model with 3 classes (with DWT branch)
     model = create_model(
         model_name=config.MODEL_NAME,
         num_classes=config.NUM_CLASSES,
         pretrained=True,
         freeze_backbone=True,
+        use_dwt=True,
     )
     model = model.to(device)
 
@@ -184,9 +188,16 @@ def train_three_class(
         "train_acc": [],
         "val_loss": [],
         "val_acc": [],
+        "best_metric": [],
     }
 
     best_val_acc = 0.0
+    best_metric = 0.0  # 0.7 * screen_photo_recall + 0.3 * accuracy
+
+    # screen_photo is class index 2
+    screen_photo_class_idx = (
+        class_names.index("screen_photo") if "screen_photo" in class_names else 2
+    )
 
     # ==========================================
     # Stage A: Train classification head
@@ -203,10 +214,19 @@ def train_three_class(
     for epoch in range(epochs_head):
         start_time = time.time()
 
-        train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer, device)
+        train_loss, train_acc = train_one_epoch(
+            model, train_loader, criterion, optimizer, device
+        )
 
         val_metrics = validate_model(model, val_loader, device, class_names)
         val_acc = val_metrics["accuracy"]
+
+        # Calculate best_metric: 0.7 * screen_photo_recall + 0.3 * accuracy
+        screen_photo_recall = val_metrics["recall_per_class"][screen_photo_class_idx]
+        current_metric = (
+            config.BEST_METRIC_RECALL_WEIGHT * screen_photo_recall
+            + config.BEST_METRIC_ACCURACY_WEIGHT * val_acc
+        )
 
         scheduler.step()
 
@@ -214,8 +234,10 @@ def train_three_class(
         history["train_acc"].append(train_acc)
         history["val_loss"].append(0.0)
         history["val_acc"].append(val_acc)
+        history["best_metric"].append(current_metric)
 
-        if val_acc > best_val_acc:
+        if current_metric > best_metric:
+            best_metric = current_metric
             best_val_acc = val_acc
             save_model(
                 model,
@@ -229,7 +251,8 @@ def train_three_class(
         print(
             f"  Epoch {epoch + 1}/{epochs_head} - "
             f"Loss: {train_loss:.4f} - Acc: {train_acc:.4f} - "
-            f"Val Acc: {val_acc:.4f} - Time: {elapsed:.1f}s"
+            f"Val Acc: {val_acc:.4f} - SP Recall: {screen_photo_recall:.4f} - "
+            f"Metric: {current_metric:.4f} - Time: {elapsed:.1f}s"
         )
 
     # ==========================================
@@ -254,10 +277,19 @@ def train_three_class(
     for epoch in range(epochs_finetune):
         start_time = time.time()
 
-        train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer, device)
+        train_loss, train_acc = train_one_epoch(
+            model, train_loader, criterion, optimizer, device
+        )
 
         val_metrics = validate_model(model, val_loader, device, class_names)
         val_acc = val_metrics["accuracy"]
+
+        # Calculate best_metric: 0.7 * screen_photo_recall + 0.3 * accuracy
+        screen_photo_recall = val_metrics["recall_per_class"][screen_photo_class_idx]
+        current_metric = (
+            config.BEST_METRIC_RECALL_WEIGHT * screen_photo_recall
+            + config.BEST_METRIC_ACCURACY_WEIGHT * val_acc
+        )
 
         scheduler.step()
 
@@ -265,8 +297,10 @@ def train_three_class(
         history["train_acc"].append(train_acc)
         history["val_loss"].append(0.0)
         history["val_acc"].append(val_acc)
+        history["best_metric"].append(current_metric)
 
-        if val_acc > best_val_acc:
+        if current_metric > best_metric:
+            best_metric = current_metric
             best_val_acc = val_acc
             save_model(
                 model,
@@ -280,7 +314,8 @@ def train_three_class(
         print(
             f"  Epoch {epoch + 1}/{epochs_finetune} - "
             f"Loss: {train_loss:.4f} - Acc: {train_acc:.4f} - "
-            f"Val Acc: {val_acc:.4f} - Time: {elapsed:.1f}s"
+            f"Val Acc: {val_acc:.4f} - SP Recall: {screen_photo_recall:.4f} - "
+            f"Metric: {current_metric:.4f} - Time: {elapsed:.1f}s"
         )
 
     # ==========================================
