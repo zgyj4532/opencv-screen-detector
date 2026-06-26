@@ -45,9 +45,7 @@ def export_to_onnx(
     # DWT is resized to IMAGE_SIZE to match FFT/RGB dimensions
     dummy_rgb = torch.randn(1, 3, config.IMAGE_SIZE, config.IMAGE_SIZE, device=device)
     dummy_fft = torch.randn(1, 1, config.IMAGE_SIZE, config.IMAGE_SIZE, device=device)
-    dummy_dwt = torch.randn(
-        1, 4, config.IMAGE_SIZE, config.IMAGE_SIZE, device=device
-    )
+    dummy_dwt = torch.randn(1, 4, config.IMAGE_SIZE, config.IMAGE_SIZE, device=device)
 
     # Export to ONNX with triple inputs and dynamic axes
     torch.onnx.export(
