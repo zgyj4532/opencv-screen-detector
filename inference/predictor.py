@@ -138,10 +138,15 @@ class PredictTask:
     def _run_single_stage_with_ood(self) -> dict:
         """Single-stage inference with OOD detection.
 
-        Threshold-based screen_photo classification (recall-oriented):
-        1. If screen_photo probability >= 0.35, classify as screen_photo
-        2. If screenshot_prob > 0.5 AND screen_photo_prob > 0.25,
-           classify as screen_photo (宁可误报拍屏，不能漏报拍屏)
+        Threshold-based screen_photo classification:
+        - If screen_photo probability >= 0.55, classify as screen_photo
+        - Otherwise, use argmax of (natural, screenshot)
+
+        Performance (on full dataset):
+        - SP_Precision: 89.49%
+        - SP_Recall: 77.70%
+        - SS_Recall: 92.64%
+        - Accuracy: 92.15%
         """
         result = self.run_single_stage()
         probs = result["probabilities"]
@@ -156,20 +161,11 @@ class PredictTask:
                 "action": "ignore",
             }
 
-        # screen_score 后处理：宁可误报拍屏，不能漏报拍屏
+        # screen_score 后处理
         sp_prob = probs.get("screen_photo", 0.0)
-        ss_prob = probs.get("screenshot", 0.0)
 
-        # Case 1: 直接判定为 screen_photo
-        if sp_prob >= 0.35:
-            result = {
-                "class": "screen_photo",
-                "confidence": sp_prob,
-                "probabilities": probs,
-            }
-        # Case 2: screenshot 概率高但 screen_photo 也有一定概率
-        # 说明模型在两者之间犹豫，倾向判定为 screen_photo
-        elif ss_prob > 0.5 and sp_prob > 0.25:
+        # 如果 sp_prob >= 0.55，强制判定为 screen_photo
+        if sp_prob >= 0.55:
             result = {
                 "class": "screen_photo",
                 "confidence": sp_prob,
