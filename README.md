@@ -20,7 +20,7 @@ natural / screenshot / screen_photo
    ↓
 OOD 检测 (max_prob < 0.45 → unknown)
    ↓
-screen_score 后处理 (宁可误报拍屏，不能漏报拍屏)
+screen_score 后处理 (sp_prob >= 0.55 → screen_photo)
    ↓
 置信度分级 (accept/review/ignore)
 ```
@@ -72,6 +72,15 @@ screen_score 后处理 (宁可误报拍屏，不能漏报拍屏)
 | Overall Accuracy | **93.57%** |
 | screen_photo Recall | **89.09%** |
 
+**全量数据测试 (2267 张, 含后处理 sp>=0.55)**:
+
+| 类别 | Precision | Recall |
+|------|-----------|--------|
+| natural | - | 96.17% |
+| screenshot | - | 92.64% |
+| screen_photo | **89.49%** | **77.70%** |
+| Overall Accuracy | **92.15%** | |
+
 **训练配置**:
 - 数据集: 2799 张图片 (train: 2239, val: 560)
 - 架构: EfficientNet-B0 + FFT Branch + DWT Branch
@@ -79,7 +88,7 @@ screen_score 后处理 (宁可误报拍屏，不能漏报拍屏)
 - 最佳模型选择: `best_metric = 0.7 * screen_photo_recall + 0.3 * accuracy`
 - 两阶段训练: Stage A (head only, 10 epochs) + Stage B (fine-tune, 40 epochs)
 - 数据增强: 强化增强（透视变换、运动模糊、噪声、随机擦除等）
-- 推理后处理: screen_score 阈值（宁可误报拍屏，不能漏报拍屏）
+- 推理后处理: `sp_prob >= 0.55` 强制判定为 screen_photo
 - 训练时间: ~94 分钟 (RTX GPU)
 
 ## 快速开始
