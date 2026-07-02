@@ -20,7 +20,7 @@ natural / screenshot / screen_photo
    ↓
 OOD 检测 (max_prob < 0.45 → unknown)
    ↓
-screen_score 后处理 (sp_prob >= 0.55 → screen_photo)
+阈值后处理 (sp_prob >= 0.60 → screen_photo)
    ↓
 置信度分级 (accept/review/ignore)
 ```
@@ -29,11 +29,11 @@ screen_score 后处理 (sp_prob >= 0.55 → screen_photo)
 
 | 标签 | 含义 | 包含内容 | 样本数 |
 |------|------|----------|--------|
-| `natural` | 真实自然图像 | 风景、人像、室内、动物、食物、街景、天空、树木 | 947 |
-| `screenshot` | 屏幕内容 | 截图、PPT、IDE、UI、terminal、聊天记录、软件界面 | 1034 |
-| `screen_photo` | 相机拍摄屏幕 | 手机拍摄的屏幕照片 | 282 |
+| `natural` | 真实自然图像 | 风景、人像、室内、动物、食物、街景、天空、树木 | 939 |
+| `screenshot` | 屏幕内容 | 截图、PPT、IDE、UI、terminal、聊天记录、软件界面 | 1081 |
+| `screen_photo` | 相机拍摄屏幕 | 手机拍摄的屏幕照片 | 319 |
 
-> 注: 数据集包含 528 个 hard_negative 样本用于增强模型鲁棒性。
+> 注: 数据集包含 484 个 hard_negative 样本用于增强模型鲁棒性。
 
 ### 置信度分级
 
@@ -46,50 +46,52 @@ screen_score 后处理 (sp_prob >= 0.55 → screen_photo)
 
 ### 模型性能
 
-**最新训练结果** (2026-06-23, CNN+FFT+DWT):
+**最新训练结果** (2026-06-30, CNN+FFT+DWT, 优化后):
 
 **验证集指标**:
 
 | 指标 | 值 |
 |------|-----|
-| Overall Accuracy | 81.07% |
-| Macro Precision | 75.63% |
-| Macro Recall | 85.81% |
-| Macro F1 | 76.62% |
+| Overall Accuracy | 88.68% |
+| Macro Precision | 84.60% |
+| Macro Recall | 87.16% |
+| Macro F1 | 85.69% |
 
 **各类别验证集指标**:
 
 | 类别 | Precision | Recall | F1 | FPR |
 |------|-----------|--------|-----|-----|
-| natural | 92.43% | 91.94% | 92.18% | 3.74% |
-| screenshot | 95.06% | 72.64% | 82.35% | 4.96% |
-| screen_photo | 39.39% | **92.86%** | 55.32% | 15.87% |
+| natural | 92.31% | 90.17% | 91.23% | 3.17% |
+| screenshot | 92.26% | 89.49% | 90.85% | 10.00% |
+| screen_photo | 69.23% | 81.82% | 75.00% | 5.53% |
 
-**20% 随机样本测试**:
+**20% 随机样本验证** (474 张):
 
 | 指标 | 值 |
 |------|-----|
-| Overall Accuracy | **93.57%** |
-| screen_photo Recall | **89.09%** |
+| Overall Accuracy | **94.51%** |
+| Macro F1 | **93.93%** |
+| screen_photo Precision | **88.89%** |
+| screen_photo Recall | **90.32%** |
+| screen_photo F1 | **89.60%** |
 
-**全量数据测试 (2267 张, 含后处理 sp>=0.55)**:
+**各类别 20% 随机样本指标**:
 
-| 类别 | Precision | Recall |
-|------|-----------|--------|
-| natural | - | 96.17% |
-| screenshot | - | 92.64% |
-| screen_photo | **89.49%** | **77.70%** |
-| Overall Accuracy | **92.15%** | |
+| 类别 | Precision | Recall | F1 |
+|------|-----------|--------|-----|
+| natural | 98.43% | 94.47% | 96.41% |
+| screenshot | 95.77% | 95.77% | 95.77% |
+| screen_photo | 88.89% | 90.32% | 89.60% |
 
 **训练配置**:
-- 数据集: 2799 张图片 (train: 2239, val: 560)
+- 数据集: 2915 张图片 (train: 2332, val: 583)
 - 架构: EfficientNet-B0 + FFT Branch + DWT Branch
-- 损失函数: Focal Loss (gamma=3.0, alpha=[1,1,4])
-- 最佳模型选择: `best_metric = 0.7 * screen_photo_recall + 0.3 * accuracy`
-- 两阶段训练: Stage A (head only, 10 epochs) + Stage B (fine-tune, 40 epochs)
+- 损失函数: Focal Loss (gamma=3.0, alpha=[1.0, 1.0, 1.5])
+- 最佳模型选择: `best_metric = 0.5 * screen_photo_f1 + 0.3 * accuracy + 0.2 * macro_f1`
+- 两阶段训练: Stage A (head only, 10 epochs) + Stage B (fine-tune, 20 epochs)
 - 数据增强: 强化增强（透视变换、运动模糊、噪声、随机擦除等）
-- 推理后处理: `sp_prob >= 0.55` 强制判定为 screen_photo
-- 训练时间: ~94 分钟 (RTX GPU)
+- 推理后处理: `sp_prob >= 0.60` 强制判定为 screen_photo
+- 训练时间: ~50 分钟 (RTX GPU)
 
 ## 快速开始
 
@@ -130,16 +132,15 @@ opencv-screen-detector/
 ├── main.py                         # API 入口
 ├── pyproject.toml                  # 推理端依赖
 ├── shared/                         # 共享模块
-│   └── fft_transform.py            # FFT 频谱变换 (训练/推理共享)
+│   └── fft_transform.py            # FFT/DWT 频谱变换 (训练/推理共享)
 ├── inference/                      # 推理系统
 │   ├── models/
-│   │   ├── cnn_fft_3class.onnx     # 旧版 3-class 模型
 │   │   ├── three_class.onnx        # 最新 3-class ONNX 模型
 │   │   └── three_class.torchscript # TorchScript 模型
 │   ├── config.py                   # 推理配置 (Settings dataclass)
-│   ├── predictor.py                # 单阶段推理器 (TTA/OOD)
+│   ├── predictor.py                # 单阶段推理器 (TTA/OOD/阈值后处理)
 │   ├── model_loader.py             # ONNX 模型加载
-│   ├── fft_service.py              # FFT 缓存服务 (LRU)
+│   ├── fft_service.py              # FFT/DWT 缓存服务 (LRU)
 │   ├── preprocess.py               # RGB 预处理 (normalize_rgb)
 │   ├── api/
 │   │   ├── app.py                  # FastAPI 应用
@@ -152,12 +153,13 @@ opencv-screen-detector/
 │   └── scheduler.py                # 后台清理
 ├── trainer/                        # 训练系统
 │   ├── config.py                   # 训练配置
-│   ├── model.py                    # 融合模型 (EfficientNet + FFT Branch)
+│   ├── model.py                    # 融合模型 (EfficientNet + FFT + DWT Branch)
 │   ├── fft_branch.py               # Frequency Branch (ResBlock)
-│   ├── dataset.py                  # 双输入数据集
-│   ├── train.py                    # 单阶段训练 (AMP)
+│   ├── dataset.py                  # 三输入数据集 (RGB + FFT + DWT)
+│   ├── train.py                    # 两阶段训练 (AMP)
 │   ├── validate.py                 # 验证指标
 │   ├── augment.py                  # 数据增强
+│   ├── losses.py                   # Focal Loss
 │   └── export_onnx.py              # ONNX 导出
 ├── tests/                          # 测试
 │   ├── conftest.py
@@ -166,12 +168,13 @@ opencv-screen-detector/
 │   ├── test_package.py
 │   └── test_classify_extracted.py
 ├── data/
-    ├── input/
-    │   ├── natural_photo/          # 自然照片
-    │   ├── screenshot/             # 截图 + 屏幕内容
-    │   ├── screen_photo/           # 拍屏照片
-    │   └── hard_negative/          # 难例负样本
-    └── upload/                     # API 上传缓存
+│   ├── input/
+│   │   ├── natural_photo/          # 自然照片 (含子目录递归扫描)
+│   │   ├── screenshot/             # 截图 + 屏幕内容
+│   │   ├── screen_photo/           # 拍屏照片
+│   │   └── hard_negative/          # 难例负样本
+│   └── upload/                     # API 上传缓存
+└── todo.json                       # 任务跟踪
 ```
 
 ## API 文档

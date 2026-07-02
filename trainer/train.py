@@ -192,7 +192,7 @@ def train_three_class(
     }
 
     best_val_acc = 0.0
-    best_metric = 0.0  # 0.7 * screen_photo_recall + 0.3 * accuracy
+    best_metric = 0.0  # 0.5 * screen_photo_f1 + 0.3 * accuracy + 0.2 * macro_f1
 
     # screen_photo is class index 2
     screen_photo_class_idx = (
@@ -221,11 +221,15 @@ def train_three_class(
         val_metrics = validate_model(model, val_loader, device, class_names)
         val_acc = val_metrics["accuracy"]
 
-        # Calculate best_metric: 0.7 * screen_photo_recall + 0.3 * accuracy
+        # Calculate best_metric: 0.5 * screen_photo_f1 + 0.3 * accuracy + 0.2 * macro_f1
         screen_photo_recall = val_metrics["recall_per_class"][screen_photo_class_idx]
+        screen_photo_precision = val_metrics["precision_per_class"][screen_photo_class_idx]
+        screen_photo_f1 = val_metrics["f1_per_class"][screen_photo_class_idx]
+        macro_f1 = val_metrics["f1_macro"]
         current_metric = (
-            config.BEST_METRIC_RECALL_WEIGHT * screen_photo_recall
+            config.BEST_METRIC_F1_WEIGHT * screen_photo_f1
             + config.BEST_METRIC_ACCURACY_WEIGHT * val_acc
+            + config.BEST_METRIC_MACRO_F1_WEIGHT * macro_f1
         )
 
         scheduler.step()
@@ -251,7 +255,8 @@ def train_three_class(
         print(
             f"  Epoch {epoch + 1}/{epochs_head} - "
             f"Loss: {train_loss:.4f} - Acc: {train_acc:.4f} - "
-            f"Val Acc: {val_acc:.4f} - SP Recall: {screen_photo_recall:.4f} - "
+            f"Val Acc: {val_acc:.4f} - SP F1: {screen_photo_f1:.4f} - "
+            f"SP P/R: {screen_photo_precision:.4f}/{screen_photo_recall:.4f} - "
             f"Metric: {current_metric:.4f} - Time: {elapsed:.1f}s"
         )
 
@@ -284,11 +289,15 @@ def train_three_class(
         val_metrics = validate_model(model, val_loader, device, class_names)
         val_acc = val_metrics["accuracy"]
 
-        # Calculate best_metric: 0.7 * screen_photo_recall + 0.3 * accuracy
+        # Calculate best_metric: 0.5 * screen_photo_f1 + 0.3 * accuracy + 0.2 * macro_f1
         screen_photo_recall = val_metrics["recall_per_class"][screen_photo_class_idx]
+        screen_photo_precision = val_metrics["precision_per_class"][screen_photo_class_idx]
+        screen_photo_f1 = val_metrics["f1_per_class"][screen_photo_class_idx]
+        macro_f1 = val_metrics["f1_macro"]
         current_metric = (
-            config.BEST_METRIC_RECALL_WEIGHT * screen_photo_recall
+            config.BEST_METRIC_F1_WEIGHT * screen_photo_f1
             + config.BEST_METRIC_ACCURACY_WEIGHT * val_acc
+            + config.BEST_METRIC_MACRO_F1_WEIGHT * macro_f1
         )
 
         scheduler.step()
@@ -314,8 +323,8 @@ def train_three_class(
         print(
             f"  Epoch {epoch + 1}/{epochs_finetune} - "
             f"Loss: {train_loss:.4f} - Acc: {train_acc:.4f} - "
-            f"Val Acc: {val_acc:.4f} - SP Recall: {screen_photo_recall:.4f} - "
-            f"Metric: {current_metric:.4f} - Time: {elapsed:.1f}s"
+            f"Val Acc: {val_acc:.4f} - SP Precision: {screen_photo_precision:.4f} - "
+            f"SP Recall: {screen_photo_recall:.4f} - Metric: {current_metric:.4f} - Time: {elapsed:.1f}s"
         )
 
     # ==========================================

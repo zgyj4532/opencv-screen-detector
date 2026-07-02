@@ -1,14 +1,16 @@
 # Screen Detector V3 - Trainer
 
-单阶段 CNN + FFT Branch 三分类训练系统。
+单阶段 CNN + FFT + DWT Branch 三分类训练系统。
 
 ## 功能
 
 - 单阶段三分类训练 (natural/screenshot/screen_photo)
-- EfficientNet-B0 + FFT Frequency Branch 融合模型
+- EfficientNet-B0 + FFT Frequency Branch + DWT Wavelet Branch 融合模型
 - Mixed Precision Training (AMP)
+- Focal Loss 处理类别不平衡
+- WeightedRandomSampler 过采样
 - 数据增强 (albumentations)
-- ONNX 模型导出 (dynamic_axes)
+- ONNX/TorchScript 模型导出
 
 ## 快速开始
 
@@ -26,16 +28,15 @@ uv run python -m trainer export
 
 ```
 trainer/
-├── README.md
-├── pyproject.toml
 ├── config.py           # 训练配置 (数据映射/超参数)
-├── model.py            # 融合模型 (EfficientNet + FFT Branch)
+├── model.py            # 融合模型 (EfficientNet + FFT + DWT Branch)
 ├── fft_branch.py       # Frequency Branch (ResBlock)
-├── dataset.py          # 双输入数据集 (RGB + FFT)
-├── train.py            # 单阶段训练 (AMP)
+├── dataset.py          # 三输入数据集 (RGB + FFT + DWT)
+├── train.py            # 两阶段训练 (AMP)
 ├── validate.py         # 验证指标 (accuracy/precision/recall/f1/fpr)
 ├── augment.py          # 数据增强
-└── export_onnx.py      # ONNX 导出 (双输入 dynamic_axes)
+├── losses.py           # Focal Loss
+└── export_onnx.py      # ONNX 导出 (三输入 dynamic_axes)
 ```
 
 ## 数据要求
@@ -57,41 +58,125 @@ hard_negative/  →  "screenshot"
 screen_photo/   →  "screen_photo"
 ```
 
-**最低数据量要求**:
-- natural: 1000+
-- screenshot: 1000+
-- screen_photo: 500+
+**当前数据集统计** (2026-06-30):
+- natural_photo: 939 张
+- screenshot: 1081 张
+- screen_photo: 319 张
+- hard_negative: 484 张
+- **总计**: 2823 张
 
 ## 模型架构
 
 ```
-Input Image
-    ├─→ EfficientNet-B0 (spatial) → LayerNorm(1280)
-    └─→ FFT → FrequencyBranch (ResBlock×2) → LayerNorm(256)
+Input Image (224x224)
+    │
+    ├─→ RGB Branch: EfficientNet-B0 → LayerNorm(1280)
+    │
+    ├─→ FFT Branch: FFT Spectrum → ResBlock×2 → LayerNorm(256)
+    │
+    └─→ DWT Branch: Haar Wavelet → ResBlock×2 → LayerNorm(256)
                     ↓
-            Concat (1536)
+            Concat (1792 dim)
                     ↓
-        Dropout→Linear(1536,512)→ReLU→Dropout→Linear(512,3)
+        Dropout→Linear(1792,512)→ReLU→Dropout→Linear(512,3)
+                    ↓
+        natural / screenshot / screen_photo
+```
+
+## 训练策略
+
+### 两阶段训练
+
+**Stage A: 分类头训练** (10 epochs)
+- 冻结 backbone
+- 仅训练 classifier + freq_branch + dwt_branch
+- 学习率: 1e-3
+
+**Stage B: 微调** (20 epochs)
+- 解冻 backbone 最后 6 层
+- 差异化学习率 (backbone: 1e-4, classifier: 1e-3)
+- CosineAnnealingLR 调度器
+
+### 损失函数
+
+**Focal Loss** (处理类别不平衡):
+- gamma = 3.0
+- alpha = [1.0, 1.0, 1.5] (natural, screenshot, screen_photo)
+
+### 最佳模型选择
+
+```python
+best_metric = 0.5 * screen_photo_f1 + 0.3 * accuracy + 0.2 * macro_f1
 ```
 
 ## 配置
 
 `trainer/config.py` 中的关键配置:
 
-- `IMAGE_SIZE = 224` - 输入尺寸
-- `BATCH_SIZE = 16` - 批次大小
-- `LEARNING_RATE = 1e-3` - 学习率
-- `EPOCHS_HEAD = 10` - Head 训练轮数
-- `EPOCHS_FINETUNE = 40` - 微调轮数
-- `TRAIN_VAL_SPLIT = 0.8` - 训练/验证比例
-- `THREE_CLASS_DATA_MAP` - 数据映射
+```python
+# 模型
+MODEL_NAME = "efficientnet_b0"
+IMAGE_SIZE = 224
+NUM_CLASSES = 3
+
+# 训练
+BATCH_SIZE = 16
+LEARNING_RATE = 1e-3
+EPOCHS_HEAD = 10
+EPOCHS_FINETUNE = 20
+TRAIN_VAL_SPLIT = 0.8
+
+# 类别权重
+CLASS_WEIGHTS_THREE_CLASS = [1.0, 1.0, 1.5]
+
+# Focal Loss
+FOCAL_LOSS_GAMMA = 3.0
+USE_FOCAL_LOSS = True
+
+# 过采样
+USE_WEIGHTED_SAMPLER = True
+HARD_NEGATIVE_WEIGHT = 3
+
+# 最佳指标权重
+BEST_METRIC_F1_WEIGHT = 0.5
+BEST_METRIC_ACCURACY_WEIGHT = 0.3
+BEST_METRIC_MACRO_F1_WEIGHT = 0.2
+```
 
 ## 输出
 
-训练完成后在 `trainer/checkpoints/` 目录生成:
-- `best.pth` - PyTorch 权重
+训练完成后生成:
 
-导出 ONNX 后复制到 `inference/models/cnn_fft_3class.onnx` 即可用于推理。
+**Checkpoints** (`trainer/checkpoints/`):
+- `three_class_best.pth` - 最佳模型权重
+- `three_class_final.pth` - 最终模型权重
+
+**Logs** (`trainer/logs/`):
+- `three_class_confusion_matrix.png` - 混淆矩阵
+- `three_class_training_history.png` - 训练曲线
+
+**导出模型** (`inference/models/`):
+- `three_class.onnx` - ONNX 模型 (推荐)
+- `three_class.torchscript` - TorchScript 模型
+
+## 最新训练结果
+
+**训练时间**: ~50 分钟 (RTX GPU)
+
+**验证集指标**:
+
+| 指标 | 值 |
+|------|-----|
+| Overall Accuracy | 88.68% |
+| Macro F1 | 85.69% |
+
+**各类别指标**:
+
+| 类别 | Precision | Recall | F1 |
+|------|-----------|--------|-----|
+| natural | 92.31% | 90.17% | 91.23% |
+| screenshot | 92.26% | 89.49% | 90.85% |
+| screen_photo | 69.23% | 81.82% | 75.00% |
 
 ## 环境要求
 

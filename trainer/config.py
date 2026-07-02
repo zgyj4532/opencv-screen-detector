@@ -25,10 +25,10 @@ THREE_CLASS_DATA_MAP = {
     "screen_photo": ["screen_photo"],
 }
 
-# Class weights for imbalanced dataset (total=2856)
-# natural=947, screenshot=1034, screen_photo=282
-# Optimized for screen_photo detection: alpha=[1,1,4]
-CLASS_WEIGHTS_THREE_CLASS = [1.0, 1.0, 4.0]
+# Class weights for imbalanced dataset (total=2823)
+# natural=939, screenshot=1081, screen_photo=319, hard_negative=484
+# Further optimized for F1 balance: alpha=[1.0, 1.0, 1.5]
+CLASS_WEIGHTS_THREE_CLASS = [1.0, 1.0, 1.5]
 
 # Model
 MODEL_NAME = "efficientnet_b0"
@@ -42,7 +42,7 @@ NUM_WORKERS = 0
 LEARNING_RATE = 1e-3
 WEIGHT_DECAY = 1e-4
 EPOCHS_HEAD = 10
-EPOCHS_FINETUNE = 40  # Increased for better convergence
+EPOCHS_FINETUNE = 20  # Reduced for faster training
 TRAIN_VAL_SPLIT = 0.8
 RANDOM_SEED = 42
 
@@ -54,13 +54,14 @@ USE_FOCAL_LOSS = True
 USE_WEIGHTED_SAMPLER = True
 
 # Hard Negative Mining
-HARD_NEGATIVE_WEIGHT = 5  # Hard negative 重复采样权重
+HARD_NEGATIVE_WEIGHT = 3  # Reduced to avoid screenshot boundary pollution
 HARD_NEGATIVE_DIR = DATA_DIR / "hard_negative"
 
-# Best metric weights (prioritize screen_photo recall)
-# best_metric = 0.7 * screen_photo_recall + 0.3 * accuracy
-BEST_METRIC_RECALL_WEIGHT = 0.7
+# Best metric weights (F1-oriented optimization)
+# best_metric = 0.5 * screen_photo_f1 + 0.3 * accuracy + 0.2 * macro_f1
+BEST_METRIC_F1_WEIGHT = 0.5
 BEST_METRIC_ACCURACY_WEIGHT = 0.3
+BEST_METRIC_MACRO_F1_WEIGHT = 0.2
 
 # Augmentation
 JPEG_QUALITY_RANGE = (50, 95)
