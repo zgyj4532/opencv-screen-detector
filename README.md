@@ -12,9 +12,9 @@ Image
 ┌──────────────┬──────────────┬──────────────┐
 │   RGB Branch │  FFT Branch  │  DWT Branch  │
 │ EfficientNet │  全局频域特征 │  局部频域特征 │
-│   1280 dim   │   256 dim    │   256 dim    │
+│   1280 dim   │   FFT+DWT    │   256 dim    │
 └──────────────┴──────────────┴──────────────┘
-   ↓ Concat (1792 dim)
+   ↓ Concat (1536 dim)
    ↓
 natural / screenshot / screen_photo
    ↓
@@ -27,13 +27,13 @@ OOD 检测 (max_prob < 0.45 → unknown)
 
 ### 标签体系
 
-| 标签 | 含义 | 包含内容 | 样本数 |
-|------|------|----------|--------|
-| `natural` | 真实自然图像 | 风景、人像、室内、动物、食物、街景、天空、树木 | 939 |
-| `screenshot` | 屏幕内容 | 截图、PPT、IDE、UI、terminal、聊天记录、软件界面 | 1081 |
-| `screen_photo` | 相机拍摄屏幕 | 手机拍摄的屏幕照片 | 319 |
+| 标签 | 含义 | 包含内容 |
+|------|------|----------|
+| `natural` | 真实自然图像 | 风景、人像、室内、动物、食物、街景、天空、树木 |
+| `screenshot` | 屏幕内容 | 截图、PPT、IDE、UI、terminal、聊天记录、软件界面 |
+| `screen_photo` | 相机拍摄屏幕 | 手机拍摄的屏幕照片 |
 
-> 注: 数据集包含 484 个 hard_negative 样本用于增强模型鲁棒性。
+> 注: 数据集共 2937 张图片，包含 58 个 hard_negative 样本用于增强模型鲁棒性。
 
 ### 置信度分级
 
@@ -46,52 +46,42 @@ OOD 检测 (max_prob < 0.45 → unknown)
 
 ### 模型性能
 
-**最新训练结果** (2026-06-30, CNN+FFT+DWT, 优化后):
+**最新训练结果** (2026-07-05, CNN+FFT+DWT, 10+20 epochs):
 
 **验证集指标**:
 
 | 指标 | 值 |
 |------|-----|
-| Overall Accuracy | 88.68% |
-| Macro Precision | 84.60% |
-| Macro Recall | 87.16% |
-| Macro F1 | 85.69% |
+| Overall Accuracy | **89.46%** |
+| Macro Precision | 85.34% |
+| Macro Recall | 88.43% |
+| Macro F1 | 86.68% |
 
 **各类别验证集指标**:
 
 | 类别 | Precision | Recall | F1 | FPR |
 |------|-----------|--------|-----|-----|
-| natural | 92.31% | 90.17% | 91.23% | 3.17% |
-| screenshot | 92.26% | 89.49% | 90.85% | 10.00% |
-| screen_photo | 69.23% | 81.82% | 75.00% | 5.53% |
+| natural | 90.45% | 94.74% | **92.54%** | 4.77% |
+| screenshot | 94.59% | 88.05% | **91.21%** | 5.93% |
+| screen_photo | 70.97% | 82.50% | **76.30%** | 5.31% |
 
-**20% 随机样本验证** (474 张):
+**混淆矩阵**:
 
-| 指标 | 值 |
-|------|-----|
-| Overall Accuracy | **94.51%** |
-| Macro F1 | **93.93%** |
-| screen_photo Precision | **88.89%** |
-| screen_photo Recall | **90.32%** |
-| screen_photo F1 | **89.60%** |
-
-**各类别 20% 随机样本指标**:
-
-| 类别 | Precision | Recall | F1 |
-|------|-----------|--------|-----|
-| natural | 98.43% | 94.47% | 96.41% |
-| screenshot | 95.77% | 95.77% | 95.77% |
-| screen_photo | 88.89% | 90.32% | 89.60% |
+| 实际\预测 | natural | screenshot | screen_photo |
+|-----------|---------|------------|--------------|
+| natural | 180 | 8 | 2 |
+| screenshot | 13 | 280 | 25 |
+| screen_photo | 6 | 8 | 66 |
 
 **训练配置**:
-- 数据集: 2915 张图片 (train: 2332, val: 583)
+- 数据集: 2937 张图片 (train: 2349, val: 588)
 - 架构: EfficientNet-B0 + FFT Branch + DWT Branch
 - 损失函数: Focal Loss (gamma=3.0, alpha=[1.0, 1.0, 1.5])
 - 最佳模型选择: `best_metric = 0.5 * screen_photo_f1 + 0.3 * accuracy + 0.2 * macro_f1`
 - 两阶段训练: Stage A (head only, 10 epochs) + Stage B (fine-tune, 20 epochs)
 - 数据增强: 强化增强（透视变换、运动模糊、噪声、随机擦除等）
 - 推理后处理: `sp_prob >= 0.60` 强制判定为 screen_photo
-- 训练时间: ~50 分钟 (RTX GPU)
+- 训练时间: ~3 小时 (RTX GPU)
 
 ## 快速开始
 

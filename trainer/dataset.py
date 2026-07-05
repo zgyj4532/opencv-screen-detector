@@ -156,16 +156,15 @@ class TwoInputDataset(Dataset):
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, int]:
         img_path, label = self.samples[idx]
 
-        # Load image using PIL (RGB)
-        pil_image = Image.open(img_path).convert("RGBA").convert("RGB")
-
-        # Skip images larger than 10MB to avoid MemoryError
+        # Skip images larger than 10MB to avoid MemoryError (check BEFORE loading)
         file_size_mb = Path(img_path).stat().st_size / (1024 * 1024)
         if file_size_mb > 10:
             # Return a blank image for oversized files
             blank = np.zeros((self.image_size, self.image_size, 3), dtype=np.uint8)
             image = blank
         else:
+            # Load image using PIL (RGB)
+            pil_image = Image.open(img_path).convert("RGBA").convert("RGB")
             image = np.array(pil_image)
 
         # RGB 分支
