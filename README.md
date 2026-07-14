@@ -418,7 +418,7 @@ Keep preprocessing, model inputs, and thresholds aligned when substituting a mod
 
 ## License
 
-No license file is currently present in this repository. Until a license is added by the maintainers, reuse and redistribution rights are not granted by this documentation.
+This project is licensed under the [MIT License](LICENSE).
 
 ## Acknowledgements
 
