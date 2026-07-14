@@ -19,6 +19,7 @@ dependencies = [
   "aiosqlite>=0.22.1",
   # V2 dependencies
   "onnxruntime>=1.16.0",
+  "einops>=0.8.2",
 ]
 
 [dependency-groups]

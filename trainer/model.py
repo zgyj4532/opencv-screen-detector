@@ -1,6 +1,11 @@
 """EfficientNet + FFT Branch model for screen detector V3.
 
 Single-stage 3-class CNN architecture with frequency domain analysis.
+
+Supports:
+- Standard Linear classifier
+- ArcFace angular margin classifier
+- CBAM/Coordinate attention in frequency branches
 """
 
 # pyright: reportPrivateImportUsage=none
@@ -11,6 +16,7 @@ import torch
 import torch.nn as nn
 
 from . import config
+from .arcface import create_arcface_classifier
 from .fft_branch import FrequencyBranch, FrequencyBranchWithDWT
 
 
@@ -21,6 +27,17 @@ class ScreenDetectorModel(nn.Module):
     - Spatial Branch: EfficientNet-B0 -> spatial_features (1280,)
     - Frequency Branch: FFT CNN -> freq_features (256,)
     - Fusion: Concat -> LayerNorm -> Classifier
+
+    Args:
+        model_name: Backbone model name
+        num_classes: Number of output classes
+        pretrained: Whether to use pretrained backbone
+        freeze_backbone: Whether to freeze backbone initially
+        use_arcface: Whether to use ArcFace classifier
+        arcface_scale: ArcFace scale factor
+        arcface_margin: ArcFace angular margin
+        use_fft_attention: Whether to use attention in FFT branch
+        attention_type: Type of attention ('cbam', 'coordinate')
     """
 
     def __init__(
@@ -29,11 +46,17 @@ class ScreenDetectorModel(nn.Module):
         num_classes: int = config.NUM_CLASSES,
         pretrained: bool = True,
         freeze_backbone: bool = False,
+        use_arcface: bool = False,
+        arcface_scale: float = 30.0,
+        arcface_margin: float = 0.50,
+        use_fft_attention: bool = False,
+        attention_type: str = "cbam",
     ) -> None:
         super().__init__()
 
         self.model_name = model_name
         self.num_classes = num_classes
+        self.use_arcface = use_arcface
 
         # Spatial Branch (RGB)
         self.backbone = timm.create_model(
@@ -44,21 +67,35 @@ class ScreenDetectorModel(nn.Module):
         self.spatial_dim = cast("int", self.backbone.num_features)  # 1280
 
         # Frequency Branch (FFT)
-        self.freq_branch = FrequencyBranch(out_features=256)
+        self.freq_branch = FrequencyBranch(
+            out_features=256,
+            use_attention=use_fft_attention,
+            attention_type=attention_type,
+        )
 
-        # Feature Normalization (修正 #5)
+        # Feature Normalization
         self.spatial_norm = nn.LayerNorm(self.spatial_dim)
         self.freq_norm = nn.LayerNorm(256)
 
-        # Fusion Classifier
+        # Fusion dimension
         fused_dim = self.spatial_dim + 256  # 1536
-        self.classifier = nn.Sequential(
-            nn.Dropout(0.3),
-            nn.Linear(fused_dim, 512),
-            nn.ReLU(inplace=True),
-            nn.Dropout(0.2),
-            nn.Linear(512, num_classes),
-        )
+
+        # Classifier (Standard or ArcFace)
+        if use_arcface:
+            self.classifier = create_arcface_classifier(
+                in_features=fused_dim,
+                num_classes=num_classes,
+                s=arcface_scale,
+                m=arcface_margin,
+            )
+        else:
+            self.classifier = nn.Sequential(
+                nn.Dropout(0.3),
+                nn.Linear(fused_dim, 512),
+                nn.ReLU(inplace=True),
+                nn.Dropout(0.2),
+                nn.Linear(512, num_classes),
+            )
 
         if freeze_backbone:
             self.freeze_backbone()
@@ -75,21 +112,6 @@ class ScreenDetectorModel(nn.Module):
             for param in child.parameters():
                 param.requires_grad = True
 
-    def forward(self, rgb_input: torch.Tensor, fft_input: torch.Tensor) -> torch.Tensor:
-        """Forward pass with dual inputs.
-
-        Args:
-            rgb_input: RGB image tensor (B, 3, H, W)
-            fft_input: FFT spectrum tensor (B, 1, H, W)
-
-        Returns:
-            Classification logits (B, num_classes)
-        """
-        spatial_feat = self.spatial_norm(self.backbone(rgb_input))
-        freq_feat = self.freq_norm(self.freq_branch(fft_input))
-        fused = torch.cat([spatial_feat, freq_feat], dim=1)
-        return self.classifier(fused)
-
     def get_features(
         self, rgb_input: torch.Tensor, fft_input: torch.Tensor
     ) -> torch.Tensor:
@@ -97,6 +119,35 @@ class ScreenDetectorModel(nn.Module):
         spatial_feat = self.spatial_norm(self.backbone(rgb_input))
         freq_feat = self.freq_norm(self.freq_branch(fft_input))
         return torch.cat([spatial_feat, freq_feat], dim=1)
+
+    def forward(
+        self,
+        rgb_input: torch.Tensor,
+        fft_input: torch.Tensor,
+        labels: torch.Tensor | None = None,
+    ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
+        """Forward pass with dual inputs.
+
+        Args:
+            rgb_input: RGB image tensor (B, 3, H, W)
+            fft_input: FFT spectrum tensor (B, 1, H, W)
+            labels: Ground truth labels (B,) - required for ArcFace training
+
+        Returns:
+            If use_arcface=False: Classification logits (B, num_classes)
+            If use_arcface=True and training: (logits, features) tuple
+        """
+        features = self.get_features(rgb_input, fft_input)
+
+        if self.use_arcface and self.training:
+            logits = self.classifier(features, labels)
+            return logits, features
+
+        if self.use_arcface:
+            logits = self.classifier(features)
+            return logits, features
+
+        return self.classifier(features)
 
 
 class ScreenDetectorModelWithDWT(nn.Module):
@@ -110,6 +161,17 @@ class ScreenDetectorModelWithDWT(nn.Module):
     DWT 提供多尺度小波特征:
     - LL: 低频近似 (结构信息)
     - LH/HL/HH: 高频细节 (边缘、纹理、噪声)
+
+    Args:
+        model_name: Backbone model name
+        num_classes: Number of output classes
+        pretrained: Whether to use pretrained backbone
+        freeze_backbone: Whether to freeze backbone initially
+        use_arcface: Whether to use ArcFace classifier
+        arcface_scale: ArcFace scale factor
+        arcface_margin: ArcFace angular margin
+        use_fft_attention: Whether to use attention in FFT/DWT branches
+        attention_type: Type of attention ('cbam', 'coordinate')
     """
 
     def __init__(
@@ -118,11 +180,17 @@ class ScreenDetectorModelWithDWT(nn.Module):
         num_classes: int = config.NUM_CLASSES,
         pretrained: bool = True,
         freeze_backbone: bool = False,
+        use_arcface: bool = False,
+        arcface_scale: float = 30.0,
+        arcface_margin: float = 0.50,
+        use_fft_attention: bool = False,
+        attention_type: str = "cbam",
     ) -> None:
         super().__init__()
 
         self.model_name = model_name
         self.num_classes = num_classes
+        self.use_arcface = use_arcface
 
         # Spatial Branch (RGB)
         self.backbone = timm.create_model(
@@ -133,21 +201,35 @@ class ScreenDetectorModelWithDWT(nn.Module):
         self.spatial_dim = cast("int", self.backbone.num_features)  # 1280
 
         # Frequency Branch (FFT + DWT)
-        self.freq_branch = FrequencyBranchWithDWT(out_features=256)
+        self.freq_branch = FrequencyBranchWithDWT(
+            out_features=256,
+            use_attention=use_fft_attention,
+            attention_type=attention_type,
+        )
 
         # Feature Normalization
         self.spatial_norm = nn.LayerNorm(self.spatial_dim)
         self.freq_norm = nn.LayerNorm(256)
 
-        # Fusion Classifier
+        # Fusion dimension
         fused_dim = self.spatial_dim + 256  # 1536
-        self.classifier = nn.Sequential(
-            nn.Dropout(0.3),
-            nn.Linear(fused_dim, 512),
-            nn.ReLU(inplace=True),
-            nn.Dropout(0.2),
-            nn.Linear(512, num_classes),
-        )
+
+        # Classifier (Standard or ArcFace)
+        if use_arcface:
+            self.classifier = create_arcface_classifier(
+                in_features=fused_dim,
+                num_classes=num_classes,
+                s=arcface_scale,
+                m=arcface_margin,
+            )
+        else:
+            self.classifier = nn.Sequential(
+                nn.Dropout(0.3),
+                nn.Linear(fused_dim, 512),
+                nn.ReLU(inplace=True),
+                nn.Dropout(0.2),
+                nn.Linear(512, num_classes),
+            )
 
         if freeze_backbone:
             self.freeze_backbone()
@@ -164,27 +246,6 @@ class ScreenDetectorModelWithDWT(nn.Module):
             for param in child.parameters():
                 param.requires_grad = True
 
-    def forward(
-        self,
-        rgb_input: torch.Tensor,
-        fft_input: torch.Tensor,
-        dwt_input: torch.Tensor,
-    ) -> torch.Tensor:
-        """Forward pass with triple inputs.
-
-        Args:
-            rgb_input: RGB image tensor (B, 3, H, W)
-            fft_input: FFT spectrum tensor (B, 1, H, W)
-            dwt_input: DWT features tensor (B, 4, H/2, W/2)
-
-        Returns:
-            Classification logits (B, num_classes)
-        """
-        spatial_feat = self.spatial_norm(self.backbone(rgb_input))
-        freq_feat = self.freq_norm(self.freq_branch(fft_input, dwt_input))
-        fused = torch.cat([spatial_feat, freq_feat], dim=1)
-        return self.classifier(fused)
-
     def get_features(
         self,
         rgb_input: torch.Tensor,
@@ -196,6 +257,37 @@ class ScreenDetectorModelWithDWT(nn.Module):
         freq_feat = self.freq_norm(self.freq_branch(fft_input, dwt_input))
         return torch.cat([spatial_feat, freq_feat], dim=1)
 
+    def forward(
+        self,
+        rgb_input: torch.Tensor,
+        fft_input: torch.Tensor,
+        dwt_input: torch.Tensor,
+        labels: torch.Tensor | None = None,
+    ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
+        """Forward pass with triple inputs.
+
+        Args:
+            rgb_input: RGB image tensor (B, 3, H, W)
+            fft_input: FFT spectrum tensor (B, 1, H, W)
+            dwt_input: DWT features tensor (B, 4, H/2, W/2)
+            labels: Ground truth labels (B,) - required for ArcFace training
+
+        Returns:
+            If use_arcface=False: Classification logits (B, num_classes)
+            If use_arcface=True and training: (logits, features) tuple
+        """
+        features = self.get_features(rgb_input, fft_input, dwt_input)
+
+        if self.use_arcface and self.training:
+            logits = self.classifier(features, labels)
+            return logits, features
+
+        if self.use_arcface:
+            logits = self.classifier(features)
+            return logits, features
+
+        return self.classifier(features)
+
 
 def create_model(
     model_name: str = config.MODEL_NAME,
@@ -203,6 +295,11 @@ def create_model(
     pretrained: bool = True,
     freeze_backbone: bool = False,
     use_dwt: bool = True,
+    use_arcface: bool = False,
+    arcface_scale: float = 30.0,
+    arcface_margin: float = 0.50,
+    use_fft_attention: bool = False,
+    attention_type: str = "cbam",
 ) -> ScreenDetectorModel | ScreenDetectorModelWithDWT:
     """Create a screen detector model.
 
@@ -212,6 +309,11 @@ def create_model(
         pretrained: Whether to use pretrained backbone
         freeze_backbone: Whether to freeze backbone initially
         use_dwt: Whether to use DWT branch (default: True)
+        use_arcface: Whether to use ArcFace classifier
+        arcface_scale: ArcFace scale factor
+        arcface_margin: ArcFace angular margin
+        use_fft_attention: Whether to use attention in frequency branches
+        attention_type: Type of attention ('cbam', 'coordinate')
     """
     if use_dwt:
         return ScreenDetectorModelWithDWT(
@@ -219,12 +321,22 @@ def create_model(
             num_classes=num_classes,
             pretrained=pretrained,
             freeze_backbone=freeze_backbone,
+            use_arcface=use_arcface,
+            arcface_scale=arcface_scale,
+            arcface_margin=arcface_margin,
+            use_fft_attention=use_fft_attention,
+            attention_type=attention_type,
         )
     return ScreenDetectorModel(
         model_name=model_name,
         num_classes=num_classes,
         pretrained=pretrained,
         freeze_backbone=freeze_backbone,
+        use_arcface=use_arcface,
+        arcface_scale=arcface_scale,
+        arcface_margin=arcface_margin,
+        use_fft_attention=use_fft_attention,
+        attention_type=attention_type,
     )
 
 
@@ -242,11 +354,15 @@ def load_model(
     """
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
 
+    # Determine if ArcFace was used
+    use_arcface = checkpoint.get("use_arcface", False)
+
     model = create_model(
         model_name=checkpoint.get("model_name", config.MODEL_NAME),
         num_classes=checkpoint.get("num_classes", config.NUM_CLASSES),
         pretrained=False,
         use_dwt=use_dwt,
+        use_arcface=use_arcface,
     )
 
     model.load_state_dict(checkpoint["model_state_dict"])
@@ -268,6 +384,7 @@ def save_model(
         "epoch": epoch,
         "best_val_acc": best_val_acc,
         "use_dwt": isinstance(model, ScreenDetectorModelWithDWT),
+        "use_arcface": model.use_arcface,
     }
 
     if optimizer_state_dict:

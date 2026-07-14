@@ -9,10 +9,16 @@
 DWT 包含:
 - LL: 低频近似系数 (主要结构)
 - LH/HL/HH: 高频细节系数 (边缘和纹理)
+
+可选注意力模块:
+- CBAM: Convolutional Block Attention Module
+- Coordinate Attention: 捕获长程依赖
 """
 
 import torch
 import torch.nn as nn
+
+from .attention import create_attention
 
 
 class ResBlock(nn.Module):
@@ -37,11 +43,23 @@ class ResBlock(nn.Module):
 class FrequencyBranch(nn.Module):
     """Frequency Branch 用于处理 FFT 频谱图
 
-    结构: Conv -> ResBlock -> Conv -> ResBlock -> AdaptivePool -> FC
+    结构: Conv -> ResBlock -> Conv -> ResBlock -> [Attention] -> AdaptivePool -> FC
     输入: (B, 1, H, W) FFT 频谱图
+
+    Args:
+        out_features: 输出特征维度
+        use_attention: 是否使用注意力模块
+        attention_type: 注意力类型 ('cbam', 'coordinate')
+        attention_reduction: 通道注意力降维比例
     """
 
-    def __init__(self, out_features: int = 256):
+    def __init__(
+        self,
+        out_features: int = 256,
+        use_attention: bool = False,
+        attention_type: str = "cbam",
+        attention_reduction: int = 16,
+    ):
         super().__init__()
         self.features = nn.Sequential(
             nn.Conv2d(1, 32, kernel_size=3, padding=1),
@@ -52,8 +70,14 @@ class FrequencyBranch(nn.Module):
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True),
             ResBlock(64),
-            nn.AdaptiveAvgPool2d(4),
         )
+
+        # Optional attention module
+        self.attention = None
+        if use_attention:
+            self.attention = create_attention(64, attention_type, attention_reduction)
+
+        self.pool = nn.AdaptiveAvgPool2d(4)
         self.classifier = nn.Sequential(
             nn.Flatten(),
             nn.Linear(64 * 4 * 4, out_features),
@@ -62,6 +86,9 @@ class FrequencyBranch(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.features(x)
+        if self.attention is not None:
+            x = self.attention(x)
+        x = self.pool(x)
         return self.classifier(x)
 
 
@@ -69,16 +96,28 @@ class FrequencyBranchWithDWT(nn.Module):
     """Frequency Branch with DWT 用于处理 FFT + DWT 特征
 
     结构:
-    - FFT 分支: Conv -> ResBlock -> Conv -> ResBlock
-    - DWT 分支: Conv -> ResBlock -> Conv -> ResBlock
+    - FFT 分支: Conv -> ResBlock -> Conv -> ResBlock -> [Attention]
+    - DWT 分支: Conv -> ResBlock -> Conv -> ResBlock -> [Attention]
     - Fusion: Concat -> AdaptivePool -> FC
 
     输入:
     - fft_input: (B, 1, H, W) FFT 频谱图
     - dwt_input: (B, 4, H/2, W/2) DWT 小波特征 [LL, LH, HL, HH]
+
+    Args:
+        out_features: 输出特征维度
+        use_attention: 是否使用注意力模块
+        attention_type: 注意力类型 ('cbam', 'coordinate')
+        attention_reduction: 通道注意力降维比例
     """
 
-    def __init__(self, out_features: int = 256):
+    def __init__(
+        self,
+        out_features: int = 256,
+        use_attention: bool = False,
+        attention_type: str = "cbam",
+        attention_reduction: int = 16,
+    ):
         super().__init__()
 
         # FFT branch (1 channel input)
@@ -105,6 +144,13 @@ class FrequencyBranchWithDWT(nn.Module):
             ResBlock(64),
         )
 
+        # Optional attention modules
+        self.fft_attention = None
+        self.dwt_attention = None
+        if use_attention:
+            self.fft_attention = create_attention(64, attention_type, attention_reduction)
+            self.dwt_attention = create_attention(64, attention_type, attention_reduction)
+
         # Fusion: 64 (FFT) + 64 (DWT) = 128 channels
         self.fusion = nn.Sequential(
             nn.AdaptiveAvgPool2d(4),
@@ -125,9 +171,13 @@ class FrequencyBranchWithDWT(nn.Module):
         """
         # FFT features
         fft_feat = self.fft_features(fft_input)  # (B, 64, H, W)
+        if self.fft_attention is not None:
+            fft_feat = self.fft_attention(fft_feat)
 
         # DWT features
         dwt_feat = self.dwt_features(dwt_input)  # (B, 64, H/2, W/2)
+        if self.dwt_attention is not None:
+            dwt_feat = self.dwt_attention(dwt_feat)
 
         # Resize DWT to match FFT spatial dimensions
         dwt_feat = nn.functional.interpolate(

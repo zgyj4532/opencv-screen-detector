@@ -1,12 +1,116 @@
 """Data augmentation for screen detector V3 training.
 
 Enhanced augmentation strategy for better screen_photo detection.
+Includes moiré simulation and screen reflection augmentation.
 """
 
 import albumentations as A
+import numpy as np
 from albumentations.pytorch import ToTensorV2
 
 from . import config
+
+
+class MoireSimulation(A.ImageOnlyTransform):
+    """Simulate moiré patterns commonly seen in screen photos.
+
+    Moiré patterns occur when photographing screens due to interference
+    between the screen's pixel grid and the camera's sensor grid.
+
+    Args:
+        frequency_range: Range of moiré pattern frequency
+        amplitude_range: Range of moiré pattern intensity
+        p: Probability of applying the transform
+    """
+
+    def __init__(
+        self,
+        frequency_range: tuple[float, float] = (0.1, 0.5),
+        amplitude_range: tuple[float, float] = (0.05, 0.2),
+        p: float = 0.3,
+    ):
+        super().__init__(p=p)
+        self.frequency_range = frequency_range
+        self.amplitude_range = amplitude_range
+
+    def apply(self, img: np.ndarray, **params) -> np.ndarray:
+        h, w = img.shape[:2]
+        freq = np.random.uniform(*self.frequency_range)
+        amp = np.random.uniform(*self.amplitude_range)
+
+        # Create moiré pattern
+        x = np.arange(w, dtype=np.float32)
+        y = np.arange(h, dtype=np.float32)
+        xx, yy = np.meshgrid(x, y)
+
+        # Random angle for moiré orientation
+        angle = np.random.uniform(0, np.pi)
+        pattern = np.sin(2 * np.pi * freq * (xx * np.cos(angle) + yy * np.sin(angle)))
+
+        # Apply moiré to image
+        pattern = pattern[:, :, np.newaxis]  # (H, W, 1)
+        img_float = img.astype(np.float32)
+        img_moire = img_float + amp * 255 * pattern
+        return np.clip(img_moire, 0, 255).astype(np.uint8)
+
+    def get_transform_init_args_names(self):
+        return ("frequency_range", "amplitude_range")
+
+
+class ScreenReflection(A.ImageOnlyTransform):
+    """Simulate screen reflection/glare artifacts.
+
+    Screen photos often have reflections from ambient light sources,
+    creating bright spots and gradients on the screen.
+
+    Args:
+        num_spots_range: Range of number of reflection spots
+        intensity_range: Range of reflection intensity
+        p: Probability of applying the transform
+    """
+
+    def __init__(
+        self,
+        num_spots_range: tuple[int, int] = (1, 3),
+        intensity_range: tuple[float, float] = (0.3, 0.8),
+        p: float = 0.3,
+    ):
+        super().__init__(p=p)
+        self.num_spots_range = num_spots_range
+        self.intensity_range = intensity_range
+
+    def apply(self, img: np.ndarray, **params) -> np.ndarray:
+        h, w = img.shape[:2]
+        num_spots = np.random.randint(*self.num_spots_range)
+
+        img_float = img.astype(np.float32)
+        mask = np.zeros((h, w), dtype=np.float32)
+
+        for _ in range(num_spots):
+            # Random position
+            cx = np.random.randint(0, w)
+            cy = np.random.randint(0, h)
+
+            # Random size and intensity
+            radius = np.random.randint(min(h, w) // 8, min(h, w) // 3)
+            intensity = np.random.uniform(*self.intensity_range)
+
+            # Create Gaussian spot
+            x = np.arange(w, dtype=np.float32)
+            y = np.arange(h, dtype=np.float32)
+            xx, yy = np.meshgrid(x, y)
+            spot = np.exp(-((xx - cx) ** 2 + (yy - cy) ** 2) / (2 * radius**2))
+            mask += intensity * spot
+
+        # Clip mask
+        mask = np.clip(mask, 0, 1)
+
+        # Apply reflection (additive brightening)
+        img_reflected = img_float + mask[:, :, np.newaxis] * 100
+        return np.clip(img_reflected, 0, 255).astype(np.uint8)
+
+    def get_transform_init_args_names(self):
+        return ("num_spots_range", "intensity_range")
 
 
 def get_train_transforms():
@@ -87,6 +191,18 @@ def get_train_transforms():
                 num_steps=5,
                 distort_limit=0.1,
                 p=0.2,
+            ),
+            # Moiré simulation (screen photo artifact)
+            MoireSimulation(
+                frequency_range=(0.1, 0.5),
+                amplitude_range=(0.05, 0.2),
+                p=0.3,
+            ),
+            # Screen reflection/glare simulation
+            ScreenReflection(
+                num_spots_range=(1, 3),
+                intensity_range=(0.3, 0.8),
+                p=0.3,
             ),
             # Elastic transform (simulates flexible screen)
             A.ElasticTransform(

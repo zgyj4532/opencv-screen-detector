@@ -6,6 +6,10 @@ Single-stage training with 3-class classification:
 Optimizations:
 - Weighted Loss for class imbalance
 - Focal Loss for hard examples
+- Center Loss for intra-class compactness
+- OHEM for hard example mining
+- ArcFace angular margin classifier
+- FFT/DWT attention modules
 - Oversampling with WeightedRandomSampler
 - Mixed Precision training
 """
@@ -23,8 +27,9 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from . import config
 from .augment import get_train_transforms, get_val_transforms
 from .dataset import create_data_loaders
-from .losses import create_criterion
+from .losses import CombinedLoss, create_criterion
 from .model import create_model, load_model, save_model
+from .threshold_optimizer import optimize_thresholds
 from .validate import (
     plot_confusion_matrix,
     plot_training_history,
@@ -35,13 +40,14 @@ from .validate import (
 
 def train_one_epoch(
     model: nn.Module,
-    train_loader: Iterable[
-        tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
-    ],
+    train_loader: Iterable[tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]],
     criterion: nn.Module,
     optimizer: optim.Optimizer,
     device: str = "cpu",
     use_amp: bool = True,
+    use_arcface: bool = False,
+    use_center_loss: bool = False,
+    center_loss_optimizer: optim.Optimizer | None = None,
 ) -> tuple[float, float]:
     """Train model for one epoch with Mixed Precision.
 
@@ -52,6 +58,9 @@ def train_one_epoch(
         optimizer: Optimizer
         device: Device to use
         use_amp: Whether to use Automatic Mixed Precision
+        use_arcface: Whether model uses ArcFace classifier
+        use_center_loss: Whether to use combined loss with center loss
+        center_loss_optimizer: Optimizer for center loss parameters
 
     Returns:
         Tuple of (epoch_loss, epoch_acc)
@@ -74,18 +83,45 @@ def train_one_epoch(
 
         # Forward pass with AMP
         with torch.amp.autocast("cuda" if device == "cuda" else "cpu", enabled=use_amp):
-            outputs = model(rgb, fft, dwt)
-            loss = criterion(outputs, labels)
+            if use_arcface:
+                # ArcFace returns (logits, features)
+                outputs, features = model(rgb, fft, dwt, labels)
+
+                if use_center_loss and isinstance(criterion, CombinedLoss):
+                    loss, _focal_loss, _center_loss = criterion(outputs, features, labels)
+                else:
+                    loss = criterion(outputs, labels)
+            else:
+                outputs = model(rgb, fft, dwt)
+
+                if use_center_loss and isinstance(criterion, CombinedLoss):
+                    # For non-ArcFace, extract features separately
+                    features = model.get_features(rgb, fft, dwt)
+                    loss, _focal_loss, _center_loss = criterion(outputs, features, labels)
+                else:
+                    loss = criterion(outputs, labels)
 
         # Backward pass
         optimizer.zero_grad()
+        if center_loss_optimizer is not None:
+            center_loss_optimizer.zero_grad()
+
         scaler.scale(loss).backward()
         scaler.step(optimizer)
+        if center_loss_optimizer is not None:
+            scaler.step(center_loss_optimizer)
+
         scaler.update()
 
         # Statistics
         running_loss += loss.item() * rgb.size(0)
-        _, predicted = torch.max(outputs, 1)
+
+        if use_arcface:
+            # For ArcFace, get predictions from logits
+            _, predicted = torch.max(outputs, 1)
+        else:
+            _, predicted = torch.max(outputs, 1)
+
         total += labels.size(0)
         correct += (predicted == labels).sum().item()
 
@@ -107,6 +143,16 @@ def train_three_class(
     device: str | None = None,
     use_focal_loss: bool = config.USE_FOCAL_LOSS,
     use_weighted_sampler: bool = config.USE_WEIGHTED_SAMPLER,
+    use_center_loss: bool = config.USE_CENTER_LOSS,
+    center_loss_weight: float = config.CENTER_LOSS_WEIGHT,
+    use_ohem: bool = config.USE_OHEM,
+    ohem_hard_ratio: float = config.OHEM_HARD_RATIO,
+    use_arcface: bool = config.USE_ARCFACE,
+    arcface_scale: float = config.ARCFACE_SCALE,
+    arcface_margin: float = config.ARCFACE_MARGIN,
+    use_fft_attention: bool = config.USE_FFT_ATTENTION,
+    attention_type: str = config.FFT_ATTENTION_TYPE,
+    use_adaptive_threshold: bool = config.USE_ADAPTIVE_THRESHOLD,
 ) -> tuple[nn.Module, dict, dict]:
     """Train a single-stage three-class classifier.
 
@@ -122,6 +168,16 @@ def train_three_class(
         device: Device to use
         use_focal_loss: Whether to use Focal Loss
         use_weighted_sampler: Whether to use WeightedRandomSampler
+        use_center_loss: Whether to use Center Loss
+        center_loss_weight: Weight for Center Loss
+        use_ohem: Whether to use OHEM
+        ohem_hard_ratio: Ratio of hard samples for OHEM
+        use_arcface: Whether to use ArcFace classifier
+        arcface_scale: ArcFace scale factor
+        arcface_margin: ArcFace angular margin
+        use_fft_attention: Whether to use FFT attention
+        attention_type: Type of attention ('cbam', 'coordinate')
+        use_adaptive_threshold: Whether to optimize thresholds
 
     Returns:
         Tuple of (model, history, final_metrics)
@@ -145,8 +201,14 @@ def train_three_class(
     print(f"Training Three-Class Classifier: {', '.join(class_names)}")
     print(f"{'=' * 60}")
     print(f"Device: {device}")
-    print(f"Use Focal Loss: {use_focal_loss}")
-    print(f"Use Weighted Sampler: {use_weighted_sampler}")
+    print("\n--- Optimization Modules ---")
+    print(f"Focal Loss: {use_focal_loss}")
+    print(f"Center Loss: {use_center_loss} (weight={center_loss_weight})")
+    print(f"OHEM: {use_ohem} (ratio={ohem_hard_ratio})")
+    print(f"ArcFace: {use_arcface} (s={arcface_scale}, m={arcface_margin})")
+    print(f"FFT Attention: {use_fft_attention} (type={attention_type})")
+    print(f"Adaptive Threshold: {use_adaptive_threshold}")
+    print(f"Weighted Sampler: {use_weighted_sampler}")
     print(f"Class Weights: {class_weights}")
 
     # Create data loaders
@@ -164,13 +226,21 @@ def train_three_class(
     val_size = len(full_dataset) - train_size
     print(f"Train/Val split: {train_size}/{val_size}")
 
-    # Create model with 3 classes (with DWT branch)
+    # Feature dimension: EfficientNet (1280) + FFT/DWT (256) = 1536
+    feat_dim = 1536
+
+    # Create model with optimization options
     model = create_model(
         model_name=config.MODEL_NAME,
         num_classes=config.NUM_CLASSES,
         pretrained=True,
         freeze_backbone=True,
         use_dwt=True,
+        use_arcface=use_arcface,
+        arcface_scale=arcface_scale,
+        arcface_margin=arcface_margin,
+        use_fft_attention=use_fft_attention,
+        attention_type=attention_type,
     )
     model = model.to(device)
 
@@ -179,8 +249,23 @@ def train_three_class(
         use_focal_loss=use_focal_loss,
         class_weights=class_weights,
         focal_gamma=config.FOCAL_LOSS_GAMMA,
+        use_center_loss=use_center_loss,
+        center_weight=center_loss_weight,
+        num_classes=config.NUM_CLASSES,
+        feat_dim=feat_dim,
+        use_ohem=use_ohem,
+        ohem_hard_ratio=ohem_hard_ratio,
     )
+    criterion = criterion.to(device)
     print(f"Loss function: {type(criterion).__name__}")
+
+    # Separate optimizer for center loss if used
+    center_loss_optimizer = None
+    if use_center_loss and isinstance(criterion, CombinedLoss):
+        center_loss_optimizer = optim.SGD(
+            criterion.center_criterion.parameters(),
+            lr=0.5,
+        )
 
     # Training history
     history = {
@@ -215,7 +300,10 @@ def train_three_class(
         start_time = time.time()
 
         train_loss, train_acc = train_one_epoch(
-            model, train_loader, criterion, optimizer, device
+            model, train_loader, criterion, optimizer, device,
+            use_arcface=use_arcface,
+            use_center_loss=use_center_loss,
+            center_loss_optimizer=center_loss_optimizer,
         )
 
         val_metrics = validate_model(model, val_loader, device, class_names)
@@ -283,7 +371,10 @@ def train_three_class(
         start_time = time.time()
 
         train_loss, train_acc = train_one_epoch(
-            model, train_loader, criterion, optimizer, device
+            model, train_loader, criterion, optimizer, device,
+            use_arcface=use_arcface,
+            use_center_loss=use_center_loss,
+            center_loss_optimizer=center_loss_optimizer,
         )
 
         val_metrics = validate_model(model, val_loader, device, class_names)
@@ -339,6 +430,46 @@ def train_three_class(
 
     final_metrics = validate_model(best_model, val_loader, device, class_names)
     print_metrics(final_metrics, class_names)
+
+    # Adaptive threshold optimization
+    if use_adaptive_threshold:
+        print("\n" + "=" * 60)
+        print("Adaptive Threshold Optimization")
+        print("=" * 60)
+
+        # Get probabilities from best model
+        best_model.eval()
+        all_probs = []
+        all_labels = []
+
+        with torch.no_grad():
+            for rgb, fft, dwt, labels in val_loader:
+                rgb = rgb.to(device)
+                fft = fft.to(device)
+                dwt = dwt.to(device)
+
+                outputs = best_model(rgb, fft, dwt)
+                probs = torch.softmax(outputs, dim=1)
+                all_probs.extend(probs.cpu().numpy())
+                all_labels.extend(labels.numpy())
+
+        import numpy as np
+        all_probs = np.array(all_probs)
+        all_labels = np.array(all_labels)
+
+        # Optimize thresholds
+        threshold_result = optimize_thresholds(
+            probabilities=all_probs,
+            labels=all_labels,
+            class_names=class_names,
+            target_class=config.ADAPTIVE_THRESHOLD_TARGET,
+        )
+
+        print("\nMetrics with optimized thresholds:")
+        print(f"  Accuracy: {threshold_result.metrics['accuracy']:.4f}")
+        print(f"  SP Precision: {threshold_result.metrics['precision_per_class'][screen_photo_class_idx]:.4f}")
+        print(f"  SP Recall: {threshold_result.metrics['recall_per_class'][screen_photo_class_idx]:.4f}")
+        print(f"  SP F1: {threshold_result.metrics['f1_per_class'][screen_photo_class_idx]:.4f}")
 
     plot_confusion_matrix(
         final_metrics,

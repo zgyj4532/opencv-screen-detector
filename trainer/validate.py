@@ -1,6 +1,7 @@
 """Validation module for screen detector V3 training.
 
 Includes precision, recall, F1, FPR metrics (修正 #11).
+Supports both standard and ArcFace models.
 """
 
 # pyright: reportPrivateImportUsage=none
@@ -28,6 +29,10 @@ def validate_model(
 ):
     """Validate model on validation set.
 
+    Supports both standard and ArcFace models.
+    For ArcFace models, the forward pass returns (logits, features) during training,
+    but we need to handle inference mode properly.
+
     Returns:
         dict with metrics: accuracy, precision, recall, f1, fpr, confusion_matrix
     """
@@ -44,9 +49,14 @@ def validate_model(
             dwt = dwt.to(device)
             labels = labels.to(device)
 
+            # Handle both standard and ArcFace models
             outputs = model(rgb, fft, dwt)
-            probs = torch.softmax(outputs, dim=1)
-            _, preds = torch.max(outputs, 1)
+
+            # ArcFace returns (logits, features) tuple
+            logits = outputs[0] if isinstance(outputs, tuple) else outputs
+
+            probs = torch.softmax(logits, dim=1)
+            _, preds = torch.max(logits, 1)
 
             all_preds.extend(preds.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
