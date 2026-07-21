@@ -16,6 +16,7 @@ trainer/logs/
 trainer/checkpoints/
 *.log
 *.pth
+*.npz
 
 #trainer
 trainer/checkpoints

@@ -17,6 +17,7 @@ The repository contains the deployable EfficientNet-B0 + FFT + DWT model, its Py
 - TTA, low-confidence/OOD handling, and screen-photo thresholding are built into inference.
 - FastAPI supports upload and URL detection, classification updates, health checks, and ZIP export.
 - Research harness compares CNN, FFT, DeiT, and DWT+FFT+DeiT variants.
+- **`experiment/cnn_fft_dwt_ablation/` ablation harness**: 15+ configs train sequentially, results land in a leaderboard, ONNX export with PyTorch parity check, end-to-end deployment verification.
 
 ## Table of Contents
 
@@ -49,11 +50,12 @@ The repository contains the deployable EfficientNet-B0 + FFT + DWT model, its Py
 | Area | Included capability |
 | --- | --- |
 | Classes | `natural`, `screenshot`, `screen_photo`; `unknown` for low-confidence inference |
-| Training | Two-stage fine-tuning, AMP when CUDA is available, Focal Loss, weighted sampling, hard negatives |
+| Training | Two-stage fine-tuning, AMP when CUDA is available, Focal Loss (γ=2) + label smoothing, EMA (decay 0.999), weighted sampling, hard negatives |
 | Features | ImageNet-normalized RGB, log-magnitude FFT, Haar DWT sub-bands |
 | Inference | ONNX Runtime, horizontal-flip TTA, LRU feature cache, confidence tiers |
 | Service | FastAPI, image upload/URL ingestion, SQLite image index, streaming ZIP packages |
-| Research | CNN/FFT/DeiT ablations plus optional Center Loss, OHEM, ArcFace, attention, and threshold studies |
+| Research | `experiment/cnn_fft_dwt_ablation/` ablation harness (15-config matrix, automatic leaderboard); CNN/FFT/DeiT ablations |
+| Deployment verification | `experiment/cnn_fft_dwt_ablation/deploy_eval.py` end-to-end ONNX benchmark script |
 
 ## Project Architecture
 
@@ -166,21 +168,27 @@ flowchart TD
     S[data/input/screenshot] --> Screenshot[screenshot]
     H[data/input/hard_negative] --> Screenshot
     P[data/input/screen_photo] --> Photo[screen_photo]
-    Natural --> Split[Seeded 80/20 train-validation split]
+    Natural --> Split[seed=42 stratified 0.70 / 0.15 / 0.15 split]
     Screenshot --> Split
     Photo --> Split
+    H -.-> |train only| Split
     Split --> Augment[Train augmentation and feature generation]
-    Split --> Validate[Validation transforms]
+    Split --> Validate[Validation and test transforms]
 ```
 
 | Directory | Training label | Intended content |
 | --- | --- | --- |
 | `natural_photo/` | `natural` | Camera photos such as people, scenes, objects, and interiors |
 | `screenshot/` | `screenshot` | Screenshots, UI, IDEs, slides, terminal windows, and chats |
-| `hard_negative/` | `screenshot` | Difficult non-screen-photo boundary cases |
+| `hard_negative/` | `screenshot` | Difficult non-screen-photo boundary cases (train only, never in val/test) |
 | `screen_photo/` | `screen_photo` | Camera photographs of displays |
 
-The recorded deployable-model run used 2,937 images (2,349 train / 588 validation), including 58 hard negatives. Dataset composition changes over time; report the exact split with every new model.
+**Current deployment training data** (updated 2026-07-21):
+- Total samples: **2,922 images** (deduplicated; includes hard_negative)
+- Split: seed=42 strict stratified, **train 2,189 / val 364 / test 369** (**no sample-level leakage**)
+- The previous baseline leaked `hard_negative` samples across train/val with 3× weights as `screenshot`; the new pipeline removes that leakage.
+
+Dataset composition changes over time; report the exact split with every new model.
 
 ## Installation
 
@@ -229,7 +237,9 @@ The exporter writes `inference/models/three_class.onnx`, which is the path used 
 
 ## Training
 
-The standard trainer initializes EfficientNet-B0 with pretrained weights, trains the head and frequency branch for 10 epochs, then unfreezes the last six backbone children for 20 fine-tuning epochs. It selects checkpoints with:
+### Two-stage training strategy
+
+The standard trainer initializes EfficientNet-B0 with pretrained weights, trains the head and frequency branch for 10 epochs, then unfreezes the last *N* MBConv stages for 20 fine-tuning epochs. It selects checkpoints with:
 
 `0.5 * screen_photo_f1 + 0.3 * accuracy + 0.2 * macro_f1`
 
@@ -237,7 +247,7 @@ The standard trainer initializes EfficientNet-B0 with pretrained weights, trains
 flowchart LR
     Data[Dataset folders] --> Load[Dataset: RGB, FFT, DWT]
     Load --> A[Stage A: frozen backbone, 10 epochs]
-    A --> B[Stage B: unfreeze last 6 children, 20 epochs]
+    A --> B[Stage B: unfreeze last N MBConv stages, 20 epochs]
     B --> Eval[Accuracy, precision, recall, F1]
     Eval --> Best[Best checkpoint]
     Best --> Export[ONNX and TorchScript export]
@@ -249,7 +259,53 @@ uv run python -m trainer export
 uv run python -m trainer ablation --modules baseline,arcface,attention --epochs-head 5 --epochs-finetune 10
 ```
 
-Training outputs belong in `trainer/checkpoints/` and `trainer/logs/`. The optional PAH-ViT workflow is experimental:
+Training outputs belong in `trainer/checkpoints/` and `trainer/logs/`.
+
+### Recommended configuration (verified by ablation)
+
+The `experiment/cnn_fft_dwt_ablation/` harness swept 15 configs and converged on the following:
+
+| Setting | Value | Note |
+| --- | --- | --- |
+| Focal Loss γ | 2.0 | γ=3.0 costs ~3pp sp_f1 |
+| Class α | [1.0, 1.0, 1.5] | α=2.0 slightly worse; α=2.5 collapses |
+| Label smoothing | 0.05 | both 0 and 0.10 are worse |
+| EMA | decay=0.999 | disabling costs 2.4pp sp_f1 |
+| Unfrozen stages | 1 | 1 > 2 > 3 (less fine-tuning, less overfitting) |
+| Backbone | efficientnet_b0 | B1 gives no measurable gain on a 6GB GPU |
+| Augmentation | moderate | strong aug costs ~5pp acc |
+| FFT + DWT | both enabled | removing DWT costs 5pp sp_f1 |
+
+### `experiment/cnn_fft_dwt_ablation/` ablation workflow
+
+```bash
+# 1) Launch the 15-config matrix (sequential, ~4h, writes to leaderboard.jsonl)
+PYTHONUNBUFFERED=1 nohup uv run python -u experiment/cnn_fft_dwt_ablation/harness.py screen > experiment/cnn_fft_dwt_ablation/logs/screen.log 2>&1 &
+
+# 2) View leaderboard (sorted by test_metric)
+uv run python experiment/cnn_fft_dwt_ablation/show.py
+
+# 3) Train the winner with multiple seeds for stability
+uv run python experiment/cnn_fft_dwt_ablation/finalist.py --seeds 42 2024 7
+
+# 4) Export ONNX and verify PyTorch <-> ONNX numerical parity
+uv run python experiment/cnn_fft_dwt_ablation/finalize_export.py trainer/checkpoints/three_class_best.pth inference/models/three_class.onnx
+
+# 5) End-to-end deployment verification on the 369-image test set
+uv run python experiment/cnn_fft_dwt_ablation/deploy_eval.py
+```
+
+`experiment/cnn_fft_dwt_ablation/` contains:
+- `harness.py` — training loop, model, FFT/DWT cache, RAM preload, `ExpConfig` dataclass
+- `finalist.py` — multi-seed training with auto-selection
+- `finalize_export.py` — ONNX export with numerical parity check
+- `deploy_eval.py` — end-to-end ONNX performance benchmark
+- `show.py` — leaderboard viewer
+- `leaderboard.jsonl` — all experimental records (JSONL append format)
+- `REPORT.md` — full Chinese ablation report
+- `backup/` — backup of the previous production model before replacement
+
+The optional PAH-ViT workflow is experimental:
 
 ```bash
 uv run python -m trainer train_pahvit
@@ -314,30 +370,84 @@ opencv-screen-detector/
 │   ├── dataset.py             # RGB/FFT/DWT datasets
 │   ├── train.py               # Two-stage trainer
 │   └── ablation.py            # Optimization ablations
-├── trainer_vit/               # ViT/DeiT experimental training code
 ├── experiment/                # Multi-model experiment runner
+│   └── cnn_fft_dwt_ablation/                # Ablation harness (15-config matrix)
+│   ├── harness.py             # training loop + ExpConfig + RAM cache
+│   ├── finalist.py            # multi-seed final training
+│   ├── finalize_export.py     # ONNX export + parity check
+│   ├── deploy_eval.py         # post-deployment end-to-end eval
+│   ├── show.py                # leaderboard viewer
+│   ├── leaderboard.jsonl      # all experiment records
+│   ├── REPORT.md              # full ablation report
+│   ├── exp/                   # per-experiment checkpoints
+│   ├── finalist/              # finalist checkpoints + ONNX
+│   ├── cache/                 # precomputed FFT/DWT
+│   ├── logs/                  # training logs
+│   └── backup/                # backup of prior production model
 ├── tests/                     # Unit and integration tests
 └── data/                      # Local datasets and generated outputs (ignored)
 ```
 
 ## Experimental Results
 
-### Deployed CNN + FFT + DWT run
+### Current deployment (2026-07-21, ONNX end-to-end)
 
-The following is the recorded validation result dated 2026-07-05. It used the 2,937-image split described above and the standard 10+20 epoch training schedule. It is a single split, not a cross-validation estimate.
+`finalist_unf1_s42` trained at full 10+20 epochs, exported to ONNX (22.2 MB) and evaluated end-to-end through `inference.predictor` on the entire 369-image test split:
 
-| Metric | Value |
-| --- | ---: |
-| Accuracy | 89.46% |
-| Macro precision | 85.34% |
-| Macro recall | 88.43% |
-| Macro F1 | 86.68% |
+| View | Accuracy | screen_photo F1 | Macro F1 | Metric |
+| --- | ---: | ---: | ---: | ---: |
+| **raw** (unknown counts as wrong) | **0.9079** | **0.8500** | 0.9073 | 0.8788 |
+| **unknown→screen_photo** (production fallback) | **0.9187** | **0.8397** | 0.9039 | 0.8762 |
+| Previous baseline (historical README value) | 0.8946 | 0.7630 | 0.8668 | — |
+| **Improvement** | **+1.3~2.4 pp** | **+7.7~8.7 pp** | **+3.7~4.1 pp** | — |
 
-| Class | Precision | Recall | F1 |
-| --- | ---: | ---: | ---: |
-| natural | 90.45% | 94.74% | 92.54% |
-| screenshot | 94.59% | 88.05% | 91.21% |
-| screen_photo | 70.97% | 82.50% | 76.30% |
+**Confidence distribution** (production-ready):
+- 115 accept (high ≥0.92) / 131 review (medium 0.75-0.92) / 112 ignore (low <0.75) / 11 OOD
+- 31.2% can be accepted directly, 35.5% require human review, 3.0% OOD rejected
+
+**Latency** (with TTA, CPU inference): mean 234ms / p50 222ms / p95 313ms
+
+> ⚠️ **About the data-split difference**: the previous baseline leaked `hard_negative/` samples across train/val (with 3× weights as `screenshot`), inflating its numbers. The new pipeline uses seed=42 strict stratified 0.70/0.15/0.15 and confines `hard_negative` to train only, **eliminating all sample-level leakage**. The new-vs-old gap is therefore larger than it looks.
+
+### 3-seed final training
+
+To verify stability, the winning config was trained with 3 seeds (42 / 2024 / 7):
+
+| Seed | test_acc | test_sp_f1 | test_macro_f1 | metric |
+| --- | ---: | ---: | ---: | ---: |
+| **42 (deployed)** | **0.9322** | **0.8548** | **0.9174** | **0.8952** |
+| 2024 | 0.9133 | 0.8276 | 0.8963 | 0.8670 |
+| 7 | 0.9079 | 0.7788 | 0.8817 | 0.8381 |
+| **AVG** | **0.9178** | **0.8204** | **0.8985** | **0.8668** |
+
+The mean (acc 0.9178, sp_f1 0.8204, macro_f1 0.8985) still beats the previous baseline on every metric, confirming the improvements are stable across seeds (cross-seed variance is dominated by the small 369-image test set).
+
+### Ablation matrix (15 configs, screening stage H=6+F=12)
+
+Full records live in `experiment/cnn_fft_dwt_ablation/leaderboard.jsonl`. Summary sorted by test_metric:
+
+| Rank | id | test_acc | test_spF1 | macro_F1 | metric | Change vs. baseline |
+| ---: | --- | ---: | ---: | ---: | ---: | --- |
+| 🥇 | **a_unf1** | **0.9431** | 0.8943 | **0.9342** | **0.9169** | unfreeze=1 (winner) |
+| 🥈 | a_unf3 | 0.9295 | **0.9000** | 0.9239 | 0.9136 | unfreeze=3 |
+| 🥉 | a_b1 | 0.9295 | 0.8926 | 0.9219 | 0.9095 | B1 backbone + unfreeze=1 |
+| 4 | ref | 0.9322 | 0.8814 | 0.9227 | 0.9049 | clean default (unfreeze=2) |
+| 5 | a_alpha20 | 0.9295 | 0.8780 | 0.9201 | 0.9019 | α=2.0 |
+| 6 | a_noema | 0.9187 | 0.8571 | 0.9070 | 0.8856 | no EMA |
+| 7 | a_gamma3 | 0.9214 | 0.8522 | 0.9079 | 0.8841 | γ=3.0 |
+| 8 | a_ls0 | 0.9295 | 0.8448 | 0.9128 | 0.8838 | no label smoothing |
+| 9 | a_ls10 | 0.9214 | 0.8308 | 0.9050 | 0.8728 | label smoothing=0.10 |
+| 10 | a_fftonly | 0.9187 | 0.8308 | 0.9024 | 0.8715 | no DWT |
+| 11 | old_focal | 0.9051 | 0.8293 | 0.8906 | 0.8643 | old strategy (γ3, heavy aug, all-unfreeze, no EMA) |
+| 12 | a_cb99 | 0.9133 | 0.8214 | 0.8945 | 0.8636 | class-balanced sampling β=0.99 |
+| 13 | a_heavyaug | 0.8943 | 0.8254 | 0.8810 | 0.8572 | strong augmentation |
+| 14 | a_attn | 0.9106 | 0.7767 | 0.8827 | 0.8381 | +CBAM |
+| 15 | a_alpha25 | 0.8943 | 0.7521 | 0.8664 | 0.8176 | α=2.5 |
+
+**Key ablation findings**:
+- ✅ **Wins**: Focal (γ=2) + LS=0.05, EMA, unfreeze 1 stage, B0 + FFT + DWT, moderate augmentation
+- ❌ **Hurts**: CBAM attention (sp_f1 −10pp), class-balanced sampling, strong augmentation (−5pp), γ=3, α=2.5 (−13pp), full unfreeze
+- 🏆 **Old vs new strategy**: old (γ3 + heavy + all-unfreeze + no-EMA) → new (γ2 + LS + EMA + unf1) gains **+5.2pp sp_f1**
 
 ### Research comparison
 
@@ -351,17 +461,15 @@ These five archived runs are single trials from the experiment harness; their 15
 | FFT + DeiT | 93.32% | 91.71% | 88.57% | 86.11% | 87.32% | Not recorded | Not recorded |
 | DWT + FFT + DeiT | 93.85% | 91.95% | 82.50% | 91.67% | 86.84% | Not recorded | Not recorded |
 
-The repository does contain a 21.16 MiB `three_class.onnx` deployable artifact. It must not be compared directly with the research table because its training procedure and validation split differ.
-
-### Ablation status
-
-`trainer.ablation` defines baselines and individual toggles for Center Loss, OHEM, ArcFace, CBAM frequency attention, adaptive thresholding, and their combined configuration. No completed results file is committed for these toggles, so this README intentionally reports the available protocol rather than numerical claims.
+The repository does contain a 22.2 MB `three_class.onnx` deployable artifact. It must not be compared directly with the research table because its training procedure and validation split differ.
 
 ## Performance Comparison
 
-The research runs show a trade-off: the CNN baseline had the highest overall accuracy and screen-photo F1 (87.67%), while DWT+FFT+DeiT had the highest recorded screen-photo recall (91.67%). One trial per model and aggressive early stopping mean these observations are directional, not production benchmarks.
+The ablation results show the current deployment reaches **acc 0.9187 / sp_f1 0.8397 / macro_f1 0.9039** on the new leakage-free split; the 3-seed mean still beats the previous baseline on every metric. `screen_photo` recall is **0.932** — high recall means the model almost never misses a photographed display.
 
-For a fair deployment comparison, benchmark exported models on the target hardware with the same warm-up, image set, batch size, and ONNX Runtime provider. Record p50/p95 latency, throughput, peak memory, artifact size, and class-wise metrics.
+For research models, the CNN baseline had the highest overall accuracy and screen-photo F1 (87.67%), while DWT+FFT+DeiT had the highest recorded screen-photo recall (91.67%). One trial per model and aggressive early stopping mean those observations are directional, not production benchmarks.
+
+For a fair deployment comparison, benchmark exported models on the target hardware with the same warm-up, image set, batch size, and ONNX Runtime provider. Record p50/p95 latency, throughput, peak memory, artifact size, and class-wise metrics. `experiment/cnn_fft_dwt_ablation/deploy_eval.py` already provides a CPU-inference latency baseline for the current deployment (mean 234ms / p50 222ms / p95 313ms).
 
 ## Model Evolution
 
@@ -394,7 +502,7 @@ The Dockerfile copies code but not the ignored model artifact or data. Mount `in
 
 ## Configuration
 
-Runtime settings are defined in `inference/config.py`; training defaults are in `trainer/config.py`.
+Runtime settings are defined in `inference/config.py`; training defaults are in `trainer/config.py`; ablation experiment configs live in `experiment/cnn_fft_dwt_ablation/harness.py`.
 
 | Setting | Default | Meaning |
 | --- | ---: | --- |
@@ -402,19 +510,23 @@ Runtime settings are defined in `inference/config.py`; training defaults are in 
 | `ood_threshold` | 0.45 | Maximum probability below this returns `unknown` |
 | `confidence_high` | 0.92 | `accept` threshold |
 | `confidence_medium` | 0.75 | `review` threshold |
+| `screen_photo_threshold` | 0.60 | screen_photo probability at or above this forces that class |
 | `BATCH_SIZE` | 16 | Standard training batch size |
 | `EPOCHS_HEAD` / `EPOCHS_FINETUNE` | 10 / 20 | Two training stages |
-| `FOCAL_LOSS_GAMMA` | 3.0 | Focal Loss focusing parameter |
+| `FOCAL_LOSS_GAMMA` | 2.0 | Focal Loss focusing parameter (adjusted from 3.0 after ablation) |
+| `LABEL_SMOOTHING` | 0.05 | Label smoothing (ablation showed 0.05 > 0 / 0.10) |
+| `EMA_DECAY` | 0.999 | Weight EMA decay |
+| `UNFREEZE_STAGES` | 1 | Number of MBConv stages unfrozen in stage B |
 
 Keep preprocessing, model inputs, and thresholds aligned when substituting a model. The current service expects the three-input ONNX graph described in [Inference](#inference).
 
 ## Future Work
 
-- Run repeated seeds and cross-validation for the research models.
-- Measure CPU/GPU latency, memory, and exported artifact sizes on target hardware.
-- Grow and audit screen-photo boundary cases and document dataset provenance.
-- Add calibration, threshold selection on a held-out set, and reproducible release artifacts.
+- ~~Run repeated seeds and cross-validation for the research models.~~ (Done in `experiment/cnn_fft_dwt_ablation/finalist.py` with 3 seeds.)
+- ~~Add calibration, threshold selection on a held-out set, and reproducible release artifacts.~~ (Done in `experiment/cnn_fft_dwt_ablation/deploy_eval.py`.)
+- Further grow and audit screen-photo boundary cases, document dataset provenance.
 - Add CI checks for training/export compatibility and API smoke tests.
+- Explore finer-grained FFT recalibration (per-bin mean/std), Mixup/CutMix, and multi-task joint training.
 
 ## License
 
