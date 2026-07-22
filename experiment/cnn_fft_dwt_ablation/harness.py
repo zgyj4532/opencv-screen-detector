@@ -7,10 +7,11 @@ Clean, fast, reproducible training pipeline that fixes the audited bugs:
 - Fixed unfreeze (only real MBConv stages + conv_head + bn2)
 - Stage-A optimizer includes LayerNorm params
 - EMA, label smoothing, adaptive threshold on held-out TEST
-- Model selection on VAL by best_metric = 0.5*sp_f1 + 0.3*acc + 0.2*macro_f1
+- Release selection first gates confirmed hard examples, then maximizes the VAL
+  metric: 0.5*sp_f1 + 0.3*acc + 0.2*macro_f1
 
-Does NOT modify trainer/ so baselines stay comparable; winning config is ported
-back afterwards for the real export.
+The release trainer imports this harness with the ablation-winning defaults;
+legacy trainer modules remain available separately for baseline reproduction.
 """
 
 from __future__ import annotations
@@ -37,8 +38,11 @@ from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT))
 
-from shared.fft_transform import compute_dwt_features, compute_fft_spectrum  # noqa: E402
-from trainer.model import create_model  # noqa: E402
+from shared.fft_transform import (
+    compute_dwt_features,
+    compute_fft_spectrum,
+)
+from trainer.model import create_model
 
 DATA_DIR = ROOT / "data" / "input"
 ABLATION_DIR = ROOT / "experiment" / "cnn_fft_dwt_ablation"
@@ -46,6 +50,7 @@ CACHE_DIR = ABLATION_DIR / "cache"
 EXP_DIR = ABLATION_DIR / "exp"
 SPLIT_PATH = ABLATION_DIR / "split.json"
 LEADERBOARD = ABLATION_DIR / "leaderboard.jsonl"
+FOCUS_MANIFEST = ROOT / "trainer" / "hard_examples.txt"
 IMAGE_SIZE = 224
 CLASS_NAMES = ["natural", "screenshot", "screen_photo"]
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
@@ -75,7 +80,9 @@ HN_MAP = {
 # --------------------------------------------------------------------------
 # Data collection & split
 # --------------------------------------------------------------------------
-def collect_samples() -> tuple[list[tuple[str, int]], list[tuple[str, int]]]:
+def collect_samples(
+    data_dir: Path = DATA_DIR,
+) -> tuple[list[tuple[str, int]], list[tuple[str, int]]]:
     """Return (main_samples, hard_neg_samples), deduped by resolved path."""
     seen: set[str] = set()
     main: list[tuple[str, int]] = []
@@ -83,7 +90,7 @@ def collect_samples() -> tuple[list[tuple[str, int]], list[tuple[str, int]]]:
 
     main_map = {"natural_photo": 0, "screenshot": 1, "screen_photo": 2}
     for folder, label in main_map.items():
-        for p in (DATA_DIR / folder).rglob("*"):
+        for p in (data_dir / folder).rglob("*"):
             if p.suffix.lower() not in IMAGE_EXTS:
                 continue
             key = str(p.resolve())
@@ -92,7 +99,7 @@ def collect_samples() -> tuple[list[tuple[str, int]], list[tuple[str, int]]]:
             seen.add(key)
             main.append((str(p), label))
 
-    hn_root = DATA_DIR / "hard_negative"
+    hn_root = data_dir / "hard_negative"
     for sub, label in HN_MAP.items():
         d = hn_root / sub
         if not d.exists():
@@ -108,12 +115,68 @@ def collect_samples() -> tuple[list[tuple[str, int]], list[tuple[str, int]]]:
     return main, hard
 
 
-def build_split(seed: int = 42) -> dict:
-    """Stratified 0.7/0.15/0.15 split of main samples; hard negs go to train."""
-    if SPLIT_PATH.exists():
-        return json.loads(SPLIT_PATH.read_text(encoding="utf-8"))
+def load_focus_paths(
+    data_dir: Path = DATA_DIR,
+    manifest_path: Path = FOCUS_MANIFEST,
+) -> set[str]:
+    """Load curated hard-example paths, ignoring comments and missing local files."""
+    if not manifest_path.exists():
+        return set()
 
-    main, hard = collect_samples()
+    paths: set[str] = set()
+    for raw_line in manifest_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.split("#", maxsplit=1)[0].strip()
+        if not line:
+            continue
+        path = (data_dir / Path(line)).resolve()
+        if path.exists() and path.suffix.lower() in IMAGE_EXTS:
+            paths.add(str(path))
+    return paths
+
+
+def _dataset_fingerprint(
+    samples: list[tuple[str, int]],
+    data_dir: Path,
+) -> str:
+    """Fingerprint paths, labels, sizes and mtimes so stale splits are not reused."""
+    root = data_dir.resolve()
+    rows = []
+    for raw_path, label in samples:
+        path = Path(raw_path).resolve()
+        stat = path.stat()
+        relative = path.relative_to(root).as_posix()
+        rows.append(f"{relative}\0{label}\0{stat.st_size}\0{stat.st_mtime_ns}")
+    payload = "\n".join(sorted(rows)).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def build_split(
+    seed: int = 42,
+    data_dir: Path = DATA_DIR,
+    split_path: Path = SPLIT_PATH,
+    focus_paths: set[str] | None = None,
+) -> dict:
+    """Build a cached stratified split; hard/focus examples always stay in train."""
+    main, hard = collect_samples(data_dir)
+    all_samples = main + hard
+    fingerprint = _dataset_fingerprint(all_samples, data_dir)
+    focus = focus_paths if focus_paths is not None else load_focus_paths(data_dir)
+    collected_paths = {str(Path(path).resolve()) for path, _ in all_samples}
+    if missing_focus := focus - collected_paths:
+        missing = "\n".join(f"- {path}" for path in sorted(missing_focus))
+        raise RuntimeError(f"Focus examples are not part of the collected dataset:\n{missing}")
+    focus_fingerprint = hashlib.sha256("\n".join(sorted(focus)).encode("utf-8")).hexdigest()
+
+    if split_path.exists():
+        saved = json.loads(split_path.read_text(encoding="utf-8"))
+        meta = saved.get("meta", {})
+        if (
+            meta.get("dataset_fingerprint") == fingerprint
+            and meta.get("focus_fingerprint") == focus_fingerprint
+            and meta.get("seed") == seed
+        ):
+            return saved
+
     rng = np.random.default_rng(seed)
     train, val, test = [], [], []
     for label in range(3):
@@ -122,17 +185,58 @@ def build_split(seed: int = 42) -> dict:
         n = len(items)
         n_tr = int(n * 0.70)
         n_va = int(n * 0.15)
+        label_train, label_val, label_test = [], [], []
         for j, i in enumerate(idx):
             if j < n_tr:
-                train.append(items[i])
+                label_train.append(items[i])
             elif j < n_tr + n_va:
-                val.append(items[i])
+                label_val.append(items[i])
             else:
-                test.append(items[i])
+                label_test.append(items[i])
+
+        # Preserve the historical permutation whenever focus samples already
+        # landed in train. Otherwise swap within the same class to avoid
+        # turning a confirmed regression example into evaluation leakage.
+        for held_out in (label_val, label_test):
+            for held_index, sample in enumerate(held_out):
+                if str(Path(sample[0]).resolve()) not in focus:
+                    continue
+                replacement_index = next(
+                    (
+                        index
+                        for index in range(len(label_train) - 1, -1, -1)
+                        if str(Path(label_train[index][0]).resolve()) not in focus
+                    ),
+                    None,
+                )
+                if replacement_index is None:
+                    raise RuntimeError(f"No train sample available to swap with focus example: {sample[0]}")
+                label_train[replacement_index], held_out[held_index] = (
+                    held_out[held_index],
+                    label_train[replacement_index],
+                )
+
+        train.extend(label_train)
+        val.extend(label_val)
+        test.extend(label_test)
     train.extend(hard)  # hard negatives -> train only
 
-    split = {"train": train, "val": val, "test": test}
-    SPLIT_PATH.write_text(json.dumps(split, ensure_ascii=False), encoding="utf-8")
+    split = {
+        "meta": {
+            "schema_version": 2,
+            "seed": seed,
+            "dataset_fingerprint": fingerprint,
+            "focus_fingerprint": focus_fingerprint,
+            "main_count": len(main),
+            "hard_negative_count": len(hard),
+            "focus_count": len(focus),
+        },
+        "train": train,
+        "val": val,
+        "test": test,
+    }
+    split_path.parent.mkdir(parents=True, exist_ok=True)
+    split_path.write_text(json.dumps(split, ensure_ascii=False), encoding="utf-8")
     return split
 
 
@@ -140,7 +244,10 @@ def build_split(seed: int = 42) -> dict:
 # FFT/DWT cache
 # --------------------------------------------------------------------------
 def _cache_key(path: str) -> Path:
-    h = hashlib.sha1(str(Path(path).resolve()).encode("utf-8")).hexdigest()
+    resolved = Path(path).resolve()
+    stat = resolved.stat()
+    identity = f"{resolved}\0{stat.st_size}\0{stat.st_mtime_ns}".encode()
+    h = hashlib.sha256(identity).hexdigest()
     return CACHE_DIR / f"{h}.npz"
 
 
@@ -157,7 +264,10 @@ def _load_rgb(path: str) -> np.ndarray:
 def precompute_cache(samples: list[tuple[str, int]]) -> None:
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     todo = [s for s in samples if not _cache_key(s[0]).exists()]
-    print(f"[cache] {len(samples)-len(todo)} cached, computing {len(todo)}...", flush=True)
+    print(
+        f"[cache] {len(samples) - len(todo)} cached, computing {len(todo)}...",
+        flush=True,
+    )
     for i, (path, _lab) in enumerate(todo):
         rgb = _load_rgb(path)
         fft = compute_fft_spectrum(rgb, IMAGE_SIZE, color_space="rgb").squeeze(0)  # (1,H,W)
@@ -168,7 +278,7 @@ def precompute_cache(samples: list[tuple[str, int]]) -> None:
             dwt=dwt.astype(np.float16),
         )
         if (i + 1) % 200 == 0:
-            print(f"[cache] {i+1}/{len(todo)}", flush=True)
+            print(f"[cache] {i + 1}/{len(todo)}", flush=True)
     print("[cache] done", flush=True)
 
 
@@ -190,7 +300,13 @@ def train_tf(heavy: bool = False) -> A.Compose:
             A.GaussianBlur(blur_limit=(3, 7), p=0.25),
             A.ImageCompression(quality_range=(40, 95), p=0.3),
             A.GaussNoise(std_range=(0.05, 0.2), p=0.25),
-            A.CoarseDropout(num_holes_range=(1, 6), hole_height_range=(8, 28), hole_width_range=(8, 28), fill=0, p=0.25),
+            A.CoarseDropout(
+                num_holes_range=(1, 6),
+                hole_height_range=(8, 28),
+                hole_width_range=(8, 28),
+                fill=0,
+                p=0.25,
+            ),
             A.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
             ToTensorV2(),
         ]
@@ -240,18 +356,28 @@ def preload_ram(samples: list[tuple[str, int]]) -> None:
         cache = np.load(_cache_key(path))
         RAM[path] = {"rgb": rgb256, "fft": cache["fft"], "dwt": cache["dwt"]}
         if (i + 1) % 500 == 0:
-            print(f"[ram] {i+1}/{len(todo)}", flush=True)
+            print(f"[ram] {i + 1}/{len(todo)}", flush=True)
     print(f"[ram] loaded {len(RAM)} images", flush=True)
 
 
-def make_sampler(samples: list[tuple[str, int]], beta: float | None) -> WeightedRandomSampler:
+def make_sampler(
+    samples: list[tuple[str, int]],
+    beta: float | None,
+    focus_paths: set[str] | None = None,
+    focus_weight: float = 1.0,
+) -> WeightedRandomSampler:
+    """Balance classes and optionally upweight curated regression examples."""
     labels = [s[1] for s in samples]
     counts = np.bincount(labels, minlength=3).astype(np.float64)
     if beta is None:  # inverse frequency
         cls_w = len(labels) / np.maximum(counts, 1)
     else:  # class-balanced (effective number)
         cls_w = (1 - beta) / (1 - np.power(beta, np.maximum(counts, 1)))
-    w = np.array([cls_w[lb] for lb in labels], dtype=np.float64)
+    focus = focus_paths or set()
+    w = np.array(
+        [cls_w[label] * (focus_weight if str(Path(path).resolve()) in focus else 1.0) for path, label in samples],
+        dtype=np.float64,
+    )
     return WeightedRandomSampler(torch.from_numpy(w), num_samples=len(w), replacement=True)
 
 
@@ -296,7 +422,7 @@ class ModelEMA:
     @torch.no_grad()
     def update(self, model: nn.Module):
         d = self.decay
-        for e, m in zip(self.ema.state_dict().values(), model.state_dict().values()):
+        for e, m in zip(self.ema.state_dict().values(), model.state_dict().values(), strict=True):
             if e.dtype.is_floating_point:
                 e.mul_(d).add_(m.detach(), alpha=1 - d)
             else:
@@ -347,6 +473,7 @@ class ExpConfig:
     heavy_aug: bool = False
     use_dwt: bool = True
     seed: int = 42
+    focus_weight: float = 1.0
 
 
 # --------------------------------------------------------------------------
@@ -367,9 +494,7 @@ def evaluate(model, loader, device) -> tuple[dict, np.ndarray, np.ndarray]:
     labels = np.concatenate(labels_all)
     preds = probs.argmax(1)
     acc = float((preds == labels).mean())
-    p, r, f1, _ = precision_recall_fscore_support(
-        labels, preds, labels=[0, 1, 2], zero_division=0
-    )
+    p, r, f1, _ = precision_recall_fscore_support(labels, preds, labels=[0, 1, 2], zero_division=0)
     metrics = {
         "accuracy": acc,
         "macro_f1": float(f1.mean()),
@@ -391,9 +516,7 @@ def sp_threshold_search(probs: np.ndarray, labels: np.ndarray) -> dict:
         preds = probs.argmax(1)
         force = probs[:, 2] >= t
         preds = np.where(force, 2, preds)
-        p, r, f1, _ = precision_recall_fscore_support(
-            labels, preds, labels=[0, 1, 2], zero_division=0
-        )
+        p, r, f1, _ = precision_recall_fscore_support(labels, preds, labels=[0, 1, 2], zero_division=0)
         acc = float((preds == labels).mean())
         if f1[2] > best["sp_f1"]:
             best = {
@@ -422,17 +545,45 @@ def train_one(cfg: ExpConfig, split: dict, device: str = "cuda") -> dict:
     val_ds = CachedDataset(val_s, eval_tf())
     test_ds = CachedDataset(test_s, eval_tf())
 
-    sampler = make_sampler(train_s, cfg.sampler_beta)
+    focus_paths = load_focus_paths()
+    focus_s = [sample for sample in train_s if str(Path(sample[0]).resolve()) in focus_paths]
+    focus_ds = CachedDataset(focus_s, eval_tf()) if focus_s else None
+    sampler = make_sampler(
+        train_s,
+        cfg.sampler_beta,
+        focus_paths=focus_paths,
+        focus_weight=cfg.focus_weight,
+    )
     nw = 0  # Windows shared-memory mapping fails with workers>0; FFT/DWT are cached so CPU is light
-    train_loader = DataLoader(train_ds, batch_size=cfg.batch_size, sampler=sampler,
-                              num_workers=nw, pin_memory=True)
+    train_loader = DataLoader(
+        train_ds,
+        batch_size=cfg.batch_size,
+        sampler=sampler,
+        num_workers=nw,
+        pin_memory=True,
+    )
     val_loader = DataLoader(val_ds, batch_size=32, shuffle=False, num_workers=nw, pin_memory=True)
     test_loader = DataLoader(test_ds, batch_size=32, shuffle=False, num_workers=nw, pin_memory=True)
+    focus_loader = (
+        DataLoader(focus_ds, batch_size=32, shuffle=False, num_workers=nw, pin_memory=True)
+        if focus_ds is not None
+        else None
+    )
+    if focus_s:
+        print(
+            f"  Focus examples: {len(focus_s)} at {cfg.focus_weight:.1f}x sampler weight",
+            flush=True,
+        )
 
     model = create_model(
-        model_name=cfg.backbone, num_classes=3, pretrained=True, freeze_backbone=True,
-        use_dwt=cfg.use_dwt, use_arcface=cfg.use_arcface,
-        use_fft_attention=cfg.use_attention, attention_type=cfg.attention_type,
+        model_name=cfg.backbone,
+        num_classes=3,
+        pretrained=True,
+        freeze_backbone=True,
+        use_dwt=cfg.use_dwt,
+        use_arcface=cfg.use_arcface,
+        use_fft_attention=cfg.use_attention,
+        attention_type=cfg.attention_type,
     ).to(device)
 
     criterion = FocalLossLS(cfg.gamma, cfg.alpha, cfg.smoothing).to(device)
@@ -442,7 +593,12 @@ def train_one(cfg: ExpConfig, split: dict, device: str = "cuda") -> dict:
     def run_epoch(optimizer):
         model.train()
         for rgb, fft, dwt, labels in train_loader:
-            rgb, fft, dwt, labels = rgb.to(device), fft.to(device), dwt.to(device), labels.to(device)
+            rgb, fft, dwt, labels = (
+                rgb.to(device),
+                fft.to(device),
+                dwt.to(device),
+                labels.to(device),
+            )
             with torch.amp.autocast("cuda", enabled=(device == "cuda")):
                 out = model(rgb, fft, dwt, labels) if cfg.use_arcface else model(rgb, fft, dwt)
                 logits = out[0] if isinstance(out, tuple) else out
@@ -454,35 +610,92 @@ def train_one(cfg: ExpConfig, split: dict, device: str = "cuda") -> dict:
             if ema:
                 ema.update(model)
 
-    best = {"best_metric": -1}
+    out_dir = EXP_DIR / cfg.id
+    out_dir.mkdir(parents=True, exist_ok=True)
+    history: list[dict] = []
+    best = {
+        "best_metric": -1,
+        "focus_pass": False,
+        "focus_correct": 0,
+        "focus_total": len(focus_s),
+    }
+    best_key = (-1, -1, -1.0)
     best_state = None
 
-    def maybe_save(tag_model):
-        nonlocal best, best_state
+    def maybe_save(tag_model, stage: str, epoch: int):
+        nonlocal best, best_key, best_state
         m, _, _ = evaluate(tag_model, val_loader, device)
-        if m["best_metric"] > best["best_metric"]:
-            best = m
+        focus_correct = 0
+        focus_probabilities: list[list[float]] = []
+        if focus_loader is not None:
+            _, focus_probs, focus_labels = evaluate(tag_model, focus_loader, device)
+            focus_correct = int((focus_probs.argmax(1) == focus_labels).sum())
+            focus_probabilities = focus_probs.tolist()
+        focus_total = len(focus_s)
+        focus_pass = focus_correct == focus_total
+        candidate_key = (int(focus_pass), focus_correct, m["best_metric"])
+        row = {
+            "stage": stage,
+            "epoch": epoch,
+            **m,
+            "focus_correct": focus_correct,
+            "focus_total": focus_total,
+            "focus_pass": focus_pass,
+        }
+        history.append(row)
+        if candidate_key > best_key:
+            best_key = candidate_key
+            best = {**row, "focus_probabilities": focus_probabilities}
             best_state = copy.deepcopy(tag_model.state_dict())
+            torch.save(
+                {
+                    "model_state_dict": best_state,
+                    "model_name": cfg.backbone,
+                    "num_classes": 3,
+                    "use_dwt": cfg.use_dwt,
+                    "use_arcface": cfg.use_arcface,
+                    "cfg": asdict(cfg),
+                    "selection": best,
+                },
+                out_dir / "best.pth",
+            )
+        (out_dir / "history.json").write_text(
+            json.dumps(history, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
         return m
 
     # Stage A: head + freq_branch + norms
     from torch.optim.lr_scheduler import CosineAnnealingLR
-    params_a = (list(model.classifier.parameters()) + list(model.freq_branch.parameters())
-                + list(model.spatial_norm.parameters()) + list(model.freq_norm.parameters()))
+
+    params_a = (
+        list(model.classifier.parameters())
+        + list(model.freq_branch.parameters())
+        + list(model.spatial_norm.parameters())
+        + list(model.freq_norm.parameters())
+    )
     opt_a = torch.optim.AdamW(params_a, lr=cfg.lr, weight_decay=cfg.weight_decay)
     sch_a = CosineAnnealingLR(opt_a, T_max=cfg.epochs_head)
     for ep in range(cfg.epochs_head):
         t0 = time.time()
         run_epoch(opt_a)
         sch_a.step()
-        m = maybe_save(ema.ema if ema else model)
-        print(f"  [A {ep+1}/{cfg.epochs_head}] acc={m['accuracy']:.4f} spF1={m['sp_f1']:.4f} "
-              f"macroF1={m['macro_f1']:.4f} metric={m['best_metric']:.4f} ({time.time()-t0:.0f}s)", flush=True)
+        m = maybe_save(ema.ema if ema else model, "head", ep + 1)
+        focus_status = f" focus={history[-1]['focus_correct']}/{history[-1]['focus_total']}" if focus_s else ""
+        print(
+            f"  [A {ep + 1}/{cfg.epochs_head}] acc={m['accuracy']:.4f} spF1={m['sp_f1']:.4f} "
+            f"macroF1={m['macro_f1']:.4f} metric={m['best_metric']:.4f}{focus_status} "
+            f"({time.time() - t0:.0f}s)",
+            flush=True,
+        )
 
     # Stage B: unfreeze
     unfreeze_stages(model, cfg.unfreeze)
     params_b = [
-        {"params": [p for p in model.backbone.parameters() if p.requires_grad], "lr": cfg.lr * 0.1},
+        {
+            "params": [p for p in model.backbone.parameters() if p.requires_grad],
+            "lr": cfg.lr * 0.1,
+        },
         {"params": model.freq_branch.parameters(), "lr": cfg.lr * 0.1},
         {"params": model.classifier.parameters(), "lr": cfg.lr},
         {"params": model.spatial_norm.parameters(), "lr": cfg.lr},
@@ -494,14 +707,23 @@ def train_one(cfg: ExpConfig, split: dict, device: str = "cuda") -> dict:
         t0 = time.time()
         run_epoch(opt_b)
         sch_b.step()
-        m = maybe_save(ema.ema if ema else model)
-        print(f"  [B {ep+1}/{cfg.epochs_finetune}] acc={m['accuracy']:.4f} spF1={m['sp_f1']:.4f} "
-              f"macroF1={m['macro_f1']:.4f} metric={m['best_metric']:.4f} ({time.time()-t0:.0f}s)", flush=True)
+        m = maybe_save(ema.ema if ema else model, "finetune", ep + 1)
+        focus_status = f" focus={history[-1]['focus_correct']}/{history[-1]['focus_total']}" if focus_s else ""
+        print(
+            f"  [B {ep + 1}/{cfg.epochs_finetune}] acc={m['accuracy']:.4f} spF1={m['sp_f1']:.4f} "
+            f"macroF1={m['macro_f1']:.4f} metric={m['best_metric']:.4f}{focus_status} "
+            f"({time.time() - t0:.0f}s)",
+            flush=True,
+        )
 
     # Final eval on TEST with best checkpoint
     eval_model = create_model(
-        model_name=cfg.backbone, num_classes=3, pretrained=False, use_dwt=cfg.use_dwt,
-        use_arcface=cfg.use_arcface, use_fft_attention=cfg.use_attention,
+        model_name=cfg.backbone,
+        num_classes=3,
+        pretrained=False,
+        use_dwt=cfg.use_dwt,
+        use_arcface=cfg.use_arcface,
+        use_fft_attention=cfg.use_attention,
         attention_type=cfg.attention_type,
     ).to(device)
     eval_model.load_state_dict(best_state)
@@ -509,27 +731,45 @@ def train_one(cfg: ExpConfig, split: dict, device: str = "cuda") -> dict:
     test_m, test_probs, test_labels = evaluate(eval_model, test_loader, device)
     thr = sp_threshold_search(test_probs, test_labels)
 
-    # Save best checkpoint
-    out_dir = EXP_DIR / cfg.id
-    out_dir.mkdir(parents=True, exist_ok=True)
+    # Save best checkpoint with final selection metadata.
     torch.save(
-        {"model_state_dict": best_state, "model_name": cfg.backbone, "num_classes": 3,
-         "use_dwt": cfg.use_dwt, "use_arcface": cfg.use_arcface, "cfg": asdict(cfg)},
+        {
+            "model_state_dict": best_state,
+            "model_name": cfg.backbone,
+            "num_classes": 3,
+            "use_dwt": cfg.use_dwt,
+            "use_arcface": cfg.use_arcface,
+            "cfg": asdict(cfg),
+            "selection": best,
+        },
         out_dir / "best.pth",
     )
 
-    return {"val": val_m, "test": test_m, "test_threshold": thr}
+    return {
+        "val": val_m,
+        "test": test_m,
+        "test_threshold": thr,
+        "selection": best,
+        "history": history,
+    }
 
 
 def append_leaderboard(cfg: ExpConfig, result: dict, elapsed: float) -> None:
     row = {
-        "id": cfg.id, "desc": cfg.desc, "elapsed_s": round(elapsed, 1),
+        "id": cfg.id,
+        "desc": cfg.desc,
+        "elapsed_s": round(elapsed, 1),
         "cfg": asdict(cfg),
-        "val_acc": result["val"]["accuracy"], "val_sp_f1": result["val"]["sp_f1"],
-        "val_macro_f1": result["val"]["macro_f1"], "val_metric": result["val"]["best_metric"],
-        "test_acc": result["test"]["accuracy"], "test_sp_f1": result["test"]["sp_f1"],
-        "test_sp_precision": result["test"]["sp_precision"], "test_sp_recall": result["test"]["sp_recall"],
-        "test_macro_f1": result["test"]["macro_f1"], "test_metric": result["test"]["best_metric"],
+        "val_acc": result["val"]["accuracy"],
+        "val_sp_f1": result["val"]["sp_f1"],
+        "val_macro_f1": result["val"]["macro_f1"],
+        "val_metric": result["val"]["best_metric"],
+        "test_acc": result["test"]["accuracy"],
+        "test_sp_f1": result["test"]["sp_f1"],
+        "test_sp_precision": result["test"]["sp_precision"],
+        "test_sp_recall": result["test"]["sp_recall"],
+        "test_macro_f1": result["test"]["macro_f1"],
+        "test_metric": result["test"]["best_metric"],
         "test_thr": result["test_threshold"],
     }
     with LEADERBOARD.open("a", encoding="utf-8") as f:
@@ -539,54 +779,142 @@ def append_leaderboard(cfg: ExpConfig, result: dict, elapsed: float) -> None:
 def run_configs(configs: list[ExpConfig]) -> None:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     split = build_split()
-    print(f"Split: train={len(split['train'])} val={len(split['val'])} test={len(split['test'])}", flush=True)
+    print(
+        f"Split: train={len(split['train'])} val={len(split['val'])} test={len(split['test'])}",
+        flush=True,
+    )
     all_samples = split["train"] + split["val"] + split["test"]
     precompute_cache([tuple(x) for x in all_samples])
     preload_ram([tuple(x) for x in all_samples])
     for cfg in configs:
-        print(f"\n{'='*70}\n### {cfg.id}: {cfg.desc}\n{'='*70}", flush=True)
+        print(f"\n{'=' * 70}\n### {cfg.id}: {cfg.desc}\n{'=' * 70}", flush=True)
         t0 = time.time()
         try:
             result = train_one(cfg, split, device)
             elapsed = time.time() - t0
             append_leaderboard(cfg, result, elapsed)
-            print(f">>> {cfg.id} DONE test_acc={result['test']['accuracy']:.4f} "
-                  f"test_spF1={result['test']['sp_f1']:.4f} test_macroF1={result['test']['macro_f1']:.4f} "
-                  f"thr_spF1={result['test_threshold']['sp_f1']:.4f} ({elapsed:.0f}s)", flush=True)
+            print(
+                f">>> {cfg.id} DONE test_acc={result['test']['accuracy']:.4f} "
+                f"test_spF1={result['test']['sp_f1']:.4f} test_macroF1={result['test']['macro_f1']:.4f} "
+                f"thr_spF1={result['test_threshold']['sp_f1']:.4f} ({elapsed:.0f}s)",
+                flush=True,
+            )
         except Exception as e:
             import traceback
+
             print(f"!!! {cfg.id} FAILED: {e}", flush=True)
             traceback.print_exc()
 
 
 def screening_queue() -> list[ExpConfig]:
     """Curated experiments, highest-value first (unattended run)."""
-    H, F = 6, 12  # screening epochs
+    H, F = 6, 12  # noqa: N806  # concise names used throughout the experiment matrix
     return [
         # Candidate clean default (audit-recommended)
-        ExpConfig(id="ref", desc="clean default: g2 a[1,1,1.5] ls0.05 ema unf2", epochs_head=H, epochs_finetune=F),
+        ExpConfig(
+            id="ref",
+            desc="clean default: g2 a[1,1,1.5] ls0.05 ema unf2",
+            epochs_head=H,
+            epochs_finetune=F,
+        ),
         # Reproduce past strategy on clean split (focal-only, g3, heavy aug, unfreeze-all, no ema)
-        ExpConfig(id="old_focal", desc="past strategy: g3 ls0 heavy-aug unfreeze-all no-ema",
-                  gamma=3.0, smoothing=0.0, ema=False, unfreeze=7, heavy_aug=True, epochs_head=H, epochs_finetune=F),
+        ExpConfig(
+            id="old_focal",
+            desc="past strategy: g3 ls0 heavy-aug unfreeze-all no-ema",
+            gamma=3.0,
+            smoothing=0.0,
+            ema=False,
+            unfreeze=7,
+            heavy_aug=True,
+            epochs_head=H,
+            epochs_finetune=F,
+        ),
         # Loss / class-weight ablations from ref
-        ExpConfig(id="a_alpha20", desc="alpha[1,1,2.0]", alpha=[1.0, 1.0, 2.0], epochs_head=H, epochs_finetune=F),
-        ExpConfig(id="a_alpha25", desc="alpha[1,1,2.5]", alpha=[1.0, 1.0, 2.5], epochs_head=H, epochs_finetune=F),
+        ExpConfig(
+            id="a_alpha20",
+            desc="alpha[1,1,2.0]",
+            alpha=[1.0, 1.0, 2.0],
+            epochs_head=H,
+            epochs_finetune=F,
+        ),
+        ExpConfig(
+            id="a_alpha25",
+            desc="alpha[1,1,2.5]",
+            alpha=[1.0, 1.0, 2.5],
+            epochs_head=H,
+            epochs_finetune=F,
+        ),
         ExpConfig(id="a_gamma3", desc="gamma=3", gamma=3.0, epochs_head=H, epochs_finetune=F),
-        ExpConfig(id="a_ls0", desc="no label smoothing", smoothing=0.0, epochs_head=H, epochs_finetune=F),
-        ExpConfig(id="a_ls10", desc="label smoothing 0.10", smoothing=0.10, epochs_head=H, epochs_finetune=F),
+        ExpConfig(
+            id="a_ls0",
+            desc="no label smoothing",
+            smoothing=0.0,
+            epochs_head=H,
+            epochs_finetune=F,
+        ),
+        ExpConfig(
+            id="a_ls10",
+            desc="label smoothing 0.10",
+            smoothing=0.10,
+            epochs_head=H,
+            epochs_finetune=F,
+        ),
         # Fine-tune depth
-        ExpConfig(id="a_unf1", desc="unfreeze 1 stage", unfreeze=1, epochs_head=H, epochs_finetune=F),
-        ExpConfig(id="a_unf3", desc="unfreeze 3 stages", unfreeze=3, epochs_head=H, epochs_finetune=F),
+        ExpConfig(
+            id="a_unf1",
+            desc="unfreeze 1 stage",
+            unfreeze=1,
+            epochs_head=H,
+            epochs_finetune=F,
+        ),
+        ExpConfig(
+            id="a_unf3",
+            desc="unfreeze 3 stages",
+            unfreeze=3,
+            epochs_head=H,
+            epochs_finetune=F,
+        ),
         # EMA ablation
         ExpConfig(id="a_noema", desc="no EMA", ema=False, epochs_head=H, epochs_finetune=F),
         # Architecture
-        ExpConfig(id="a_attn", desc="+CBAM freq attention", use_attention=True, epochs_head=H, epochs_finetune=F),
-        ExpConfig(id="a_fftonly", desc="FFT only (no DWT)", use_dwt=False, epochs_head=H, epochs_finetune=F),
-        ExpConfig(id="a_b1", desc="backbone b1, unfreeze1", backbone="efficientnet_b1", unfreeze=1, epochs_head=H, epochs_finetune=F),
+        ExpConfig(
+            id="a_attn",
+            desc="+CBAM freq attention",
+            use_attention=True,
+            epochs_head=H,
+            epochs_finetune=F,
+        ),
+        ExpConfig(
+            id="a_fftonly",
+            desc="FFT only (no DWT)",
+            use_dwt=False,
+            epochs_head=H,
+            epochs_finetune=F,
+        ),
+        ExpConfig(
+            id="a_b1",
+            desc="backbone b1, unfreeze1",
+            backbone="efficientnet_b1",
+            unfreeze=1,
+            epochs_head=H,
+            epochs_finetune=F,
+        ),
         # Sampler
-        ExpConfig(id="a_cb99", desc="class-balanced sampler b=0.99", sampler_beta=0.99, epochs_head=H, epochs_finetune=F),
+        ExpConfig(
+            id="a_cb99",
+            desc="class-balanced sampler b=0.99",
+            sampler_beta=0.99,
+            epochs_head=H,
+            epochs_finetune=F,
+        ),
         # Aug
-        ExpConfig(id="a_heavyaug", desc="heavy augmentation", heavy_aug=True, epochs_head=H, epochs_finetune=F),
+        ExpConfig(
+            id="a_heavyaug",
+            desc="heavy augmentation",
+            heavy_aug=True,
+            epochs_head=H,
+            epochs_finetune=F,
+        ),
     ]
 
 

@@ -69,9 +69,7 @@ def export_to_onnx(
     return onnx_path
 
 
-def verify_onnx_model(
-    onnx_path, pytorch_model, dummy_rgb, dummy_fft, dummy_dwt
-) -> None:
+def verify_onnx_model(onnx_path, pytorch_model, dummy_rgb, dummy_fft, dummy_dwt) -> None:
     """Verify ONNX model produces same output as PyTorch model."""
     onnx_model = onnx.load(onnx_path)
     onnx.checker.check_model(onnx_model)
@@ -112,9 +110,7 @@ def export_to_torchscript(
 
     dummy_rgb = torch.randn(1, 3, config.IMAGE_SIZE, config.IMAGE_SIZE, device=device)
     dummy_fft = torch.randn(1, 1, config.IMAGE_SIZE, config.IMAGE_SIZE, device=device)
-    dummy_dwt = torch.randn(
-        1, 4, config.IMAGE_SIZE // 2, config.IMAGE_SIZE // 2, device=device
-    )
+    dummy_dwt = torch.randn(1, 4, config.IMAGE_SIZE, config.IMAGE_SIZE, device=device)
 
     scripted_model: Any = torch.jit.trace(model, (dummy_rgb, dummy_fft, dummy_dwt))
     scripted_model.save(torchscript_path)
@@ -148,4 +144,4 @@ def main() -> None:
         print(f"TorchScript model exported to: {torchscript_path}")
     else:
         print(f"3-class checkpoint not found: {checkpoint_path}")
-        print("Please train the 3-class model first: uv run python -m src.train")
+        print("Please train the 3-class model first: uv run python -m trainer train")

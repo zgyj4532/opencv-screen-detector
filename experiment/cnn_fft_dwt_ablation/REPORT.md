@@ -1,31 +1,35 @@
 # Screen Detector V3 — 训练结果与消融报告
 
-> 生成时间：2026-07-21
+> 生成时间：2026-07-22
 > 训练硬件：单卡 RTX 3060 6GB / Windows 11
 > 训练框架：PyTorch 2.x + timm (EfficientNet-B0) + Albumentations
-> 数据规模：2922 张（自然图 / 截图 / 屏幕照片，含 hard_negative）
-> 数据切分：seed=42 固定分层切分 0.70/0.15/0.15 = 2189/364/369（**无样本级泄漏**）
+> 数据规模：2928 张（自然图 / 截图 / 屏幕照片，含 hard_negative）
+> 当前发布切分：seed=42 固定分层切分 0.70/0.15/0.15 = 2194/366/368（**无样本级泄漏**）
 
 ---
 
 ## 1. 核心结论
 
-| 指标 | 旧基线（README 报告值） | **新模型** | 提升 | 显著性 |
-|---|---|---|---|---|
-| test **accuracy** | 0.8946 | **0.9187** (ONNX) / 0.9322 (PyTorch) | **+2.4 ~ +3.8 pp** | 显著 |
-| test **macro_F1** | 0.8668 | **0.9039** (ONNX) / 0.9174 (PyTorch) | **+3.7 ~ +5.1 pp** | 显著 |
-| test **screen_photo F1** | 0.7630 | **0.8397** (ONNX) / 0.8548 (PyTorch) | **+7.7 ~ +9.2 pp** | 显著 |
+把相关可部署 ONNX 放到同一当前 368 张测试清单，并使用相同 ONNX Runtime、TTA、OOD 与阈值后处理，结果如下：
 
-**新模型在所有核心指标上稳定超过旧基线 2-9 个百分点**。screen_photo 类的 F1 提升最大（+7.7~9.2pp），是本次训练改进最关键的成果。
+| 生产候选 | accuracy | macro_F1 | screen_photo F1 | metric | 指定 screenshot 门槛 | 发布资格 |
+|---|---:|---:|---:|---:|---:|---|
+| 上一生产模型（`4b419976…`） | **0.9402** | **0.9376** | **0.8870** | **0.9131** | 0/2 | 无 |
+| README 上一版发布（`cbba84bd…`） | 0.9158 | 0.9145 | 0.8598 | 0.8875 | 2/2 | 有 |
+| 当前发布（`96aedc9f…`） | 0.9158 | 0.9262 | **0.9043** | 0.9121 | **2/2** | **有** |
+
+当前发布相对 README 上一版可发布模型提升 +4.45 pp screen_photo F1、+1.16 pp macro F1、+2.46 pp metric，accuracy 持平。上一生产工件 `4b419976…` 的普通测试集 metric 仍略高，但把两张必须修复的 screenshot 分别判为 `screen_photo` 与 `natural`，不具备发布资格。两张指定截图在当前真实 ONNX+TTA 路径中的 `screenshot` 概率分别为 0.5552 与 0.4679。
+
+当前 checkpoint 的 PyTorch argmax 指标为 accuracy 0.9429 / macro F1 0.9361 / screen_photo F1 0.9076 / metric 0.9239。相对 README 历史值（0.8946 / 0.8668 / 0.7630），当前生产 ONNX 分别提升约 +2.1 pp accuracy、+5.9 pp macro F1、+14.1 pp screen_photo F1。
 
 > ⚠️ **重要说明（数据切分差异）**：
 > - 旧基线数字来自 README 报告的训练，**其 train/val 切分有 hard_negative 数据泄漏**（`hard_negative` 既出现在 train 也以 3× 权重作为 screenshot 重复出现），旧基线数字极可能因泄漏而虚高。
 > - 新数字使用 **固定的 stratified 0.70/0.15/0.15 切分**，所有样本按 path 去重，hard_negative 只加入 train，**完全无泄漏**。
-> - 因此**新数字 vs 旧数字的差异比表面看起来更显著**。即便旧基线无泄漏，新模型也至少在所有指标上一致超过它。
+> - 因此 README 历史值只用于背景对照，不能替代上方同一部署路径的工件对照；上一生产工件本身的训练来源也不同于当前固定切分。
 
 ---
 
-## 2. 消融实验矩阵（15 配置，全部 H=6+F=12 epoch）
+## 2. 历史消融实验矩阵（15 配置，全部 H=6+F=12 epoch）
 
 完整实验结果（按 test_metric 排序）：
 
@@ -87,9 +91,9 @@
 
 ---
 
-## 4. 最终获胜配置
+## 4. 当前发布配置
 
-**`finalist_unf1_s42`**（筛选阶段冠军 a_unf1 + 全量 10+20 epoch）：
+**`candidate_20260722_unf3_focus2_6x12`**（当前切分上重新搜索的 unfreeze3 + focus2 + 6+12 epoch 候选）：
 
 ```yaml
 backbone: efficientnet_b0
@@ -100,17 +104,28 @@ use_attention: false
 use_arcface: false
 ema: true
 ema_decay: 0.999
-unfreeze: 1
+unfreeze: 3
 lr: 1e-3
 weight_decay: 1e-4
-epochs_head: 10
-epochs_finetune: 20
+epochs_head: 6
+epochs_finetune: 12
 batch_size: 16
 heavy_aug: false
 use_dwt: true
+focus_weight: 2.0
 ```
 
-**3 种子全量训练结果**：
+检查点选择先最大化 hard-example 通过数，再按验证集 metric 选优。本次从 18 个 epoch 中选择 `finetune-11`，hard-example 为 **2/2**。
+
+| 评估 | accuracy | spF1 | macroF1 | metric |
+|---|---:|---:|---:|---:|
+| Validation | 0.9235 | 0.8448 | 0.9076 | 0.8810 |
+| Test / PyTorch argmax | **0.9429** | **0.9076** | **0.9361** | **0.9239** |
+| Test / production ONNX | 0.9158 | 0.9043 | 0.9262 | 0.9121 |
+
+README 上一版发布 ONNX 为 accuracy 0.9158 / spF1 0.8598 / macroF1 0.9145 / metric 0.8875，当前发布全面提升其 F1 与 metric。更早的上一生产 ONNX 为 accuracy 0.9402 / spF1 0.8870 / macroF1 0.9376 / metric 0.9131，但 hard-example 门槛仅 0/2。它的普通指标不能越过发布资格门槛。
+
+**历史 3 种子全量训练结果**（上一版 369 张切分，无 hard-example 门槛）：
 
 | Seed | test_acc | test_spF1 | macroF1 | metric | elapsed |
 |---|---|---|---|---|---|
@@ -119,7 +134,7 @@ use_dwt: true
 | 7 | 0.9079 | 0.7788 | 0.8817 | 0.8381 | 1542s |
 | AVG | 0.9178 | 0.8204 | 0.8985 | 0.8668 | 1531s |
 
-**3 种子均值（acc 0.9178, spF1 0.8204, macroF1 0.8985）仍全面超过旧基线**，说明改进具有跨种子的稳定性（种子间方差主要来自 369 张小测试集）。
+历史 3 种子均值（acc 0.9178, spF1 0.8204, macroF1 0.8985）支持当前超参数选择，但不能替代上方当前发布指标。
 
 ---
 
@@ -127,9 +142,13 @@ use_dwt: true
 
 - **ONNX 导出**：`trainer/checkpoints/three_class_best.pth` → `inference/models/three_class.onnx`
 - **PyTorch ↔ ONNX 数值一致性**：rtol=1e-3 通过
-- **ONNX 运行时测试集评估**（treating OOD→screen_photo per inference policy）：
-  - acc 0.9187 / sp_f1 0.8397 / macro_f1 0.9039
-  - screen_photo 召回率 **0.932**（高召回 = 几乎不漏检相机拍屏）
+- **真实生产策略的 ONNX 测试集评估**（TTA + OOD + screen_photo threshold=0.60；unknown 按错误计）：
+  - acc 0.9158 / sp_f1 0.9043 / macro_f1 0.9262
+  - screen_photo precision 0.9286 / recall 0.8814
+- **指定回归**：`tests/test_target_screenshots.py` 2/2 通过
+- **工件对照**：README 上一版发布 ONNX metric 0.8875、门槛 2/2；当前 ONNX metric 0.9121、门槛 2/2；上一生产 ONNX metric 0.9131、门槛 0/2
+- **当前 ONNX SHA-256**：`96aedc9fd009535eba125f9a9c79f9764237aedcd882f779988c42af494fea5b`
+- **上一生产 ONNX SHA-256**：`4b4199763b49bc62c8f1e11704e5b2dd99a1177b2517e57443fc28112b94aae7`
 - **生产路径**：
   - `inference/models/three_class.onnx` (22 MB)
   - `trainer/checkpoints/three_class_best.pth` (22 MB)
@@ -139,21 +158,21 @@ use_dwt: true
 
 ## 6. 风险与改进空间
 
-1. **测试集仅 369 张，方差较大**：3 种子间 spF1 范围 0.78-0.85，acc 0.91-0.93。需要更多标注数据进一步验证。
-2. **screen_photo precision 偏低**（ONNX 0.764）：高 recall 0.932 意味着宁可误报也不漏报，可通过提升 `screen_photo_threshold` 调整（当前 0.6）。
-3. **完全 B1 backbone 收益未体现**：6GB 显存下 B1 batch_size 必须降至 8 或加 gradient accumulation 才更稳妥；当前为节省时间未做 B1 + 强正则的完整训练。
-4. **DWT 仍为 224×224**：训练与推理均使用 224×224（与 RGB 对齐），未做共享 FFT 流水线重标定（E13 未执行）。
+1. **测试集仅 368 张**：screen_photo 只有 59 张，指标仍有较大方差，需要更多独立标注数据。
+2. **screen_photo recall 为 0.8814**：precision 为 0.9286；若业务更重召回，应在独立 calibration 集上选阈值，不能用 test 集扫描值直接上线。
+3. **hard-example 门槛目前只有 2 张**：已解决指定问题，但应持续收集同域高分辨率游戏截图，防止仅记忆单样本。
+4. **DWT 仍为 224×224**：训练与推理一致，但未完成 per-bin FFT/DWT 重标定实验。
 
 ---
 
 ## 7. 文件清单
 
-- 训练：`experiment/cnn_fft_dwt_ablation/harness.py`, `experiment/cnn_fft_dwt_ablation/finalist.py`
-- 部署：`experiment/cnn_fft_dwt_ablation/finalize_export.py`
+- 发布训练：`trainer/release_train.py`, `trainer/hard_examples.txt`, `experiment/cnn_fft_dwt_ablation/harness.py`
+- 历史多种子训练：`experiment/cnn_fft_dwt_ablation/finalist.py`
+- 导出：`trainer/export_onnx.py`
+- 部署评估：`experiment/cnn_fft_dwt_ablation/deploy_eval.py`
 - 排行查看：`experiment/cnn_fft_dwt_ablation/show.py`
-- 备份（生产旧模型）：`experiment/cnn_fft_dwt_ablation/backup/`
-- 排行榜：`experiment/cnn_fft_dwt_ablation/leaderboard.jsonl`（30 条实验记录）
-- 训练日志：`experiment/cnn_fft_dwt_ablation/logs/{smoke,screen,finalist,finalist2,finalist3}.log`
-- 最终模型：
-  - `experiment/cnn_fft_dwt_ablation/finalist/finalist_unf1_s42/best.pth`
-  - `experiment/cnn_fft_dwt_ablation/finalist/three_class.onnx`
+- 排行榜：`experiment/cnn_fft_dwt_ablation/leaderboard.jsonl`（当前包含发布候选记录）
+- 当前训练结果：`trainer/logs/release_training_result.json`
+- 当前 epoch 历史：生成于 `experiment/cnn_fft_dwt_ablation/exp/<release-id>/history.json`，已作为可再生缓存从工作区清理
+- 当前模型：`trainer/checkpoints/three_class_best.pth`, `inference/models/three_class.onnx`

@@ -1,11 +1,9 @@
-import contextlib
 from datetime import UTC, datetime
 from typing import Annotated
 
 import anyio.to_thread
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
-from starlette.background import BackgroundTask
 
 from ..image_index import image_index
 from ..log import logger
@@ -23,6 +21,7 @@ from .utils import (
     run_detect,
     stream_file_to_upload,
     stream_url_to_upload,
+    validate_package_entries,
 )
 
 router = APIRouter(prefix="/api")
@@ -112,27 +111,22 @@ async def package_images(request: PackageRequest) -> StreamingResponse:
     """
     # Filter images after timestamp
     after_time = (
-        after_time.astimezone(UTC)
-        if (after_time := request.after_timestamp).tzinfo
-        else after_time.replace(tzinfo=UTC)
+        after_time.astimezone(UTC) if (after_time := request.after_timestamp).tzinfo else after_time.replace(tzinfo=UTC)
     )
 
     logger.info(f"Received package request for images after {after_time.isoformat()}")
 
-    async with contextlib.AsyncExitStack() as stack:
-        matching_entries = await stack.enter_async_context(
-            image_index.list_entries_after(after_time)
-        )
+    async with image_index.list_entries_after(after_time) as matching_entries:
         if not matching_entries:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="No images found after the specified timestamp",
             )
+        await anyio.to_thread.run_sync(validate_package_entries, matching_entries)
 
-        zip_filename = f"images_{datetime.now(UTC):%Y%m%d_%H%M%S}.zip"
-        return StreamingResponse(
-            package_entries_to_stream(matching_entries),
-            media_type="application/zip",
-            headers={"Content-Disposition": f"attachment; filename={zip_filename}"},
-            background=BackgroundTask(stack.pop_all().aclose),
-        )
+    zip_filename = f"images_{datetime.now(UTC):%Y%m%d_%H%M%S}.zip"
+    return StreamingResponse(
+        package_entries_to_stream(matching_entries),
+        media_type="application/zip",
+        headers={"Content-Disposition": f"attachment; filename={zip_filename}"},
+    )

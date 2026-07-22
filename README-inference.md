@@ -8,7 +8,7 @@
 - OOD 检测 (unknown 类别)
 - TTA (Test Time Augmentation)
 - FFT/DWT 预处理缓存
-- 阈值后处理 (sp_prob >= 0.60)
+- 可配置阈值后处理（默认 sp_prob >= 0.60）
 - 置信度分级 (accept/review/ignore)
 - FastAPI REST API 服务
 - 批量检测支持
@@ -104,6 +104,8 @@ curl -X POST http://localhost:8325/api/package \
   -d '{"after_timestamp": "2026-06-09T00:00:00Z"}'
 ```
 
+服务会在创建 `StreamingResponse` 之前预检文件数与未压缩总大小。超过 10,000 个文件或 20 GiB 时会直接返回普通 413 JSON 响应，不会在 ZIP 流已经开始后再抛异常；数据库查询上下文也会在流式传输前关闭。`tests/test_package.py` 的 10 个打包 API 测试均已通过。
+
 ## Python 调用
 
 ```python
@@ -131,9 +133,10 @@ Image (224x224)
 ┌──────────────┬──────────────┬──────────────┐
 │   RGB Branch │  FFT Branch  │  DWT Branch  │
 │ EfficientNet │  全局频域特征 │  局部频域特征 │
-│   1280 dim   │   256 dim    │   256 dim    │
+│   1280 dim   │    64 dim    │    64 dim    │
 └──────────────┴──────────────┴──────────────┘
-   ↓ Concat (1792 dim)
+   ↓ FFT + DWT 融合为 Frequency 256 dim
+   ↓ Concat (1280 + 256 = 1536 dim)
    ↓
 Classifier (3-class logits)
    ↓
@@ -170,6 +173,7 @@ class_names = ["natural", "screenshot", "screen_photo"]
 confidence_high = 0.92    # >= accept
 confidence_medium = 0.75  # >= review
 ood_threshold = 0.45      # < unknown
+screen_photo_threshold = 0.60  # >= 强制 screen_photo
 
 # API
 api_host = "0.0.0.0"
@@ -182,20 +186,25 @@ std = [0.229, 0.224, 0.225]
 
 ## 模型性能
 
-**20% 随机样本验证** (474 张):
+**`candidate_20260722_unf3_focus2_6x12` 生产 ONNX 端到端评估**（2026-07-22，368 张独立测试图，含 TTA/OOD/阈值）：
 
-| 指标 | 值 |
-|------|-----|
-| Overall Accuracy | **94.51%** |
-| Macro F1 | **93.93%** |
+| Accuracy | Macro F1 | screen_photo Precision | screen_photo Recall | screen_photo F1 |
+|---:|---:|---:|---:|---:|
+| **0.9158** | **0.9262** | **0.9286** | 0.8814 | **0.9043** |
 
-**各类别指标**:
+`unknown` 在上述指标中按错误分类，与真实 API 行为一致。置信度分布为 high 49 / medium 139 / low 168 / OOD 12；最近一次 CPU TTA 单跑诊断为 mean 351 ms / p50 334 ms / p95 454 ms。
 
-| 类别 | Precision | Recall | F1 |
-|------|-----------|--------|-----|
-| natural | 98.43% | 94.47% | 96.41% |
-| screenshot | 95.77% | 95.77% | 95.77% |
-| screen_photo | 88.89% | 90.32% | 89.60% |
+两张已确认截图回归均已通过生产路径：`4a6e…ae8f9.png` 与 `5cdc3…12a62.png` 的预测均为 `screenshot`，概率分别为 0.5552 与 0.4679。
+
+**与上一生产 ONNX 的同路径对照**（同一当前 368 张测试清单、同一 TTA/OOD/阈值）：
+
+| 候选 | Accuracy | Macro F1 | screen_photo F1 | Metric | screenshot 门槛 | 发布资格 |
+|---|---:|---:|---:|---:|---:|---|
+| 上一生产模型（`4b419976…`） | **0.9402** | **0.9376** | **0.8870** | **0.9131** | 0/2 | 无 |
+| README 上一版发布（`cbba84bd…`） | 0.9158 | 0.9145 | 0.8598 | 0.8875 | 2/2 | 有 |
+| 当前模型（`96aedc9f…`） | 0.9158 | 0.9262 | **0.9043** | 0.9121 | **2/2** | **有** |
+
+当前模型优于 README 上一版可发布模型，同时保持 hard-example 门槛 2/2。更早的 `4b419976…` 工件普通 metric 仍略高，但会把两张必须修复的截图分别判成 `screen_photo` 和 `natural`，不具备发布资格。串行 CPU 延迟受预热与系统负载影响，没有用于此次选择。
 
 ## 性能优化
 

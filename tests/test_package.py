@@ -38,12 +38,8 @@ def setup_test_images(tmp_path, monkeypatch):
     # Create test images in different directories
     image_files = []
     for i in range(3):
-        if i < 2:
-            # First 2 are screen_photo
-            img_path = screen_dir / f"test_hash_{i}.jpg"
-        else:
-            # Last 1 is normal_photo
-            img_path = normal_dir / f"test_hash_{i}.jpg"
+        image_dir = screen_dir if i < 2 else normal_dir
+        img_path = image_dir / f"test_hash_{i}.jpg"
         img_path.write_bytes(b"\xff\xd8\xff\xe0" + b"\x00" * 100)
         image_files.append(img_path)
 
@@ -242,9 +238,8 @@ def test_package_file_limit_exceeded(client, setup_test_images, monkeypatch):
     test_data = setup_test_images
     now = test_data["now"]
 
-    # Temporarily set MAX_FILES to a very low number
-    original_max = utils.MAX_FILES
-    utils.MAX_FILES = 1  # Only allow 1 file
+    # Temporarily set MAX_FILES to a very low number.
+    monkeypatch.setattr(utils, "MAX_FILES", 1)
 
     timestamp = (now - timedelta(minutes=6)).isoformat()
 
@@ -257,9 +252,6 @@ def test_package_file_limit_exceeded(client, setup_test_images, monkeypatch):
     assert response.status_code == 413
     assert "file limit" in response.json()["detail"].lower()
 
-    # Restore original value
-    utils.MAX_FILES = original_max
-
 
 def test_package_size_limit_exceeded(client, setup_test_images, monkeypatch):
     """Test that export returns 413 when size limit is exceeded."""
@@ -268,9 +260,8 @@ def test_package_size_limit_exceeded(client, setup_test_images, monkeypatch):
     test_data = setup_test_images
     now = test_data["now"]
 
-    # Temporarily set MAX_EXPORT_SIZE to a very low number
-    original_max = utils.MAX_EXPORT_SIZE
-    utils.MAX_EXPORT_SIZE = 10  # Only allow 10 bytes
+    # Temporarily set MAX_EXPORT_SIZE to a very low number.
+    monkeypatch.setattr(utils, "MAX_EXPORT_SIZE", 10)
 
     timestamp = (now - timedelta(minutes=6)).isoformat()
 
@@ -282,9 +273,6 @@ def test_package_size_limit_exceeded(client, setup_test_images, monkeypatch):
     # Should return 413 Payload Too Large
     assert response.status_code == 413
     assert "size exceeds" in response.json()["detail"].lower()
-
-    # Restore original value
-    utils.MAX_EXPORT_SIZE = original_max
 
 
 def test_package_uses_temp_file_not_bytesio(client, setup_test_images):

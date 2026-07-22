@@ -45,10 +45,7 @@ def _run_stage(
     probabilities = _softmax(logits)
 
     class_idx = np.argmax(probabilities)
-    probs_dict = {
-        name: float(prob)
-        for name, prob in zip(class_names, probabilities, strict=False)
-    }
+    probs_dict = {name: float(prob) for name, prob in zip(class_names, probabilities, strict=False)}
 
     return {
         "class": class_names[class_idx],
@@ -106,12 +103,8 @@ class PredictTask:
         fft_input, dwt_input = self.fft_input
 
         with self.models.get_session() as session:
-            result = _run_stage(
-                session, self.rgb_input, fft_input, dwt_input, class_names
-            )
-            result_flip = _run_stage(
-                session, flipped_rgb, flipped_fft, flipped_dwt, class_names
-            )
+            result = _run_stage(session, self.rgb_input, fft_input, dwt_input, class_names)
+            result_flip = _run_stage(session, flipped_rgb, flipped_fft, flipped_dwt, class_names)
 
         # Average probabilities
         avg_probs: dict[str, float] = {}
@@ -138,15 +131,10 @@ class PredictTask:
     def _run_single_stage_with_ood(self) -> dict:
         """Single-stage inference with OOD detection.
 
-        Optimized post-processing logic based on threshold analysis:
-        - If screen_photo probability >= 0.60, classify as screen_photo
+        Post-processing logic:
+        - If every class probability is below the OOD threshold, return unknown
+        - If screen_photo probability reaches its configured threshold, classify as screen_photo
         - Otherwise, use argmax of all classes
-
-        This achieves:
-        - SP Precision: 94.29%
-        - SP Recall: 85.71%
-        - SP F1: 89.80%
-        - Overall Accuracy: 94.34%
         """
         result = self.run_single_stage()
         probs = result["probabilities"]
@@ -161,10 +149,10 @@ class PredictTask:
                 "action": "ignore",
             }
 
-        # Optimized post-processing with threshold 0.60
+        # Optimized post-processing with a configurable threshold.
         sp_prob = probs.get("screen_photo", 0.0)
 
-        if sp_prob >= 0.60:
+        if sp_prob >= settings.screen_photo_threshold:
             # High confidence screen_photo
             result = {
                 "class": "screen_photo",

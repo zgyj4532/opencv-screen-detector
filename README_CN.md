@@ -166,12 +166,12 @@ flowchart LR
 flowchart TD
     N[data/input/natural_photo] --> Natural[natural]
     S[data/input/screenshot] --> Screenshot[screenshot]
-    H[data/input/hard_negative] --> Screenshot
+    H[data/input/hard_negative] --> HLabel[按子目录恢复真实类别]
     P[data/input/screen_photo] --> Photo[screen_photo]
     Natural --> Split[seed=42 分层切分 0.70 / 0.15 / 0.15]
     Screenshot --> Split
     Photo --> Split
-    H -.-> |仅加入 train| Split
+    HLabel -.-> |仅加入 train| Split
     Split --> Augment[训练增强与特征生成]
     Split --> Validate[验证集 / 测试集变换]
 ```
@@ -180,13 +180,15 @@ flowchart TD
 | --- | --- | --- |
 | `natural_photo/` | `natural` | 人像、场景、物体、室内等相机照片 |
 | `screenshot/` | `screenshot` | 截图、UI、IDE、幻灯片、终端与聊天窗口 |
-| `hard_negative/` | `screenshot` | 难以区分但不属于屏幕照片的边界案例（仅参与训练，不进入 val/test） |
+| `hard_negative/` | 按子目录推导 | 已确认边界案例保留真实类别；仅参与 train，不进入 val/test |
 | `screen_photo/` | `screen_photo` | 相机拍摄的显示设备照片 |
 
-**当前部署模型训练数据**（2026-07-21 更新）：
-- 总样本：**2,922 张**（去重后；含 hard_negative）
-- 切分：seed=42 严格 stratified，**train 2,189 / val 364 / test 369**（**无样本级泄漏**）
+**当前部署模型训练数据**（2026-07-22 更新）：
+- 总样本：**2,928 张**（去重后；含 hard_negative）
+- 切分：seed=42 严格 stratified，**train 2,194 / val 366 / test 368**（**无样本级泄漏**）
+- 数据集指纹：`6367b7638c3871a81e05e4ca41f2bf87ed12d711ff1ac0ad9c96a3495a6acc2a`
 - 旧基线训练时 hard_negative 在 train 与 val 中以 3× 权重重复出现，新训练已修复此问题
+- `trainer/hard_examples.txt` 中的已确认本地回归固定进入 train，使用显式 sampler 权重，并作为发布 checkpoint 门槛。
 
 数据集会变化；每个新模型都应同时报告其确切数据划分。
 
@@ -239,31 +241,36 @@ uv run python -m trainer export
 
 ### 两阶段训练策略
 
-标准训练器以预训练 EfficientNet-B0 初始化，先训练分类头和频域分支 10 个 epoch，再解冻 backbone 最后的若干 MBConv stage，微调 20 个 epoch。检查点选择指标为：
+发布训练器以预训练 EfficientNet-B0 初始化，先训练分类头和频域分支 6 个 epoch，再解冻 backbone 最后 3 个 MBConv stage，微调 12 个 epoch。检查点先要求 `trainer/hard_examples.txt` 中所有可用图片分类正确，再按下式选优：
 
 `0.5 * screen_photo_f1 + 0.3 * accuracy + 0.2 * macro_f1`
 
 ```mermaid
 flowchart LR
     Data[数据集目录] --> Load[数据集：RGB、FFT、DWT]
-    Load --> A[阶段 A：冻结 backbone，10 epochs]
-    A --> B[阶段 B：解冻最后 N 个 MBConv stage，20 epochs]
+    Load --> A[阶段 A：冻结 backbone，6 epochs]
+    A --> B[阶段 B：解冻最后 3 个 MBConv stage，12 epochs]
     B --> Eval[Accuracy、Precision、Recall、F1]
     Eval --> Best[最佳检查点]
     Best --> Export[ONNX 与 TorchScript 导出]
 ```
 
 ```bash
+# 可复现发布训练（干净切分、版本化缓存、hard-example 门槛）
 uv run python -m trainer train
 uv run python -m trainer export
+
+# 仅保留用于复现历史基线的旧训练器
+uv run python -m trainer train_legacy
+
 uv run python -m trainer ablation --modules baseline,arcface,attention --epochs-head 5 --epochs-finetune 10
 ```
 
 训练输出位于 `trainer/checkpoints/` 与 `trainer/logs/`。
 
-### 推荐训练配置（消融验证后）
+### 当前发布配置
 
-`experiment/cnn_fft_dwt_ablation/` 已通过 15 配置消融验证，下述为最佳配置：
+2026-07-22 当前发布沿用消融验证出的损失函数、EMA、backbone、增广与 FFT+DWT 选择，但采用新的受控候选参数；它在当前切分上优于 README 上一次记录的可发布模型：
 
 | 项 | 值 | 说明 |
 | --- | --- | --- |
@@ -271,7 +278,9 @@ uv run python -m trainer ablation --modules baseline,arcface,attention --epochs-
 | Class α | [1.0, 1.0, 1.5] | α=2.0 微退；α=2.5 严重退化 |
 | Label smoothing | 0.05 | 0 或 0.10 都更差 |
 | EMA | decay=0.999 | 关闭后 sp_f1 退步 2.4pp |
-| 解冻 stage 数 | 1 | 1 > 2 > 3（少解冻=少过拟合） |
+| 解冻 stage 数 | 3 | 当前发布候选；早期 15 配置筛选中 1 stage 更优 |
+| hard-example 采样权重 | 2.0 | 2026-07-22 在 1×/2×/4× 候选中选中 |
+| 训练轮数 | 6 + 12 | 当前发布更短；最佳 checkpoint 为 finetune 第 11 轮 |
 | Backbone | efficientnet_b0 | B1 在 6GB 显存下无明显收益 |
 | 增强 | 温和（关 MoireSimulation 等强增广） | 强增广退步 ~5pp acc |
 | FFT + DWT | 都启用 | 移除 DWT 后 sp_f1 退步 5pp |
@@ -291,7 +300,7 @@ uv run python experiment/cnn_fft_dwt_ablation/finalist.py --seeds 42 2024 7
 # 4) 导出 ONNX 并验证 PyTorch↔ONNX 数值一致
 uv run python experiment/cnn_fft_dwt_ablation/finalize_export.py trainer/checkpoints/three_class_best.pth inference/models/three_class.onnx
 
-# 5) 端到端部署验证（对全部 369 张 test 集跑推理）
+# 5) 端到端部署验证（对当前全部 368 张 test 集跑推理）
 uv run python experiment/cnn_fft_dwt_ablation/deploy_eval.py
 ```
 
@@ -303,7 +312,8 @@ uv run python experiment/cnn_fft_dwt_ablation/deploy_eval.py
 - `show.py` — 排行榜查看
 - `leaderboard.jsonl` — 全部实验记录（JSONL 追加格式）
 - `REPORT.md` — 完整中文消融报告
-- `backup/` — 旧生产模型备份（覆盖前已留底）
+
+`trainer/release_train.py` 是当前发布配置的正式封装：验证数据集指纹、记录逐 epoch 历史、训练时备份旧 checkpoint，并且只在完整训练成功后发布 `three_class_best.pth`。`trainer/train.py` 通过 `train_legacy` 保留，不代表发布默认值。
 
 可选的 PAH-ViT 流程属于实验功能：
 
@@ -350,7 +360,7 @@ curl -X POST http://127.0.0.1:8325/api/detect \
 {"image_id":"<sha256>","is_screen":true}
 ```
 
-`/api/package` 接收 ISO-8601 时间戳，例如 `{"after_timestamp":"2026-07-01T00:00:00Z"}`。压缩前限制为 10,000 个文件和 20 GiB。
+`/api/package` 接收 ISO-8601 时间戳，例如 `{"after_timestamp":"2026-07-01T00:00:00Z"}`。压缩前限制为 10,000 个文件和 20 GiB；两个限制都会在流式响应开始前预检，超限请求会正常返回 JSON 413。
 
 ## 项目结构
 
@@ -366,61 +376,64 @@ opencv-screen-detector/
 │   ├── predictor.py           # TTA 与后处理
 │   └── batch_detect.py        # 递归批量推理
 ├── trainer/                   # CNN+FFT+DWT 训练与导出
+│   ├── release_train.py       # 当前发布训练封装
 │   ├── model.py               # EfficientNet/频域融合模型
-│   ├── dataset.py             # RGB/FFT/DWT 数据集
-│   ├── train.py               # 两阶段训练器
+│   ├── hard_examples.txt      # 已确认本地回归清单
+│   ├── dataset.py             # 历史 RGB/FFT/DWT 数据集
+│   ├── train.py               # 历史训练器（train_legacy）
 │   └── ablation.py            # 优化消融实验
 ├── experiment/                # 多模型实验运行器
-│   └── cnn_fft_dwt_ablation/                # 消融实验 harness（15 配置矩阵）
-│   ├── harness.py             # 训练循环 + ExpConfig + RAM 缓存
-│   ├── finalist.py            # 多种子决赛训练
-│   ├── finalize_export.py     # ONNX 导出与一致性验证
-│   ├── deploy_eval.py         # 部署后端到端评估
-│   ├── show.py                # 排行榜查看
-│   ├── leaderboard.jsonl      # 全部实验记录
-│   ├── REPORT.md              # 完整消融报告
-│   ├── exp/                   # 单次训练 checkpoint
-│   ├── finalist/              # 决赛 checkpoint + ONNX
-│   ├── cache/                 # FFT/DWT 预计算缓存
-│   ├── logs/                  # 训练日志
-│   └── backup/                # 旧生产模型留底
+│   └── cnn_fft_dwt_ablation/  # 消融与发布训练 harness
+│       ├── harness.py         # 训练循环 + ExpConfig + 版本化缓存
+│       ├── finalist.py        # 历史多种子决赛训练
+│       ├── finalize_export.py # 历史 ONNX 一致性工具
+│       ├── deploy_eval.py     # 生产 ONNX 端到端评估
+│       ├── show.py            # 排行榜查看
+│       ├── leaderboard.jsonl  # 实验记录
+│       └── REPORT.md          # 完整中文报告
 ├── tests/                     # 单元与集成测试
 └── data/                      # 本地数据集和生成输出（已忽略）
 ```
 
 ## 实验结果
 
-### 当前部署模型（2026-07-21，ONNX 端到端）
+### 当前部署模型（2026-07-22，`candidate_20260722_unf3_focus2_6x12`）
 
-`experiment/cnn_fft_dwt_ablation/finalist_unf1_s42` 全量 10+20 epoch 训练，导出 ONNX（22.2 MB）后通过 `inference.predictor` 对完整测试集（369 张）端到端评估：
+当前 6+12 epoch 发布训练选中 `finetune-11`，两张已确认难例均通过，并导出 22.2 MB ONNX（`96aedc9f…`）。其 PyTorch argmax 结果为 accuracy 0.9429 / screen_photo F1 0.9076 / macro F1 0.9361 / metric 0.9239。
 
-| 视图 | Accuracy | screen_photo F1 | Macro F1 | Metric |
-| --- | ---: | ---: | ---: | ---: |
-| **raw**（unknown 算错） | **0.9079** | **0.8500** | 0.9073 | 0.8788 |
-| **unknown→screen_photo**（生产兜底） | **0.9187** | **0.8397** | 0.9039 | 0.8762 |
-| 旧基线（README 历史值） | 0.8946 | 0.7630 | 0.8668 | — |
-| **提升** | **+1.3~2.4 pp** | **+7.7~8.7 pp** | **+3.7~4.1 pp** | — |
+随后把相关可部署工件放到同一当前 368 张测试清单上，使用完全相同的 ONNX Runtime、TTA、OOD 和阈值策略对照：
 
-**置信度分布**（生产可用）：
-- 115 accept (high ≥0.92) / 131 review (medium 0.75-0.92) / 112 ignore (low <0.75) / 11 OOD
-- 31.2% 可直接接受，35.5% 需人工复核，3.0% OOD 拒绝
+| 生产 ONNX 候选 | Accuracy | screen_photo F1 | Macro F1 | Metric | 必须通过的 screenshot 门槛 | 发布资格 |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| 上一生产模型（`4b419976…`） | **0.9402** | **0.8870** | **0.9376** | **0.9131** | 0/2 | 无 |
+| README 上一版发布（`cbba84bd…`） | 0.9158 | 0.8598 | 0.9145 | 0.8875 | 2/2 | 有 |
+| 当前发布（`96aedc9f…`） | 0.9158 | **0.9043** | 0.9262 | 0.9121 | **2/2** | **有** |
 
-**延迟**（含 TTA，CPU 推理）：mean 234ms / p50 222ms / p95 313ms
+当前发布相对 README 上一版可发布模型提升 +4.45 pp screen_photo F1、+1.16 pp macro F1、+2.46 pp metric，accuracy 持平。更早的 `4b419976…` 工件普通综合 metric 仍略高，但两张必修截图门槛为 0/2，不具备发布资格。生产指标把 `unknown` 视为错误分类，与真实 API 行为一致。
 
-> ⚠️ **关于数据切分差异**：旧基线训练时 `hard_negative/` 既在 train 也以 3× 权重在 val 中作为 screenshot 重复出现，造成样本级泄漏。新训练使用 seed=42 严格 stratified 0.70/0.15/0.15 切分，hard_negative 只入 train，**完全无泄漏**。因此新数字 vs 旧数字的差异比表面看起来更显著。
+旧 README 只记录了 accuracy 0.8946 / screen_photo F1 0.7630 / macro F1 0.8668，它只保留为历史背景，不替代上方同路径工件对照。其训练切分与 `hard_negative` 处理不同；上一生产工件的训练来源也不同于当前固定切分，因此解读普通指标时仍需保留这一限制。
 
-### 3 种子决赛结果
+**已确认 screenshot 回归**（生产 ONNX + TTA）：
+
+| 图片 | 训练前 | 训练后 | screenshot 概率 | screen_photo 概率 |
+| --- | --- | --- | ---: | ---: |
+| `4a6e…ae8f9.png` | `screen_photo` | **`screenshot`** | 0.5552 | 0.3260 |
+| `5cdc3…12a62.png` | `natural` | **`screenshot`** | 0.4679 | 0.3175 |
+
+**置信度分布**：49 accept（high ≥0.92）、139 review（medium 0.75–0.92）、168 low-confidence ignore、12 OOD ignore。最近一次 CPU TTA 单跑诊断为 mean 351 ms / p50 334 ms / p95 454 ms。串行延迟容易受预热和机器负载影响，因此没有用延迟决定这些同架构工件的胜负。
+
+### 历史 3 种子决赛结果
 
 为检验稳定性，获胜配置跑了 3 个种子（42 / 2024 / 7）：
 
 | Seed | test_acc | test_sp_f1 | test_macro_f1 | metric |
 | --- | ---: | ---: | ---: | ---: |
-| **42（已部署）** | **0.9322** | **0.8548** | **0.9174** | **0.8952** |
+| **42（上一版 finalist）** | **0.9322** | **0.8548** | **0.9174** | **0.8952** |
 | 2024 | 0.9133 | 0.8276 | 0.8963 | 0.8670 |
 | 7 | 0.9079 | 0.7788 | 0.8817 | 0.8381 |
 | **AVG** | **0.9178** | **0.8204** | **0.8985** | **0.8668** |
 
-均值（acc 0.9178, sp_f1 0.8204, macro_f1 0.8985）仍全面超过旧基线，说明改进具有跨种子的稳定性（种子间方差主要来自 369 张小测试集）。
+这些归档训练使用上一版 369 张切分，且没有两张 hard-example 发布门槛。其均值（acc 0.9178, sp_f1 0.8204, macro_f1 0.8985）只保留为历史背景；部署指标以上方 2026-07-22 结果为准。
 
 ### 消融实验矩阵（15 配置，screening 阶段 H=6+F=12）
 
@@ -465,11 +478,13 @@ opencv-screen-detector/
 
 ## 性能对比
 
-消融结果显示当前部署模型在新数据划分下达到 **acc 0.9187 / sp_f1 0.8397 / macro_f1 0.9039**，3 种子均值仍稳定超过旧基线。screen_photo 召回率达 **0.932**（高召回，几乎不漏检相机拍屏）。
+当前生产路径在自身无泄漏留出集上达到 **acc 0.9158 / sp_f1 0.9043 / macro_f1 0.9262**。相对 README 历史值分别提升约 +2.1 pp、+14.1 pp、+5.9 pp；由于切分不同，这只能作为背景比较。
+
+在同一当前 368 张清单和部署路径中，当前发布优于 README 上一版可发布模型（metric 0.9121 vs. 0.8875），同时保持 2/2 screenshot 门槛。更早的上一生产工件普通 metric 仍略高（0.9131），但强制 screenshot 门槛为 0/2，因此不是有效发布候选。
 
 研究模型对比中 CNN 基线的总体 Accuracy 和屏幕照片 F1（87.67%）最高，而 DWT+FFT+DeiT 的已记录屏幕照片 Recall（91.67%）最高。每个研究模型仅有一次试验且 early stopping 较激进，这些观察只能作为方向性结论，不能视为生产基准。
 
-如需公平的部署比较，请在目标硬件上使用相同的预热、图片集、batch size 和 ONNX Runtime provider 测试导出模型，并记录 p50/p95 延迟、吞吐量、峰值内存、工件大小和各类别指标。`experiment/cnn_fft_dwt_ablation/deploy_eval.py` 已为当前部署模型提供 CPU 推理延迟基准（mean 234ms / p50 222ms / p95 313ms）。
+部署比较应在目标硬件上使用相同的预热、图片集、batch size 和 ONNX Runtime provider，并同时记录 p50/p95 延迟、吞吐量、峰值内存、工件大小、各类别指标与强制回归门槛。`experiment/cnn_fft_dwt_ablation/deploy_eval.py` 支持 `--model`、`--output`、`--label`；当前模型最近一次 CPU 诊断（含 TTA）为 mean 351 ms / p50 334 ms / p95 454 ms。
 
 ## 模型演进
 
@@ -498,11 +513,11 @@ docker run --rm -p 8325:8325 \
   opencv-screen-detector:local
 ```
 
-Dockerfile 会复制代码，但不会复制被忽略的模型工件和数据。请按示例挂载包含 `inference/models/three_class.onnx` 的模型目录。镜像公开 8325 端口，并将上传文件与索引数据持久化在 `/app/data`。
+Dockerfile 会复制 Git LFS 跟踪的 `inference/models/three_class.onnx`，但不会复制被忽略的训练数据；本地构建前需确保 LFS 对象已物化。镜像公开 8325 端口，并将上传文件与索引数据持久化在 `/app/data`；示例中的只读模型挂载可用于显式替换镜像内模型。
 
 ## 配置
 
-运行时配置位于 `inference/config.py`，训练默认值位于 `trainer/config.py`，消融实验配置在 `experiment/cnn_fft_dwt_ablation/harness.py`。
+运行时配置位于 `inference/config.py`；发布训练默认值位于 `trainer/release_train.py` 与 `experiment/cnn_fft_dwt_ablation/harness.py`。`trainer/config.py` 服务于旧训练器和 PAH-ViT 研究流程。
 
 | 配置项 | 默认值 | 含义 |
 | --- | ---: | --- |
@@ -517,13 +532,15 @@ Dockerfile 会复制代码，但不会复制被忽略的模型工件和数据。
 | `LABEL_SMOOTHING` | 0.05 | 标签平滑（消融验证 0.05 > 0 / 0.10） |
 | `EMA_DECAY` | 0.999 | 权重 EMA 衰减 |
 | `UNFREEZE_STAGES` | 1 | Stage B 解冻的 MBConv stage 数 |
+| `HARD_EXAMPLE_WEIGHT` | 4.0 | `trainer/hard_examples.txt` 中图片的 sampler 倍率 |
 
 替换模型时必须保持预处理、模型输入和阈值一致。当前服务需要 [推理](#推理) 中所述的三输入 ONNX 图。
 
 ## 未来工作
 
 - ~~为研究模型执行多随机种子重复实验和交叉验证。~~（已在 `experiment/cnn_fft_dwt_ablation/finalist.py` 完成 3 种子决赛）
-- ~~在独立留出集上完成校准、阈值选择和可复现发布工件。~~（已在 `experiment/cnn_fft_dwt_ablation/deploy_eval.py` 完成）
+- ~~建立固定切分与 hard-example 门槛的可复现发布工件。~~（已由 `trainer/release_train.py` 完成）
+- 在独立 validation/calibration 集上校准决策阈值；测试集阈值扫描仅保留为诊断信息。
 - 进一步扩充并审计屏幕照片边界案例，记录数据来源。
 - 添加训练/导出兼容性及 API 冒烟测试的 CI 检查。
 - 探索更细粒度的 FFT 重标定（per-bin mean/std）、Mixup/CutMix 与多任务联合训练。

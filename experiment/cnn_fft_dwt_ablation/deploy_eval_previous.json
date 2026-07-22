@@ -1,0 +1,44 @@
+{
+  "label": "previous_production",
+  "onnx_path": "inference/models/backup/20260721-163156/three_class.onnx",
+  "onnx_sha256": "4b4199763b49bc62c8f1e11704e5b2dd99a1177b2517e57443fc28112b94aae7",
+  "size_mb": 22.18,
+  "n_test": 368,
+  "raw": {
+    "accuracy": 0.9402173913043478,
+    "sp_f1": 0.8869565217391304,
+    "sp_precision": 0.9107142857142857,
+    "sp_recall": 0.864406779661017,
+    "macro_f1": 0.9375940965194435,
+    "metric": 0.9130622975647582
+  },
+  "hypothetical_ood_as_screen_photo": {
+    "accuracy": 0.9510869565217391,
+    "sp_f1": 0.8943089430894309,
+    "sp_precision": 0.859375,
+    "sp_recall": 0.9322033898305084,
+    "macro_f1": 0.9400449036362103,
+    "metric": 0.9204895392284792
+  },
+  "latency_ms": {
+    "mean": 337.5187334807023,
+    "p50": 314.14687633514404,
+    "p95": 441.96993112564087
+  },
+  "tiers": {
+    "high": 129,
+    "low": 110,
+    "ood": 8,
+    "medium": 121
+  },
+  "actions": {
+    "accept": 129,
+    "ignore": 118,
+    "review": 121
+  },
+  "baseline_to_beat": {
+    "acc": 0.8946,
+    "macro_f1": 0.8668,
+    "sp_f1": 0.763
+  }
+}

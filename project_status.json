@@ -1,0 +1,269 @@
+{
+  "project": {
+    "name": "opencv-screen-detector",
+    "version": "2.0.0",
+    "description": "基于 Python、OpenCV、EfficientNet-B0、FFT 与 DWT 的三类图像来源识别系统",
+    "python": ">=3.11,<3.13",
+    "api_port": 8325,
+    "classes": ["natural", "screenshot", "screen_photo"]
+  },
+  "release_status": {
+    "updated_at": "2026-07-22T15:44:08+08:00",
+    "state": "production_retrained_workspace_cleaned",
+    "release_id": "candidate_20260722_unf3_focus2_6x12",
+    "device": "cuda",
+    "gpu": "NVIDIA GeForce RTX 3060 Laptop GPU 6GB",
+    "training_seconds_excluding_cache": 847.8,
+    "selected_stage": "finetune",
+    "selected_epoch": 11,
+    "target_screenshot_gate": "2/2",
+    "onnx_export_verified": true
+  },
+  "architecture": {
+    "model": "ScreenDetectorModelWithDWT",
+    "spatial_branch": {
+      "backbone": "efficientnet_b0",
+      "output_dim": 1280
+    },
+    "frequency_branch": {
+      "inputs": ["FFT: 1x224x224", "Haar DWT: 4x224x224"],
+      "fft_feature_dim": 64,
+      "dwt_feature_dim": 64,
+      "fused_output_dim": 256
+    },
+    "fusion_dim": 1536,
+    "classifier": "Dropout(0.3) -> Linear(1536,512) -> ReLU -> Dropout(0.2) -> Linear(512,3)"
+  },
+  "data_audit": {
+    "input_dir": "data/input",
+    "total_deduplicated": 2928,
+    "main_samples": 2444,
+    "hard_negative_samples": 484,
+    "hard_example_samples": 2,
+    "split": {
+      "seed": 42,
+      "train": 2194,
+      "validation": 366,
+      "test": 368,
+      "sample_level_leakage": false,
+      "hard_negative_policy": "按子目录恢复真实标签；仅进入 train",
+      "hard_example_policy": "固定进入 train；当前发布 sampler 权重 2x；作为 checkpoint 选择门槛"
+    },
+    "dataset_fingerprint_sha256": "6367b7638c3871a81e05e4ca41f2bf87ed12d711ff1ac0ad9c96a3495a6acc2a",
+    "focus_fingerprint_sha256": "f69e6a57f00c7f6b4076f79565f55d52d5f57c7f42064230130435953e0db1db",
+    "legacy_findings": {
+      "trainer_dataset_duplicate_paths": 58,
+      "trainer_dataset_conflicting_labels": 16,
+      "impact": "旧 trainer/dataset.py 会重复加载 hard_negative；发布训练入口使用去重且保留真实标签的 harness，旧入口仅通过 train_legacy 保留用于复现"
+    }
+  },
+  "release_training": {
+    "entry_point": "uv run python -m trainer train",
+    "candidate_entry_point": "uv run python experiment/cnn_fft_dwt_ablation/run_candidate.py --id <id> ...",
+    "legacy_entry_point": "uv run python -m trainer train_legacy",
+    "config_source": [
+      "trainer/release_train.py",
+      "experiment/cnn_fft_dwt_ablation/harness.py"
+    ],
+    "config": {
+      "image_size": 224,
+      "batch_size": 16,
+      "epochs_head": 6,
+      "epochs_finetune": 12,
+      "learning_rate": 0.001,
+      "weight_decay": 0.0001,
+      "focal_gamma": 2.0,
+      "alpha": [1.0, 1.0, 1.5],
+      "label_smoothing": 0.05,
+      "ema_decay": 0.999,
+      "unfreeze_mbconv_stages": 3,
+      "focus_weight": 2.0
+    },
+    "selection_policy": [
+      "先要求所有已确认 hard examples 通过，作为发布资格门槛",
+      "在满足门槛的 checkpoint 中最大化 0.5*screen_photo_f1 + 0.3*accuracy + 0.2*macro_f1"
+    ],
+    "validation": {
+      "accuracy": 0.9234972677595629,
+      "macro_f1": 0.9076097846628478,
+      "screen_photo_precision": 0.8448275862068966,
+      "screen_photo_recall": 0.8448275862068966,
+      "screen_photo_f1": 0.8448275862068966,
+      "selection_metric": 0.8809849303638867
+    },
+    "test_pytorch_argmax": {
+      "accuracy": 0.9429347826086957,
+      "macro_f1": 0.9361086867981614,
+      "screen_photo_precision": 0.9,
+      "screen_photo_recall": 0.9152542372881356,
+      "screen_photo_f1": 0.907563025210084,
+      "metric": 0.9238836847472831
+    },
+    "diagnostic_test_threshold": {
+      "screen_photo_threshold": 0.5,
+      "screen_photo_f1": 0.907563025210084,
+      "note": "仅作为测试集诊断，不回写生产阈值；生产仍使用 0.60"
+    },
+    "result_file": "trainer/logs/release_training_result.json"
+  },
+  "inference": {
+    "entry_point": "uv run python main.py",
+    "model": "inference/models/three_class.onnx",
+    "pipeline": [
+      "RGB、FFT 与 DWT 三输入",
+      "原图和水平翻转 TTA 概率平均",
+      "max probability < 0.45 时返回 unknown",
+      "screen_photo probability >= 0.60 时优先返回 screen_photo，否则 argmax",
+      "0.92/0.75 置信度分级"
+    ],
+    "production_onnx_test": {
+      "samples": 368,
+      "accuracy": 0.9157608695652174,
+      "macro_f1": 0.9261531376501321,
+      "screen_photo_precision": 0.9285714285714286,
+      "screen_photo_recall": 0.8813559322033898,
+      "screen_photo_f1": 0.9043478260869564,
+      "metric": 0.9121328014430699,
+      "confidence_tiers": {"high": 49, "medium": 139, "low": 168, "ood": 12},
+      "actions": {"accept": 49, "review": 139, "ignore": 180},
+      "latency_ms_cpu_tta": {"mean": 351.49, "p50": 334.18, "p95": 454.15},
+      "result_file": "experiment/cnn_fft_dwt_ablation/deploy_eval.json"
+    },
+    "model_comparison": {
+      "protocol": "同一当前 seed=42 的 368 张测试清单；同一 ONNX Runtime、TTA、OOD=0.45、screen_photo threshold=0.60；unknown 按错误计",
+      "candidates": {
+        "previous_production": {
+          "sha256": "4b4199763b49bc62c8f1e11704e5b2dd99a1177b2517e57443fc28112b94aae7",
+          "accuracy": 0.9402173913043478,
+          "macro_f1": 0.9375940965194435,
+          "screen_photo_f1": 0.8869565217391304,
+          "metric": 0.9130622975647582,
+          "target_screenshot_gate": "0/2",
+          "release_eligible": false,
+          "result_file": "experiment/cnn_fft_dwt_ablation/deploy_eval_previous.json"
+        },
+        "readme_previous_release": {
+          "sha256": "cbba84bdbfaa11068e2c8f74b1ba51affed82140906449576c288f979e56390c",
+          "accuracy": 0.9157608695652174,
+          "macro_f1": 0.9145316054740591,
+          "screen_photo_f1": 0.8598130841121496,
+          "metric": 0.8875411240204518,
+          "target_screenshot_gate": "2/2",
+          "release_eligible": true
+        },
+        "current_release": {
+          "sha256": "96aedc9fd009535eba125f9a9c79f9764237aedcd882f779988c42af494fea5b",
+          "accuracy": 0.9157608695652174,
+          "macro_f1": 0.9261531376501321,
+          "screen_photo_f1": 0.9043478260869564,
+          "metric": 0.9121328014430699,
+          "target_screenshot_gate": "2/2",
+          "release_eligible": true,
+          "result_file": "experiment/cnn_fft_dwt_ablation/deploy_eval.json"
+        }
+      },
+      "selected": "candidate_20260722_unf3_focus2_6x12",
+      "decision": "当前发布相对 README 上一版可发布模型提升 screen_photo F1、macro F1 与综合 metric；上一生产工件普通 metric 略高但 hard-example 门槛 0/2，未达到发布资格"
+    },
+    "target_regressions": {
+      "4a6e9f5ce9dc3506cd4dd4484f0eb79b3b9a90551909f5363687a4438baae8f9.png": {
+        "expected": "screenshot",
+        "before": {
+          "model_sha256": "4b4199763b49bc62c8f1e11704e5b2dd99a1177b2517e57443fc28112b94aae7",
+          "class": "screen_photo",
+          "probabilities": {"natural": 0.3288, "screenshot": 0.1117, "screen_photo": 0.5595}
+        },
+        "after_onnx_tta": {
+          "class": "screenshot",
+          "confidence": 0.5552355349063873,
+          "probabilities": {
+            "natural": 0.11873196437954903,
+            "screenshot": 0.5552355349063873,
+            "screen_photo": 0.32603248953819275
+          }
+        }
+      },
+      "5cdc3e8dca1eab9bbd5362b995e92c7c171621dbc827ca2af01bb7eaa4123a62.png": {
+        "expected": "screenshot",
+        "before": {
+          "model_sha256": "4b4199763b49bc62c8f1e11704e5b2dd99a1177b2517e57443fc28112b94aae7",
+          "class": "natural",
+          "probabilities": {"natural": 0.4765, "screenshot": 0.2096, "screen_photo": 0.3138}
+        },
+        "after_onnx_tta": {
+          "class": "screenshot",
+          "confidence": 0.46787089109420776,
+          "probabilities": {
+            "natural": 0.21462126076221466,
+            "screenshot": 0.46787089109420776,
+            "screen_photo": 0.31750787794589996
+          }
+        }
+      }
+    }
+  },
+  "artifacts": {
+    "checkpoint_best": {
+      "path": "trainer/checkpoints/three_class_best.pth",
+      "bytes": 22506194,
+      "sha256": "e3a919561d1141dc9868d4cf39138a1a1d53ea61ef8eae8262e1e3d8e4253ee4"
+    },
+    "checkpoint_final": {
+      "path": "trainer/checkpoints/three_class_final.pth",
+      "bytes": 22506194,
+      "sha256": "e3a919561d1141dc9868d4cf39138a1a1d53ea61ef8eae8262e1e3d8e4253ee4"
+    },
+    "onnx": {
+      "path": "inference/models/three_class.onnx",
+      "bytes": 22184189,
+      "sha256": "96aedc9fd009535eba125f9a9c79f9764237aedcd882f779988c42af494fea5b"
+    },
+    "torchscript": {
+      "path": "inference/models/three_class.torchscript",
+      "status": "cleaned_generated_artifact"
+    },
+    "backups": {
+      "status": "cleaned_from_workspace_after current artifact promotion"
+    }
+  },
+  "cleanup": {
+    "removed": [
+      ".pytest_cache",
+      ".ruff_cache",
+      "source __pycache__ directories",
+      "logs/",
+      "experiment/cnn_fft_dwt_ablation/cache/",
+      "experiment/cnn_fft_dwt_ablation/exp/",
+      "experiment/cnn_fft_dwt_ablation/split.json",
+      "intermediate deploy_eval JSON files",
+      "inference/models/backup/",
+      "inference/models/three_class.torchscript",
+      "trainer/checkpoints/backup/",
+      "historical PAH/stage checkpoints",
+      "old trainer log plots",
+      "tests/test_classify_extracted.py"
+    ],
+    "reason": "删除可再生缓存、过期候选工件、旧模型备份和依赖本地临时数据且会写入 data/input 的不可复现测试脚本"
+  },
+  "verification": {
+    "passed": [
+      "uv run ruff check experiment/cnn_fft_dwt_ablation/run_candidate.py trainer/release_train.py trainer/export_onnx.py",
+      "uv run pytest tests/test_inference_thresholds.py tests/test_release_training_data.py tests/test_target_screenshots.py -v",
+      "uv run ruff check experiment/cnn_fft_dwt_ablation/run_candidate.py trainer/release_train.py trainer/export_onnx.py experiment/cnn_fft_dwt_ablation/deploy_eval.py experiment/cnn_fft_dwt_ablation/harness.py inference/api/router.py inference/api/utils.py inference/config.py inference/predictor.py tests/test_package.py tests/test_inference_thresholds.py tests/test_release_training_data.py tests/test_target_screenshots.py",
+      "uv run pytest tests/test_inference_thresholds.py tests/test_release_training_data.py tests/test_target_screenshots.py tests/test_package.py -v",
+      "git diff --check"
+    ]
+  },
+  "known_issues": [
+    {
+      "area": "trainer/train_legacy",
+      "status": "contained",
+      "summary": "legacy dataset loading retains duplicate/conflicting hard_negative behavior for historical reproduction; do not use it for releases"
+    },
+    {
+      "area": "repository lint baseline",
+      "status": "historical",
+      "summary": "full-repository Ruff has pre-existing findings outside the release change set; changed Python files are checked with targeted Ruff"
+    }
+  ]
+}

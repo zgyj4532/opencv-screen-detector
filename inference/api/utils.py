@@ -1,14 +1,14 @@
 import functools
 import hashlib
 import tempfile
-from typing import ClassVar
 import zipfile
 from collections.abc import AsyncGenerator, AsyncIterable, Callable
 from pathlib import Path
+from typing import ClassVar
 
 import anyio
-import anyio.to_thread
 import anyio.from_thread
+import anyio.to_thread
 import fleep
 import httpx
 from fastapi import HTTPException, UploadFile, status
@@ -130,7 +130,7 @@ def run_detect(file_path: Path) -> bool:
     Flow:
     1. CNN+FFT 3-class inference (with TTA)
     2. OOD detection: max_prob < 0.45 → unknown
-    3. Threshold-based screen_photo classification (prob >= 0.35)
+    3. Threshold-based screen_photo classification (configurable, default 0.60)
     4. Confidence tiering: accept/review/ignore
     """
     predictor = get_predictor()
@@ -169,20 +169,6 @@ async def package_entries_to_stream(
     entries: list[ImageEntry],
     compress_level: int = 1,
 ) -> AsyncGenerator[bytes]:
-    if len(entries) > MAX_FILES:
-        raise HTTPException(
-            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-            detail=f"Export exceeds maximum file limit ({MAX_FILES} files)",
-        )
-
-    total_size = sum(
-        entry.path.stat().st_size for entry in entries if entry.path.exists()
-    )
-    if total_size > MAX_EXPORT_SIZE:
-        raise HTTPException(
-            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-            detail=f"Export size exceeds limit ({MAX_EXPORT_SIZE // (1024**3)}GB)",
-        )
 
     if compress_level == 0:
         compression = zipfile.ZIP_STORED
@@ -212,3 +198,19 @@ async def package_entries_to_stream(
         tg.start_soon(anyio.to_thread.run_sync, writer)
         async for chunk in recv:
             yield chunk
+
+
+def validate_package_entries(entries: list[ImageEntry]) -> None:
+    """Reject oversized exports before a StreamingResponse starts."""
+    if len(entries) > MAX_FILES:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=f"Export exceeds maximum file limit ({MAX_FILES} files)",
+        )
+
+    total_size = sum(entry.path.stat().st_size for entry in entries if entry.path.exists())
+    if total_size > MAX_EXPORT_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=f"Export size exceeds limit ({MAX_EXPORT_SIZE // (1024**3)}GB)",
+        )

@@ -63,14 +63,13 @@ class Settings(BaseModel):
     input_channels: int = 3
 
     # Class names
-    class_names: list[str] = Field(
-        default_factory=lambda: ["natural", "screenshot", "screen_photo"]
-    )
+    class_names: list[str] = Field(default_factory=lambda: ["natural", "screenshot", "screen_photo"])
 
     # Confidence thresholds
     confidence_high: float = 0.92  # >= accept
     confidence_medium: float = 0.75  # >= review
     ood_threshold: float = 0.45  # < unknown (lowered for screen_photo recall)
+    screen_photo_threshold: float = 0.60  # >= force screen_photo
 
     # API
     api_host: str = "0.0.0.0"  # noqa: S104
@@ -100,6 +99,7 @@ def configure(
     confidence_high: float | None = None,
     confidence_medium: float | None = None,
     ood_threshold: float | None = None,
+    screen_photo_threshold: float | None = None,
     api_host: str | None = None,
     api_port: int | None = None,
     mean: list[float] | None = None,

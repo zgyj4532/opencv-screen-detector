@@ -1,6 +1,8 @@
 # Python-generated files
 __pycache__/
 *.py[oc]
+.pytest_cache/
+.ruff_cache/
 build/
 dist/
 wheels/
@@ -14,16 +16,28 @@ data/
 trainer/data/
 trainer/logs/
 trainer/checkpoints/
+logs/
 *.log
 *.pth
 *.npz
+*.torchscript
 
 #trainer
 trainer/checkpoints
 trainer/logs
+inference/models/backup/
+inference/models/*.torchscript
+
+# generated experiment artifacts
+experiment/cnn_fft_dwt_ablation/cache/
+experiment/cnn_fft_dwt_ablation/exp/
+experiment/cnn_fft_dwt_ablation/split.json
 # scripts (download tools)
 scripts/
 *.json
+!project_status.json
+!experiment/cnn_fft_dwt_ablation/deploy_eval.json
+!experiment/cnn_fft_dwt_ablation/deploy_eval_previous.json
 
 # ppt (presentation files)
 ppt/

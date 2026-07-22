@@ -1,3 +1,7 @@
+# 归档：消融前方案综合
+
+> 本文件是实验启动前生成的候选方案，不代表当前发布配置。2026-07-21 的正式发布入口、真实参数和指标请见 `trainer/release_train.py`、`project_status.json` 与 `REPORT.md`。下文中的 Stage A `lr=3e-3`、解冻 2 stages、474/369 样本等建议均属于历史假设，已被实际消融或最新数据切分替代。
+
 === RECOMMENDED DEFAULT CONFIG ===
 ### 数据
 - 删除 `THREE_CLASS_DATA_MAP['screenshot']` 中的 `'hard_negative'`;`__init__` 按 path 去重 self.samples
