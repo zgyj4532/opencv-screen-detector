@@ -1,0 +1,44 @@
+{
+  "label": "existing_production_before_pg260727",
+  "onnx_path": "inference/models/three_class.onnx",
+  "onnx_sha256": "96aedc9fd009535eba125f9a9c79f9764237aedcd882f779988c42af494fea5b",
+  "size_mb": 22.18,
+  "n_test": 376,
+  "raw": {
+    "accuracy": 0.9601063829787234,
+    "sp_f1": 0.9411764705882353,
+    "sp_precision": 0.9491525423728814,
+    "sp_recall": 0.9333333333333333,
+    "macro_f1": 0.9617550468463247,
+    "metric": 0.9509711595569996
+  },
+  "hypothetical_ood_as_screen_photo": {
+    "accuracy": 0.9601063829787234,
+    "sp_f1": 0.9032258064516129,
+    "sp_precision": 0.875,
+    "sp_recall": 0.9333333333333333,
+    "macro_f1": 0.9491048254674506,
+    "metric": 0.9294657832129136
+  },
+  "latency_ms": {
+    "mean": 358.88872374879554,
+    "p50": 342.1226739883423,
+    "p95": 464.79541063308716
+  },
+  "tiers": {
+    "high": 69,
+    "medium": 156,
+    "low": 146,
+    "ood": 5
+  },
+  "actions": {
+    "accept": 69,
+    "review": 156,
+    "ignore": 151
+  },
+  "baseline_to_beat": {
+    "acc": 0.8946,
+    "macro_f1": 0.8668,
+    "sp_f1": 0.763
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "label": "pg260727_cnv2_atto_candidate",
+  "onnx_path": "experiment/cnn_fft_dwt_ablation/pg260727_cnv2_atto.onnx",
+  "onnx_sha256": "0af4e3c41cf0db83d98f7bb384667df9a41661a4908f15674084627a39648025",
+  "size_mb": 17.87,
+  "n_test": 376,
+  "raw": {
+    "accuracy": 0.7925531914893617,
+    "sp_f1": 0.7422680412371134,
+    "sp_precision": 0.972972972972973,
+    "sp_recall": 0.6,
+    "macro_f1": 0.8157801683350764,
+    "metric": 0.7720560117323805
+  },
+  "hypothetical_ood_as_screen_photo": {
+    "accuracy": 0.8085106382978723,
+    "sp_f1": 0.5833333333333334,
+    "sp_precision": 0.5,
+    "sp_recall": 0.7,
+    "macro_f1": 0.7628019323671498,
+    "metric": 0.6867802446294583
+  },
+  "latency_ms": {
+    "mean": 362.50837242349667,
+    "p50": 346.91429138183594,
+    "p95": 466.6934609413147
+  },
+  "tiers": {
+    "low": 314,
+    "ood": 47,
+    "medium": 15
+  },
+  "actions": {
+    "ignore": 361,
+    "review": 15
+  },
+  "baseline_to_beat": {
+    "acc": 0.8946,
+    "macro_f1": 0.8668,
+    "sp_f1": 0.763
+  }
+}

@@ -1,0 +1,389 @@
+{
+  "metric_used_for_top3": "test_metric",
+  "sample_source": "data/input main classes + hard_negative",
+  "sample_size": 200,
+  "repeats": 5,
+  "seed": 20260727,
+  "device": "cuda",
+  "batch_size": 8,
+  "top3": [
+    "pg260727_cnv2_atto",
+    "pg260727_mobileone",
+    "pg260727_effv2b0"
+  ],
+  "summary": [
+    {
+      "id": "pg260727_cnv2_atto",
+      "checkpoint": "E:\\github\\opencv-screen-detector\\experiment\\cnn_fft_dwt_ablation\\exp\\pg260727_cnv2_atto\\best.pth",
+      "leaderboard_metric": 0.8555803624879139,
+      "accuracy": {
+        "mean": 0.9099999999999999,
+        "std": 0.017606816861658988,
+        "min": 0.895,
+        "max": 0.94
+      },
+      "sp_f1": {
+        "mean": 0.8094003370006939,
+        "std": 0.02094067379763242,
+        "min": 0.7777777777777778,
+        "max": 0.8421052631578947
+      },
+      "macro_f1": {
+        "mean": 0.8866302120206051,
+        "std": 0.019135482390167997,
+        "min": 0.864537037037037,
+        "max": 0.9211289092295957
+      },
+      "metric": {
+        "mean": 0.855026210904468,
+        "std": 0.018314639377044712,
+        "min": 0.8302962962962963,
+        "max": 0.8872784134248666
+      }
+    },
+    {
+      "id": "pg260727_effv2b0",
+      "checkpoint": "E:\\github\\opencv-screen-detector\\experiment\\cnn_fft_dwt_ablation\\exp\\pg260727_effv2b0\\best.pth",
+      "leaderboard_metric": 0.7985163382705874,
+      "accuracy": {
+        "mean": 0.869,
+        "std": 0.023108440016582705,
+        "min": 0.84,
+        "max": 0.9
+      },
+      "sp_f1": {
+        "mean": 0.7887411460913342,
+        "std": 0.07659096883716228,
+        "min": 0.7142857142857143,
+        "max": 0.8852459016393442
+      },
+      "macro_f1": {
+        "mean": 0.8390890479797027,
+        "std": 0.03694124703151932,
+        "min": 0.7994202824472515,
+        "max": 0.8897832817337461
+      },
+      "metric": {
+        "mean": 0.8228883826416077,
+        "std": 0.05195224142981417,
+        "min": 0.7690269136323076,
+        "max": 0.8865531475748194
+      }
+    },
+    {
+      "id": "pg260727_mobileone",
+      "checkpoint": "E:\\github\\opencv-screen-detector\\experiment\\cnn_fft_dwt_ablation\\exp\\pg260727_mobileone\\best.pth",
+      "leaderboard_metric": 0.8062060521928254,
+      "accuracy": {
+        "mean": 0.8649999999999999,
+        "std": 0.01483239697419134,
+        "min": 0.85,
+        "max": 0.89
+      },
+      "sp_f1": {
+        "mean": 0.6938217670828128,
+        "std": 0.05662774398912372,
+        "min": 0.6197183098591549,
+        "max": 0.7466666666666667
+      },
+      "macro_f1": {
+        "mean": 0.8331715930395445,
+        "std": 0.021243465750425922,
+        "min": 0.8045745331032133,
+        "max": 0.8611217528648721
+      },
+      "metric": {
+        "mean": 0.7730452021493155,
+        "std": 0.03633202464466073,
+        "min": 0.7257740615502201,
+        "max": 0.8106529220015459
+      }
+    }
+  ],
+  "repeat_results": [
+    {
+      "repeat": 1,
+      "sample_size": 200,
+      "candidates": [
+        {
+          "id": "pg260727_cnv2_atto",
+          "checkpoint": "E:\\github\\opencv-screen-detector\\experiment\\cnn_fft_dwt_ablation\\exp\\pg260727_cnv2_atto\\best.pth",
+          "accuracy": 0.92,
+          "macro_f1": 0.8902498265093685,
+          "sp_f1": 0.8,
+          "sp_precision": 0.8,
+          "sp_recall": 0.8,
+          "metric": 0.8540499653018737,
+          "support": {
+            "natural": 46,
+            "screenshot": 129,
+            "screen_photo": 25
+          }
+        },
+        {
+          "id": "pg260727_mobileone",
+          "checkpoint": "E:\\github\\opencv-screen-detector\\experiment\\cnn_fft_dwt_ablation\\exp\\pg260727_mobileone\\best.pth",
+          "accuracy": 0.85,
+          "macro_f1": 0.8045745331032133,
+          "sp_f1": 0.6197183098591549,
+          "sp_precision": 0.4782608695652174,
+          "sp_recall": 0.88,
+          "metric": 0.7257740615502201,
+          "support": {
+            "natural": 46,
+            "screenshot": 129,
+            "screen_photo": 25
+          }
+        },
+        {
+          "id": "pg260727_effv2b0",
+          "checkpoint": "E:\\github\\opencv-screen-detector\\experiment\\cnn_fft_dwt_ablation\\exp\\pg260727_effv2b0\\best.pth",
+          "accuracy": 0.875,
+          "macro_f1": 0.8215266080229583,
+          "sp_f1": 0.75,
+          "sp_precision": 0.782608695652174,
+          "sp_recall": 0.72,
+          "metric": 0.8018053216045916,
+          "support": {
+            "natural": 46,
+            "screenshot": 129,
+            "screen_photo": 25
+          }
+        }
+      ]
+    },
+    {
+      "repeat": 2,
+      "sample_size": 200,
+      "candidates": [
+        {
+          "id": "pg260727_cnv2_atto",
+          "checkpoint": "E:\\github\\opencv-screen-detector\\experiment\\cnn_fft_dwt_ablation\\exp\\pg260727_cnv2_atto\\best.pth",
+          "accuracy": 0.9,
+          "macro_f1": 0.8809693270125766,
+          "sp_f1": 0.8135593220338984,
+          "sp_precision": 0.8,
+          "sp_recall": 0.8275862068965517,
+          "metric": 0.8529735264194646,
+          "support": {
+            "natural": 61,
+            "screenshot": 110,
+            "screen_photo": 29
+          }
+        },
+        {
+          "id": "pg260727_mobileone",
+          "checkpoint": "E:\\github\\opencv-screen-detector\\experiment\\cnn_fft_dwt_ablation\\exp\\pg260727_mobileone\\best.pth",
+          "accuracy": 0.87,
+          "macro_f1": 0.8457609320791822,
+          "sp_f1": 0.7466666666666667,
+          "sp_precision": 0.6086956521739131,
+          "sp_recall": 0.9655172413793104,
+          "metric": 0.8034855197491699,
+          "support": {
+            "natural": 61,
+            "screenshot": 110,
+            "screen_photo": 29
+          }
+        },
+        {
+          "id": "pg260727_effv2b0",
+          "checkpoint": "E:\\github\\opencv-screen-detector\\experiment\\cnn_fft_dwt_ablation\\exp\\pg260727_effv2b0\\best.pth",
+          "accuracy": 0.885,
+          "macro_f1": 0.8766354937448072,
+          "sp_f1": 0.8852459016393442,
+          "sp_precision": 0.84375,
+          "sp_recall": 0.9310344827586207,
+          "metric": 0.8834500495686336,
+          "support": {
+            "natural": 61,
+            "screenshot": 110,
+            "screen_photo": 29
+          }
+        }
+      ]
+    },
+    {
+      "repeat": 3,
+      "sample_size": 200,
+      "candidates": [
+        {
+          "id": "pg260727_cnv2_atto",
+          "checkpoint": "E:\\github\\opencv-screen-detector\\experiment\\cnn_fft_dwt_ablation\\exp\\pg260727_cnv2_atto\\best.pth",
+          "accuracy": 0.94,
+          "macro_f1": 0.9211289092295957,
+          "sp_f1": 0.8421052631578947,
+          "sp_precision": 0.8275862068965517,
+          "sp_recall": 0.8571428571428571,
+          "metric": 0.8872784134248666,
+          "support": {
+            "natural": 59,
+            "screenshot": 113,
+            "screen_photo": 28
+          }
+        },
+        {
+          "id": "pg260727_mobileone",
+          "checkpoint": "E:\\github\\opencv-screen-detector\\experiment\\cnn_fft_dwt_ablation\\exp\\pg260727_mobileone\\best.pth",
+          "accuracy": 0.89,
+          "macro_f1": 0.8611217528648721,
+          "sp_f1": 0.7428571428571429,
+          "sp_precision": 0.6190476190476191,
+          "sp_recall": 0.9285714285714286,
+          "metric": 0.8106529220015459,
+          "support": {
+            "natural": 59,
+            "screenshot": 113,
+            "screen_photo": 28
+          }
+        },
+        {
+          "id": "pg260727_effv2b0",
+          "checkpoint": "E:\\github\\opencv-screen-detector\\experiment\\cnn_fft_dwt_ablation\\exp\\pg260727_effv2b0\\best.pth",
+          "accuracy": 0.9,
+          "macro_f1": 0.8897832817337461,
+          "sp_f1": 0.8771929824561403,
+          "sp_precision": 0.8620689655172413,
+          "sp_recall": 0.8928571428571429,
+          "metric": 0.8865531475748194,
+          "support": {
+            "natural": 59,
+            "screenshot": 113,
+            "screen_photo": 28
+          }
+        }
+      ]
+    },
+    {
+      "repeat": 4,
+      "sample_size": 200,
+      "candidates": [
+        {
+          "id": "pg260727_cnv2_atto",
+          "checkpoint": "E:\\github\\opencv-screen-detector\\experiment\\cnn_fft_dwt_ablation\\exp\\pg260727_cnv2_atto\\best.pth",
+          "accuracy": 0.895,
+          "macro_f1": 0.8762659603144477,
+          "sp_f1": 0.8135593220338984,
+          "sp_precision": 0.8888888888888888,
+          "sp_recall": 0.75,
+          "metric": 0.8505328530798387,
+          "support": {
+            "natural": 55,
+            "screenshot": 113,
+            "screen_photo": 32
+          }
+        },
+        {
+          "id": "pg260727_mobileone",
+          "checkpoint": "E:\\github\\opencv-screen-detector\\experiment\\cnn_fft_dwt_ablation\\exp\\pg260727_mobileone\\best.pth",
+          "accuracy": 0.865,
+          "macro_f1": 0.8418225918225919,
+          "sp_f1": 0.7297297297297297,
+          "sp_precision": 0.6428571428571429,
+          "sp_recall": 0.84375,
+          "metric": 0.7927293832293832,
+          "support": {
+            "natural": 55,
+            "screenshot": 113,
+            "screen_photo": 32
+          }
+        },
+        {
+          "id": "pg260727_effv2b0",
+          "checkpoint": "E:\\github\\opencv-screen-detector\\experiment\\cnn_fft_dwt_ablation\\exp\\pg260727_effv2b0\\best.pth",
+          "accuracy": 0.845,
+          "macro_f1": 0.80807957394975,
+          "sp_f1": 0.7169811320754716,
+          "sp_precision": 0.9047619047619048,
+          "sp_recall": 0.59375,
+          "metric": 0.7736064808276859,
+          "support": {
+            "natural": 55,
+            "screenshot": 113,
+            "screen_photo": 32
+          }
+        }
+      ]
+    },
+    {
+      "repeat": 5,
+      "sample_size": 200,
+      "candidates": [
+        {
+          "id": "pg260727_cnv2_atto",
+          "checkpoint": "E:\\github\\opencv-screen-detector\\experiment\\cnn_fft_dwt_ablation\\exp\\pg260727_cnv2_atto\\best.pth",
+          "accuracy": 0.895,
+          "macro_f1": 0.864537037037037,
+          "sp_f1": 0.7777777777777778,
+          "sp_precision": 0.8076923076923077,
+          "sp_recall": 0.75,
+          "metric": 0.8302962962962963,
+          "support": {
+            "natural": 51,
+            "screenshot": 121,
+            "screen_photo": 28
+          }
+        },
+        {
+          "id": "pg260727_mobileone",
+          "checkpoint": "E:\\github\\opencv-screen-detector\\experiment\\cnn_fft_dwt_ablation\\exp\\pg260727_mobileone\\best.pth",
+          "accuracy": 0.85,
+          "macro_f1": 0.8125781553278636,
+          "sp_f1": 0.6301369863013698,
+          "sp_precision": 0.5111111111111111,
+          "sp_recall": 0.8214285714285714,
+          "metric": 0.7325841242162577,
+          "support": {
+            "natural": 51,
+            "screenshot": 121,
+            "screen_photo": 28
+          }
+        },
+        {
+          "id": "pg260727_effv2b0",
+          "checkpoint": "E:\\github\\opencv-screen-detector\\experiment\\cnn_fft_dwt_ablation\\exp\\pg260727_effv2b0\\best.pth",
+          "accuracy": 0.84,
+          "macro_f1": 0.7994202824472515,
+          "sp_f1": 0.7142857142857143,
+          "sp_precision": 0.7142857142857143,
+          "sp_recall": 0.7142857142857143,
+          "metric": 0.7690269136323076,
+          "support": {
+            "natural": 51,
+            "screenshot": 121,
+            "screen_photo": 28
+          }
+        }
+      ]
+    }
+  ],
+  "best": {
+    "id": "pg260727_cnv2_atto",
+    "checkpoint": "E:\\github\\opencv-screen-detector\\experiment\\cnn_fft_dwt_ablation\\exp\\pg260727_cnv2_atto\\best.pth",
+    "leaderboard_metric": 0.8555803624879139,
+    "accuracy": {
+      "mean": 0.9099999999999999,
+      "std": 0.017606816861658988,
+      "min": 0.895,
+      "max": 0.94
+    },
+    "sp_f1": {
+      "mean": 0.8094003370006939,
+      "std": 0.02094067379763242,
+      "min": 0.7777777777777778,
+      "max": 0.8421052631578947
+    },
+    "macro_f1": {
+      "mean": 0.8866302120206051,
+      "std": 0.019135482390167997,
+      "min": 0.864537037037037,
+      "max": 0.9211289092295957
+    },
+    "metric": {
+      "mean": 0.855026210904468,
+      "std": 0.018314639377044712,
+      "min": 0.8302962962962963,
+      "max": 0.8872784134248666
+    }
+  }
+}

@@ -436,15 +436,27 @@ def unfreeze_stages(model: nn.Module, n_stages: int) -> None:
     bb = model.backbone
     for p in bb.parameters():
         p.requires_grad_(False)
-    if hasattr(bb, "blocks") and n_stages > 0:
-        blocks = list(bb.blocks.children())
-        for blk in blocks[-n_stages:]:
-            for p in blk.parameters():
-                p.requires_grad_(True)
+    if n_stages > 0:
+        stage_container = getattr(bb, "blocks", None) or getattr(bb, "stages", None)
+        if stage_container is not None:
+            stages = list(stage_container.children())
+            if not stages and isinstance(stage_container, (nn.ModuleList, nn.Sequential)):
+                stages = list(stage_container)
+            for stage in stages[-n_stages:]:
+                for p in stage.parameters():
+                    p.requires_grad_(True)
+        else:
+            children = list(bb.children())
+            for child in children[-n_stages:]:
+                for p in child.parameters():
+                    p.requires_grad_(True)
     for attr in ("conv_head", "bn2"):
         if hasattr(bb, attr):
             for p in getattr(bb, attr).parameters():
                 p.requires_grad_(True)
+    if hasattr(bb, "head"):
+        for p in bb.head.parameters():
+            p.requires_grad_(True)
 
 
 # --------------------------------------------------------------------------

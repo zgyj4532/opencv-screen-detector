@@ -112,9 +112,7 @@ class ScreenDetectorModel(nn.Module):
             for param in child.parameters():
                 param.requires_grad = True
 
-    def get_features(
-        self, rgb_input: torch.Tensor, fft_input: torch.Tensor
-    ) -> torch.Tensor:
+    def get_features(self, rgb_input: torch.Tensor, fft_input: torch.Tensor) -> torch.Tensor:
         """Extract fused features without classification."""
         spatial_feat = self.spatial_norm(self.backbone(rgb_input))
         freq_feat = self.freq_norm(self.freq_branch(fft_input))
@@ -343,19 +341,23 @@ def create_model(
 def load_model(
     checkpoint_path: str,
     device: str = "cpu",
-    use_dwt: bool = True,
+    use_dwt: bool | None = None,
 ) -> ScreenDetectorModel | ScreenDetectorModelWithDWT:
     """Load model from checkpoint.
 
     Args:
         checkpoint_path: Path to checkpoint file
         device: Device to load model to
-        use_dwt: Whether to load DWT variant (default: True)
+        use_dwt: Whether to load DWT variant. If None, read it from the checkpoint.
     """
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
 
+    if use_dwt is None:
+        use_dwt = checkpoint.get("use_dwt", True)
+
     # Determine if ArcFace was used
     use_arcface = checkpoint.get("use_arcface", False)
+    cfg = checkpoint.get("cfg", {})
 
     model = create_model(
         model_name=checkpoint.get("model_name", config.MODEL_NAME),
@@ -363,6 +365,8 @@ def load_model(
         pretrained=False,
         use_dwt=use_dwt,
         use_arcface=use_arcface,
+        use_fft_attention=cfg.get("use_attention", False),
+        attention_type=cfg.get("attention_type", "cbam"),
     )
 
     model.load_state_dict(checkpoint["model_state_dict"])

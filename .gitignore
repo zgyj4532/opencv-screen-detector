@@ -38,6 +38,9 @@ scripts/
 !project_status.json
 !experiment/cnn_fft_dwt_ablation/deploy_eval.json
 !experiment/cnn_fft_dwt_ablation/deploy_eval_previous.json
+!experiment/cnn_fft_dwt_ablation/deploy_eval_candidate_pg260727_cnv2_atto.json
+!experiment/cnn_fft_dwt_ablation/deploy_eval_existing_production.json
+!experiment/cnn_fft_dwt_ablation/random200_top3_eval.json
 
 # ppt (presentation files)
 ppt/
