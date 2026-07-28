@@ -4,6 +4,7 @@ Single-stage 3-class CNN+FFT+DWT model with TTA, OOD detection, and confidence t
 """
 
 import functools
+import time
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,7 @@ import onnxruntime as ort
 
 from .config import settings
 from .fft_service import FFTService
+from .log import logger
 from .model_loader import ModelLoader
 from .preprocess import normalize_rgb
 
@@ -126,7 +128,24 @@ class PredictTask:
         """Run single-stage 3-class inference with OOD detection."""
         if not self.models.model_available:
             raise RuntimeError("3-class model not loaded")
-        return self._run_single_stage_with_ood()
+        started = time.perf_counter()
+        result = self._run_single_stage_with_ood()
+        elapsed_ms = (time.perf_counter() - started) * 1000
+        logger.info(
+            "Prediction done file={} class={} confidence={:.4f} tier={} action={} duration_ms={:.1f}",
+            getattr(self, "image_path", "<memory>"),
+            result["class"],
+            result["confidence"],
+            result.get("confidence_tier", "?"),
+            result.get("action", "?"),
+            elapsed_ms,
+        )
+        logger.debug(
+            "Prediction probabilities file={} probabilities={}",
+            getattr(self, "image_path", "<memory>"),
+            result["probabilities"],
+        )
+        return result
 
     def _run_single_stage_with_ood(self) -> dict:
         """Single-stage inference with OOD detection.
@@ -186,6 +205,14 @@ class ScreenDetectorPredictor:
         model_path: Path | None = None,
     ) -> None:
         m = model_path or settings.model_path
+        logger.info(
+            "Initializing predictor model_path={} thresholds={{ood:{:.2f}, screen_photo:{:.2f}, high:{:.2f}, medium:{:.2f}}}",
+            m,
+            settings.ood_threshold,
+            settings.screen_photo_threshold,
+            settings.confidence_high,
+            settings.confidence_medium,
+        )
         self._models = ModelLoader(model_path=m)
         self._fft = FFTService()
 

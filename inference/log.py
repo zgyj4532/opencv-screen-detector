@@ -4,6 +4,7 @@ import functools
 import inspect
 import logging
 import logging.config
+import os
 import re
 import sys
 from collections.abc import Callable
@@ -11,6 +12,7 @@ from collections.abc import Callable
 import loguru
 
 logger: loguru.Logger = loguru.logger
+DEFAULT_LOG_LEVEL = os.getenv("SCREEN_DETECTOR_LOG_LEVEL", "INFO").upper()
 
 
 def escape_tag(s: str) -> str:
@@ -39,9 +41,7 @@ class LoguruHandler(logging.Handler):  # pragma: no cover
             frame = frame.f_back
             depth += 1
 
-        logger.opt(depth=depth, exception=record.exc_info).log(
-            level, record.getMessage()
-        )
+        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
 
 LOGGING_CONFIG = {
@@ -49,27 +49,29 @@ LOGGING_CONFIG = {
     "disable_existing_loggers": False,
     "handlers": {"default": {"class": f"{__name__}.LoguruHandler"}},
     "loggers": {
-        "uvicorn": {"handlers": ["default"], "level": "INFO", "propagate": False},
-        "uvicorn.error": {"handlers": ["default"], "level": "INFO", "propagate": False},
+        "uvicorn": {"handlers": ["default"], "level": "DEBUG", "propagate": False},
+        "uvicorn.error": {"handlers": ["default"], "level": "DEBUG", "propagate": False},
         "uvicorn.access": {
             "handlers": ["default"],
-            "level": "INFO",
+            "level": "DEBUG",
             "propagate": False,
         },
+        "uvicorn.asgi": {"handlers": ["default"], "level": "DEBUG", "propagate": False},
         "httpx": {"handlers": ["default"], "level": "INFO", "propagate": False},
     },
 }
 
 
-log_format = (
-    "<g>{time:HH:mm:ss}</g> [<lvl>{level}</lvl>] <c><u>{name}</u></c> | {message}"
-)
+log_format = "<g>{time:YYYY-MM-DD HH:mm:ss.SSS}</g> [<lvl>{level}</lvl>] <c><u>{name}</u></c> | {message}"
 logger.remove()
 
 
 @functools.cache
 def get_log_level() -> int:
-    return logger.level("INFO").no
+    try:
+        return logger.level(DEFAULT_LOG_LEVEL).no
+    except ValueError:
+        return logger.level("INFO").no
 
 
 def log_level_filter() -> Callable[[loguru.Record], bool]:

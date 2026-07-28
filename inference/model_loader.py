@@ -8,6 +8,8 @@ from pathlib import Path
 
 import onnxruntime as ort
 
+from .log import logger
+
 
 def _create_session(model_path: Path) -> ort.InferenceSession:
     """Load an ONNX model into an InferenceSession."""
@@ -20,7 +22,21 @@ def _create_session(model_path: Path) -> ort.InferenceSession:
     if "CUDAExecutionProvider" in available_providers:
         providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
 
-    return ort.InferenceSession(model_path, sess_options, providers=providers)
+    logger.info(
+        "Loading ONNX model path={} size_mb={:.2f} available_providers={} selected_providers={}",
+        model_path,
+        model_path.stat().st_size / 1e6,
+        available_providers,
+        providers,
+    )
+    session = ort.InferenceSession(model_path, sess_options, providers=providers)
+    logger.info(
+        "ONNX session ready path={} inputs={} outputs={}",
+        model_path,
+        [i.name for i in session.get_inputs()],
+        [o.name for o in session.get_outputs()],
+    )
+    return session
 
 
 class ModelSession:
@@ -48,6 +64,7 @@ class ModelSession:
             try:
                 self._session = _create_session(self._path)
             except Exception:
+                logger.exception("Failed to load ONNX session name={} path={}", self._name, self._path)
                 return None
             return self._session
 
@@ -101,6 +118,7 @@ class ModelSession:
 
             with self._session_lock:
                 if self._session is not None:
+                    logger.info("Unloading idle ONNX session name={} path={}", self._name, self._path)
                     self._session = None
 
 
