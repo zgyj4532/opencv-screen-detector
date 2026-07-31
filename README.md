@@ -183,12 +183,16 @@ flowchart TD
 | `hard_negative/` | Derived from subdirectory | Confirmed boundary cases keep their true class; train only, never in val/test |
 | `screen_photo/` | `screen_photo` | Camera photographs of displays |
 
-**Current deployment training data** (updated 2026-07-22):
-- Total samples: **2,928 images** (deduplicated; includes hard_negative)
-- Split: seed=42 strict stratified, **train 2,194 / val 366 / test 368** (**no sample-level leakage**)
-- Dataset fingerprint: `6367b7638c3871a81e05e4ca41f2bf87ed12d711ff1ac0ad9c96a3495a6acc2a`
-- The previous baseline leaked `hard_negative` samples across train/val with 3× weights as `screenshot`; the new pipeline removes that leakage.
-- Confirmed local regressions in `trainer/hard_examples.txt` stay in train, receive explicit sampler weight, and act as a release-checkpoint gate.
+**Audited current data view** (updated 2026-07-31):
+
+- Raw paths: **3,008**; unique SHA-256 content identities: **2,876**; byte-duplicate paths removed: **132**.
+- The audit found 18 conflicting-label groups. All are resolved by 19 reviewed decisions in `trainer/content_label_overrides.json`; unresolved conflicts are rejected.
+- Frozen split seed 42: **train 2,150 / val 361 / test 365**. Cross-role content overlap and hard-negative content in val/test are both zero.
+- Current dataset fingerprint: `9e1946e53ad4851ab9d96649d2904517f15a9cb8819490b6a0c8a397156185e1`.
+- Evaluation fingerprint: `da74a983a7af3b5c1f73d1c80ccd5a7ed84a290e6f72dfb615a5eb6f73390eff`.
+- Any content identity represented under `hard_negative/` stays train-only, including its byte-identical copies elsewhere. New content is added to train without reshuffling frozen val/test identities.
+
+Run `uv run python -m trainer audit` before training. The full machine-readable report is `trainer/data_audit.json`; the portable frozen manifest is `experiment/cnn_fft_dwt_ablation/split.json`. The production model used the immediately preceding fingerprint `6a29c895…` with train/val/test 2,136/361/365. Fourteen unique contents added afterward were assigned only to train; the evaluation fingerprint and frozen val/test identities did not change.
 
 Dataset composition changes over time; report the exact split with every new model.
 
@@ -231,6 +235,7 @@ print(result["class"], result["confidence"])
 
 ```bash
 uv sync --group train
+uv run python -m trainer audit
 uv run python -m trainer train
 uv run python -m trainer export
 ```
@@ -256,7 +261,10 @@ flowchart LR
 ```
 
 ```bash
-# Reproducible release training (clean split, versioned cache, hard-example gate)
+# Audit content labels and materialize/verify the frozen evaluation manifest
+uv run python -m trainer audit
+
+# Reproducible release training (frozen split, deterministic seed, hard-example gate)
 uv run python -m trainer train
 uv run python -m trainer export
 
@@ -270,7 +278,7 @@ Training outputs belong in `trainer/checkpoints/` and `trainer/logs/`.
 
 ### Current release configuration
 
-The 2026-07-22 release uses the same loss, EMA, backbone, augmentation, and FFT+DWT choices from the ablation sweep, but uses a newer controlled candidate setting that beat the README's previous deployable release on the current split:
+The 2026-07-31 release uses the same loss, EMA, backbone, augmentation, and FFT+DWT choices from the ablation sweep, with content-clean frozen data and deterministic multi-seed candidate selection:
 
 | Setting | Value | Note |
 | --- | --- | --- |
@@ -280,10 +288,12 @@ The 2026-07-22 release uses the same loss, EMA, backbone, augmentation, and FFT+
 | EMA | decay=0.999 | disabling costs 2.4pp sp_f1 |
 | Unfrozen stages | 3 | current release candidate; earlier 15-config screen favored 1 stage |
 | Hard-example sampler weight | 2.0 | selected from 1×/2×/4× candidates on 2026-07-22 |
-| Epochs | 6 + 12 | faster current release run; selected checkpoint is finetune epoch 11 |
+| Epochs | 6 + 12 | selected checkpoint is finetune epoch 12 for training seed 2024 |
 | Backbone | efficientnet_b0 | B1 gives no measurable gain on a 6GB GPU |
 | Augmentation | moderate | strong aug costs ~5pp acc |
 | FFT + DWT | both enabled | removing DWT costs 5pp sp_f1 |
+
+CUDA release training requires deterministic algorithms. The mathematically equivalent fixed/global mean pooling used for the 224×224 release input avoids CUDA's non-deterministic adaptive-pooling backward kernel; unsupported deterministic operations fail loudly.
 
 ### `experiment/cnn_fft_dwt_ablation/` ablation workflow
 
@@ -291,22 +301,31 @@ The 2026-07-22 release uses the same loss, EMA, backbone, augmentation, and FFT+
 # 1) Launch the 15-config matrix (sequential, ~4h, writes to leaderboard.jsonl)
 PYTHONUNBUFFERED=1 nohup uv run python -u experiment/cnn_fft_dwt_ablation/harness.py screen > experiment/cnn_fft_dwt_ablation/logs/screen.log 2>&1 &
 
-# 2) View leaderboard (sorted by test_metric)
+# 2) Inspect archived leaderboard data (test metrics are reporting-only)
 uv run python experiment/cnn_fft_dwt_ablation/show.py
 
-# 3) Train the winner with multiple seeds for stability
-uv run python experiment/cnn_fft_dwt_ablation/finalist.py --seeds 42 2024 7
+# 3) Train controlled candidates with one frozen split and distinct training seeds.
+# Keep all outputs as candidates; compare validation/gate stability, not test rank.
+uv run python experiment/cnn_fft_dwt_ablation/run_candidate.py --validation-only --id clean_s42 --split-seed 42 --seed 42 --unfreeze 3 --focus-weight 2 --epochs-head 6 --epochs-finetune 12
+uv run python experiment/cnn_fft_dwt_ablation/run_candidate.py --validation-only --id clean_s2024 --split-seed 42 --seed 2024 --unfreeze 3 --focus-weight 2 --epochs-head 6 --epochs-finetune 12
+uv run python experiment/cnn_fft_dwt_ablation/run_candidate.py --validation-only --id clean_s7 --split-seed 42 --seed 7 --unfreeze 3 --focus-weight 2 --epochs-head 6 --epochs-finetune 12
 
-# 4) Export ONNX and verify PyTorch <-> ONNX numerical parity
+# 4) Select by hard-example gate + validation metric, then open test once for that ID.
+uv run python experiment/cnn_fft_dwt_ablation/run_candidate.py --evaluate-only --id clean_v4_s2024_final_20260730 --split-seed 42
+
+# 5) Export ONNX and verify PyTorch <-> ONNX numerical parity
 uv run python experiment/cnn_fft_dwt_ablation/finalize_export.py trainer/checkpoints/three_class_best.pth inference/models/three_class.onnx
 
-# 5) End-to-end deployment verification on the current 368-image test set
+# 6) End-to-end deployment verification on the frozen 365-image clean test set
 uv run python experiment/cnn_fft_dwt_ablation/deploy_eval.py
 ```
 
+Long deterministic runs can pause on an epoch boundary with `--max-total-epochs 12` and continue with the same ID plus `--resume`. The resume checkpoint atomically preserves the raw model, EMA, optimizer, scheduler, AMP scaler, sampler, augmentation, and Python/NumPy/Torch/CUDA RNG states. A 1+1 epoch resumed/control regression produced identical histories and model tensors.
+
 `experiment/cnn_fft_dwt_ablation/` contains:
 - `harness.py` — training loop, model, FFT/DWT cache, RAM preload, `ExpConfig` dataclass
-- `finalist.py` — multi-seed training with auto-selection
+- `run_candidate.py` — isolated candidate training with separate split/training seeds
+- `finalist.py` — historical test-ranked finalist workflow; do not use for new model selection
 - `finalize_export.py` — ONNX export with numerical parity check
 - `deploy_eval.py` — end-to-end ONNX performance benchmark
 - `show.py` — leaderboard viewer
@@ -397,43 +416,59 @@ opencv-screen-detector/
 
 ## Experimental Results
 
-### Current deployment (2026-07-22, `candidate_20260722_unf3_focus2_6x12`)
+> Status: `clean_v4_s2024_final_20260730` is the deployed clean-benchmark release. Candidate selection used only the mandatory screenshot gate and validation metrics; its 365-image test split was opened once after selection.
 
-The current 6+12 epoch release run selected `finetune-11`, passed both confirmed hard examples, and exported a 22.2 MB ONNX model (`96aedc9f…`). Its PyTorch argmax result is accuracy 0.9429 / screen_photo F1 0.9076 / macro F1 0.9361 / metric 0.9239.
+### Current deployment (2026-07-31, `clean_v4_s2024_final_20260730`)
 
-Relevant deployable artifacts were evaluated through the same ONNX Runtime path, on the same current 368-image test list, with identical TTA, OOD, and threshold settings:
+All three deterministic candidates passed the 2/2 gate. Seed 2024 won on validation and was the only candidate evaluated on the frozen test set:
 
-| Production ONNX candidate | Accuracy | screen_photo F1 | Macro F1 | Metric | Required screenshot gate | Release eligible |
-| --- | ---: | ---: | ---: | ---: | ---: | --- |
-| Previous production (`4b419976…`) | **0.9402** | **0.8870** | **0.9376** | **0.9131** | 0/2 | No |
-| Previous README release (`cbba84bd…`) | 0.9158 | 0.8598 | 0.9145 | 0.8875 | 2/2 | Yes |
-| Current release (`96aedc9f…`) | 0.9158 | **0.9043** | 0.9262 | 0.9121 | **2/2** | **Yes** |
+| Training seed | Validation accuracy | Validation screen_photo F1 | Validation Macro F1 | Validation metric | Gate |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 42 | 0.9030 | 0.8400 | 0.8890 | 0.8687 | 2/2 |
+| **2024** | **0.9529** | **0.9358** | **0.9495** | **0.9437** | **2/2** |
+| 7 | 0.9169 | 0.8600 | 0.9046 | 0.8860 | 2/2 |
 
-The current release improves over the README's previous deployable release by +4.45 pp screen-photo F1, +1.16 pp macro F1, and +2.46 pp metric, with accuracy tied. The older `4b419976…` artifact is still slightly higher on raw aggregate metric, but it fails both mandatory screenshot regressions and is not release-eligible. The production view treats `unknown` as an incorrect classification, matching the real API.
+The promoted checkpoint is `finetune-12`, trained on dataset fingerprint `6a29c895…`. `three_class_best.pth` and `three_class_final.pth` have SHA-256 `0885f437…`; the 22.18 MB LFS-tracked ONNX has SHA-256 `5c3130b0…` and passed PyTorch/ONNX numerical parity.
 
-The older README-only baseline (accuracy 0.8946 / screen_photo F1 0.7630 / macro F1 0.8668) is retained as historical context, not as the controlled artifact comparison above. Its training split and `hard_negative` handling differ from the current release, and the previous artifact also has a different training provenance from the current fixed split.
+| Evaluation path | Accuracy | SP precision | SP recall | SP F1 | Macro F1 | Metric |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Validation winner (argmax) | 0.9529 | 0.9623 | 0.9107 | 0.9358 | 0.9495 | 0.9437 |
+| Frozen test, PyTorch (argmax) | **0.9397** | **0.9608** | **0.8596** | **0.9074** | **0.9325** | **0.9221** |
+| Production ONNX (TTA + OOD + threshold) | 0.9178 | 0.9592 | 0.8246 | 0.8868 | 0.9211 | 0.9030 |
+
+The production row counts all 11 `unknown` results as errors, matching the API. The test-only screen-photo threshold search is diagnostic and is not reported as a release score because tuning on test would be optimistic.
 
 **Confirmed screenshot regressions** (production ONNX with TTA):
 
-| Image | Before | After | screenshot probability | screen_photo probability |
-| --- | --- | --- | ---: | ---: |
-| `4a6e…ae8f9.png` | `screen_photo` | **`screenshot`** | 0.5552 | 0.3260 |
-| `5cdc3…12a62.png` | `natural` | **`screenshot`** | 0.4679 | 0.3175 |
+| Image | Result | screenshot probability | screen_photo probability |
+| --- | --- | ---: | ---: |
+| `4a6e…ae8f9.png` | **`screenshot`** | 0.4551 | 0.3225 |
+| `5cdc3…12a62.png` | **`screenshot`** | 0.4825 | 0.1781 |
 
-**Confidence distribution**: 49 accept (high ≥0.92), 139 review (medium 0.75–0.92), 168 low-confidence ignore, and 12 OOD ignore. The latest single-run CPU TTA diagnostic was mean 351 ms / p50 334 ms / p95 454 ms. Serial latency runs are sensitive to warm-up and machine load, so latency was not used to select between same-architecture artifacts.
+**Production distribution**: 103 accept, 134 review, 117 low-confidence, and 11 OOD; actions are 103 accept / 134 review / 128 ignore. The clean-test CPU TTA run measured mean 172 ms / p50 162 ms / p95 223 ms. Serial latency is environment-sensitive and was not used for candidate selection.
 
-### Archived 3-seed finalist training
+### Historical deployment context
 
-To verify stability, the winning config was trained with 3 seeds (42 / 2024 / 7):
+The previous production artifacts were measured on a different 368-image list and are retained only as historical context:
+
+| Historical production ONNX | Accuracy | screen_photo F1 | Macro F1 | Metric | Required screenshot gate |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Previous production (`4b419976…`) | 0.9402 | 0.8870 | 0.9376 | 0.9131 | 0/2 |
+| Previous README release (`cbba84bd…`) | 0.9158 | 0.8598 | 0.9145 | 0.8875 | 2/2 |
+| 2026-07-22 release (`96aedc9f…`) | 0.9158 | 0.9043 | 0.9262 | 0.9121 | 2/2 |
+
+The historical values are not controlled comparisons with the current clean release because the split, training provenance, and hard-negative handling differ.
+
+### Archived pre-clean 3-seed finalist training
 
 | Seed | test_acc | test_sp_f1 | test_macro_f1 | metric |
 | --- | ---: | ---: | ---: | ---: |
-| **42 (previous finalist)** | **0.9322** | **0.8548** | **0.9174** | **0.8952** |
+| 42 | 0.9322 | 0.8548 | 0.9174 | 0.8952 |
 | 2024 | 0.9133 | 0.8276 | 0.8963 | 0.8670 |
 | 7 | 0.9079 | 0.7788 | 0.8817 | 0.8381 |
 | **AVG** | **0.9178** | **0.8204** | **0.8985** | **0.8668** |
 
-These archived runs used the earlier 369-image split and did not include the two-example release gate. Their mean (acc 0.9178, sp_f1 0.8204, macro_f1 0.8985) remains historical context; current deployment metrics are the 2026-07-22 results above.
+These archived runs used the earlier 369-image split and lacked the current content audit and release protocol.
 
 ### Ablation matrix (15 configs, screening stage H=6+F=12)
 
@@ -478,13 +513,13 @@ The repository does contain a 22.2 MB `three_class.onnx` deployable artifact. It
 
 ## Performance Comparison
 
-The current production path reaches **acc 0.9158 / sp_f1 0.9043 / macro_f1 0.9262** on its leakage-free held-out split. Relative to the historical README-only baseline, that is +2.1 pp accuracy, +14.1 pp screen-photo F1, and +5.9 pp macro F1, but the split difference makes that comparison contextual rather than controlled.
+The clean release's one-time PyTorch test result is **acc 0.9397 / sp_f1 0.9074 / macro_f1 0.9325 / metric 0.9221**. The real production ONNX path, which adds TTA, OOD handling, and screen-photo thresholding, records **acc 0.9178 / sp_f1 0.8868 / macro_f1 0.9211 / metric 0.9030** and passes the 2/2 screenshot gate.
 
-On the same current 368-image list and deployment pipeline, the current release beats the README's previous deployable release (metric 0.9121 vs. 0.8875) while preserving the 2/2 screenshot gate. The older production artifact remains slightly higher on aggregate metric (0.9131) but fails the mandatory screenshot gate 0/2, so it is not a valid release candidate.
+The 2026-07-22 PyTorch argmax result (0.9429 / 0.9076 / 0.9361 / 0.9239) is numerically close, but it was measured on a different split. The small deltas are not evidence that one model generalizes better; the clean release is preferred because its data identities, labels, frozen evaluation split, candidate selection, and one-time test opening are auditable.
 
 For research models, the CNN baseline had the highest overall accuracy and screen-photo F1 (87.67%), while DWT+FFT+DeiT had the highest recorded screen-photo recall (91.67%). One trial per model and aggressive early stopping mean those observations are directional, not production benchmarks.
 
-For a deployment comparison, benchmark exported models on the target hardware with the same warm-up, image set, batch size, and ONNX Runtime provider. Record p50/p95 latency, throughput, peak memory, artifact size, class-wise metrics, and mandatory regression gates. `experiment/cnn_fft_dwt_ablation/deploy_eval.py` accepts `--model`, `--output`, and `--label`; the latest current-model CPU diagnostic was mean 351 ms / p50 334 ms / p95 454 ms, including TTA.
+For a deployment comparison, benchmark exported models on the target hardware with the same warm-up, image set, batch size, and ONNX Runtime provider. Record p50/p95 latency, throughput, peak memory, artifact size, class-wise metrics, and mandatory regression gates. `experiment/cnn_fft_dwt_ablation/deploy_eval.py` accepts `--model`, `--output`, and `--label`; the clean release result is stored in `deploy_eval_clean_v4_s2024_final_20260731.json` and measured mean 172 ms / p50 162 ms / p95 223 ms on the recorded CPU run.
 
 ## Model Evolution
 
@@ -527,12 +562,12 @@ Runtime settings are defined in `inference/config.py`; release-training defaults
 | `confidence_medium` | 0.75 | `review` threshold |
 | `screen_photo_threshold` | 0.60 | screen_photo probability at or above this forces that class |
 | `BATCH_SIZE` | 16 | Standard training batch size |
-| `EPOCHS_HEAD` / `EPOCHS_FINETUNE` | 10 / 20 | Two training stages |
+| `EPOCHS_HEAD` / `EPOCHS_FINETUNE` | 6 / 12 | Release-training stages |
 | `FOCAL_LOSS_GAMMA` | 2.0 | Focal Loss focusing parameter (adjusted from 3.0 after ablation) |
 | `LABEL_SMOOTHING` | 0.05 | Label smoothing (ablation showed 0.05 > 0 / 0.10) |
 | `EMA_DECAY` | 0.999 | Weight EMA decay |
-| `UNFREEZE_STAGES` | 1 | Number of MBConv stages unfrozen in stage B |
-| `HARD_EXAMPLE_WEIGHT` | 4.0 | Sampler multiplier for paths in `trainer/hard_examples.txt` |
+| `UNFREEZE_STAGES` | 3 | Number of MBConv stages unfrozen in release stage B |
+| `HARD_EXAMPLE_WEIGHT` | 2.0 | Release sampler multiplier for paths in `trainer/hard_examples.txt` |
 
 Keep preprocessing, model inputs, and thresholds aligned when substituting a model. The current service expects the three-input ONNX graph described in [Inference](#inference).
 

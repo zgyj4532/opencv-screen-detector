@@ -19,7 +19,10 @@ CNN + FFT + DWT Branch 三分类训练系统。
 ```bash
 uv sync --group train
 
-# 训练三分类发布模型（消融胜出配置，自动缓存/分层切分/备份 checkpoint）
+# 审计内容级重复/标签冲突并生成或验证冻结评测清单
+uv run python -m trainer audit
+
+# 训练三分类发布模型（消融胜出配置，自动缓存/冻结切分/备份 checkpoint）
 uv run python -m trainer train
 
 # 仅用于复现历史结果的旧训练器
@@ -31,10 +34,12 @@ uv run python -m trainer export
 # 消融实验工作流（推荐先跑一遍）
 uv run python experiment/cnn_fft_dwt_ablation/harness.py screen   # 跑 15 配置矩阵（~4 小时）
 uv run python experiment/cnn_fft_dwt_ablation/show.py              # 查看排行榜
-uv run python experiment/cnn_fft_dwt_ablation/finalist.py --seeds 42 2024 7  # 决赛多种子
+uv run python experiment/cnn_fft_dwt_ablation/run_candidate.py --validation-only --id clean_s42 --split-seed 42 --seed 42 --unfreeze 3 --focus-weight 2 --epochs-head 6 --epochs-finetune 12
 uv run python experiment/cnn_fft_dwt_ablation/finalize_export.py trainer/checkpoints/three_class_best.pth inference/models/three_class.onnx
 uv run python experiment/cnn_fft_dwt_ablation/deploy_eval.py       # 端到端部署验证
 ```
+
+若单次执行时长受限，可加 `--max-total-epochs 12` 在完整 epoch 后安全暂停，再以完全相同参数和 ID 加 `--resume` 继续。`last.pth` 原子保存模型、EMA、优化器、调度器、AMP scaler、采样器、增强以及所有 RNG 状态；续训/不中断 1+1 epoch 控制实验的 history 与模型张量完全一致。
 
 ## 目录结构
 
@@ -42,6 +47,9 @@ uv run python experiment/cnn_fft_dwt_ablation/deploy_eval.py       # 端到端�
 trainer/
 ├── config.py           # 历史训练器与共享路径配置
 ├── release_train.py    # 当前发布训练入口
+├── data_audit.py       # 内容身份、标签决定与冻结切分审计入口
+├── data_audit.json     # 最近一次机器可读数据审计报告
+├── content_label_overrides.json # 按 SHA-256 记录的人工复核标签决定
 ├── hard_examples.txt   # 已确认误判样本（固定进 train + 加权）
 ├── model.py            # 融合模型 (EfficientNet + FFT + DWT Branch)
 ├── fft_branch.py       # Frequency Branch (ResBlock)
@@ -74,14 +82,21 @@ hard_negative/  →  按子目录名称恢复真实标签（仅 train，不入 v
 
 例如 `screenshot_to_screen_photo/` 的真实标签仍是 `screenshot`，
 `screen_photo_to_screenshot/` 的真实标签仍是 `screen_photo`；UI、IDE、海报等通用难例映射为 `screenshot`。
-发布管线按规范化路径去重，不会再把同一 hard-negative 同时加载成两个冲突标签。
+发布管线按文件内容 SHA-256 去重，而不是只按路径去重。字节相同但标签不同的内容必须在
+`trainer/content_label_overrides.json` 中有明确复核决定，否则审计与训练都会失败。只要某个内容身份曾出现在
+`hard_negative/`，它及其他目录中的字节级副本都只进入 train。
 
 `trainer/hard_examples.txt` 记录已经人工确认的线上/本地误判。清单中的图片必须存在于主数据集，发布切分会确保它们只进入 train，当前发布默认使用 2× sampler 权重；最佳 checkpoint 先要求这些回归样本全部正确，再按验证集指标选优。
 
-**当前数据集统计** (2026-07-22):
-- 总样本: **2,928 张** (去重后)
-- 切分: seed=42 严格 stratified **0.70 / 0.15 / 0.15 = train 2,194 / val 366 / test 368**（**无样本级泄漏**）
-- 数据集指纹: `6367b7638c3871a81e05e4ca41f2bf87ed12d711ff1ac0ad9c96a3495a6acc2a`
+**已审计当前数据视图**（2026-07-31）：
+
+- 原始路径 3,008 个；唯一内容 2,876 个；按内容去除重复路径 132 个。
+- 18 组原始标签冲突均已解决；19 条复核决定，无未使用决定。
+- 冻结切分 seed=42：train 2,150 / val 361 / test 365；跨集合内容重合为 0，评测集 hard-negative 内容为 0。
+- 当前数据集指纹：`9e1946e53ad4851ab9d96649d2904517f15a9cb8819490b6a0c8a397156185e1`。
+- 评测集指纹：`da74a983a7af3b5c1f73d1c80ccd5a7ed84a290e6f72dfb615a5eb6f73390eff`。
+
+`--split-seed` 只控制首次生成的冻结评测身份；`--seed` 控制模型初始化、采样器和增强。冻结后新增内容只进入 train，val/test 内容缺失或改标会直接失败。训练前执行 `uv run python -m trainer audit`。
 
 ## 模型架构
 
@@ -183,8 +198,11 @@ BEST_METRIC_MACRO_F1_WEIGHT = 0.2
 - `three_class_confusion_matrix.png` - 旧训练器生成的混淆矩阵（如运行 `train_legacy`）
 - `three_class_training_history.png` - 旧训练器生成的训练曲线（如运行 `train_legacy`）
 
-**可复现缓存** (`experiment/cnn_fft_dwt_ablation/`，不纳入 Git):
-- `split.json` - 含数据/难例指纹的固定分层切分；数据变化时自动重建
+**可复现清单与缓存**：
+
+- `experiment/cnn_fft_dwt_ablation/split.json` - 纳入 Git 的相对路径冻结切分；新增内容不重排 val/test
+- `trainer/content_label_overrides.json` - 纳入 Git 的内容级标签决定
+- `trainer/data_audit.json` - 纳入 Git 的数据审计快照
 - `cache/*.npz` - 以路径、大小和 mtime 版本化的 FFT/DWT 特征
 - `exp/<release-id>/history.json` - 每个 epoch 的指标与 hard-example 通过数
 
@@ -192,48 +210,44 @@ BEST_METRIC_MACRO_F1_WEIGHT = 0.2
 - `three_class.onnx` - ONNX 模型 (推荐, 22.2 MB)
 - `three_class.torchscript` - TorchScript 临时导出（不作为仓库发布工件）
 
-## 最新训练结果（2026-07-22 部署）
+## 最新训练结果（2026-07-31 部署）
 
-**发布 ID**: `candidate_20260722_unf3_focus2_6x12`，选择 `finetune-11`，hard-example 门槛 **2/2**
+**发布 ID**：`clean_v4_s2024_final_20260730`，选择 `finetune-12`，hard-example 门槛 **2/2**。
 
-**训练数据**: 2,928 张，seed=42 严格 stratified 切分，train/val/test = 2,194/366/368
+**发布训练快照**：数据指纹 `6a29c895…`，原始路径 2,993 个、唯一内容 2,862 个；内容清洗冻结切分 seed=42，train/val/test = 2,136/361/365，跨集合内容重合为 0。训练后新增的 14 个唯一内容只进入当前 train，冻结 val/test 未变化。
 
-**训练时长**: 848 秒（不含首次缓存和 RAM 预载；RTX 3060 Laptop 6GB）
+### Validation 多种子选择
+
+| 训练 seed | Accuracy | screen_photo F1 | Macro F1 | Metric | 门槛 |
+|---:|---:|---:|---:|---:|---:|
+| 42 | 0.9030 | 0.8400 | 0.8890 | 0.8687 | 2/2 |
+| **2024** | **0.9529** | **0.9358** | **0.9495** | **0.9437** | **2/2** |
+| 7 | 0.9169 | 0.8600 | 0.9046 | 0.8860 | 2/2 |
+
+候选选择只看 hard-example 门槛和 validation；只有 seed=2024 胜出后一次性打开冻结 test。
 
 | 评估路径 | Accuracy | screen_photo Precision | screen_photo Recall | screen_photo F1 | Macro F1 | Metric |
 |---|---:|---:|---:|---:|---:|---:|
-| Validation checkpoint（argmax） | 0.9235 | 0.8448 | 0.8448 | 0.8448 | 0.9076 | 0.8810 |
-| PyTorch checkpoint（argmax） | **0.9429** | 0.9000 | **0.9153** | **0.9076** | **0.9361** | **0.9239** |
-| 生产 ONNX（TTA + OOD + 阈值） | 0.9158 | **0.9286** | 0.8814 | 0.9043 | 0.9262 | 0.9121 |
+| Validation 胜出指标（argmax） | 0.9529 | 0.9623 | 0.9107 | 0.9358 | 0.9495 | 0.9437 |
+| 冻结 test，PyTorch（argmax） | **0.9397** | **0.9608** | **0.8596** | **0.9074** | **0.9325** | **0.9221** |
+| 生产 ONNX（TTA + OOD + 阈值） | 0.9178 | 0.9592 | 0.8246 | 0.8868 | 0.9211 | 0.9030 |
 
-生产 ONNX 的 `unknown` 直接按错误计数，与 API 行为一致；最近一次 CPU TTA 单跑诊断为 mean 351 ms / p50 334 ms / p95 454 ms。
+生产 ONNX 的 11 个 `unknown` 直接按错误计数，与 API 行为一致。置信度分布为 103 high、134 medium、117 low、11 OOD；CPU TTA 单跑为 mean 172 ms / p50 162 ms / p95 223 ms。
 
-**两张目标 screenshot 的 ONNX+TTA 回归**:
+**生产工件**：
 
-| 图片 | 训练前 | 训练后 | screenshot 概率 |
-|---|---|---|---:|
-| `4a6e…ae8f9.png` | `screen_photo` | **`screenshot`** | 0.5552 |
-| `5cdc3…12a62.png` | `natural` | **`screenshot`** | 0.4679 |
+- `three_class_best.pth` / `three_class_final.pth`：SHA-256 `0885f437…`
+- `three_class.onnx`：22.18 MB，SHA-256 `5c3130b0…`，已通过 PyTorch/ONNX parity
+- 端到端结果：`experiment/cnn_fft_dwt_ablation/deploy_eval_clean_v4_s2024_final_20260731.json`
 
-**与上一生产 ONNX 的受控部署路径对照**（同一当前 368 张清单、同一 TTA/OOD/阈值）：
+**两张目标 screenshot 的 ONNX+TTA 回归**：
 
-| 候选 | Accuracy | screen_photo F1 | Macro F1 | Metric | hard-example 门槛 | 发布资格 |
-|---|---:|---:|---:|---:|---:|---|
-| 上一生产模型（`4b419976…`） | **0.9402** | **0.8870** | **0.9376** | **0.9131** | 0/2 | 无 |
-| README 上一版发布（`cbba84bd…`） | 0.9158 | 0.8598 | 0.9145 | 0.8875 | 2/2 | 有 |
-| 当前发布（`96aedc9f…`） | 0.9158 | **0.9043** | 0.9262 | 0.9121 | **2/2** | **有** |
+| 图片 | 结果 | screenshot 概率 | screen_photo 概率 |
+|---|---|---:|---:|
+| `4a6e…ae8f9.png` | **`screenshot`** | 0.4551 | 0.3225 |
+| `5cdc3…12a62.png` | **`screenshot`** | 0.4825 | 0.1781 |
 
-当前发布相对 README 上一版可发布模型提升 +4.45 pp screen_photo F1、+1.16 pp macro F1、+2.46 pp metric。更早的 `4b419976…` 工件普通 metric 仍略高，但不满足两张指定截图必须正确的发布条件。检查点/工件选择采用字典序门槛：先判断 hard examples 是否全部通过，再在合格候选中比较 metric。
-
-**相对 README 历史值**（acc 0.8946, macro_f1 0.8668, sp_f1 0.7630）：
-
-- accuracy **+2.1pp**
-- macro_f1 **+5.9pp**
-- screen_photo F1 **+14.1pp**
-
-> README 历史值的训练切分和 `hard_negative` 处理与当前发布不同，只能作为背景，不替代上方同部署路径的工件对照。
-
-历史 3 种子 finalist 结果仍保留在 `experiment/cnn_fft_dwt_ablation/REPORT.md`；其切分和 hard-example 策略与当前发布不同，不再标作部署指标。
+2026-07-22 PyTorch argmax 历史值为 acc 0.9429 / sp_f1 0.9076 / macro_f1 0.9361 / metric 0.9239，数值与本次接近，但来自不同切分，不能当作受控优劣结论。当前版本以可审计的内容身份、标签、冻结评测集、validation 选种和一次性 test 作为发布依据。
 
 ## 环境要求
 
