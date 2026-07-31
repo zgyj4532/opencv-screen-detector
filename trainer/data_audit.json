@@ -1,0 +1,676 @@
+{
+  "schema_version": 1,
+  "raw_paths": 3008,
+  "unique_content": 2876,
+  "duplicate_content_groups": 123,
+  "cross_source_duplicate_groups": 67,
+  "duplicate_paths_removed": 132,
+  "raw_conflicting_label_groups": 18,
+  "unresolved_conflicting_label_groups": 0,
+  "reviewed_overrides": 19,
+  "unused_overrides": [],
+  "split": {
+    "schema_version": 4,
+    "seed": 42,
+    "dataset_fingerprint": "9e1946e53ad4851ab9d96649d2904517f15a9cb8819490b6a0c8a397156185e1",
+    "evaluation_fingerprint": "da74a983a7af3b5c1f73d1c80ccd5a7ed84a290e6f72dfb615a5eb6f73390eff",
+    "focus_fingerprint": "174d1d29220abcdb3ecf48eb04075a883e421a0b544c9a3598951bd09ab86a79",
+    "main_count": 2431,
+    "hard_negative_count": 445,
+    "focus_count": 2,
+    "assignment_policy": "frozen_val_test_new_content_to_train_hard_content_train_only",
+    "train": {
+      "total": 2150,
+      "classes": {
+        "natural": 644,
+        "screenshot": 1203,
+        "screen_photo": 303
+      }
+    },
+    "val": {
+      "total": 361,
+      "classes": {
+        "natural": 136,
+        "screenshot": 169,
+        "screen_photo": 56
+      }
+    },
+    "test": {
+      "total": 365,
+      "classes": {
+        "natural": 138,
+        "screenshot": 170,
+        "screen_photo": 57
+      }
+    }
+  },
+  "cross_role_content_overlap": {
+    "train_val": 0,
+    "train_test": 0,
+    "val_test": 0
+  },
+  "hard_negative_content_in_eval": {
+    "val": 0,
+    "test": 0
+  },
+  "reviewed_label_decisions": [
+    {
+      "sha256": "246bb5ed64dbf3836a96a6f3eab5ab4724ce5ef70cf69ce0b43d1f233eaed223",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        "hard_negative/ide_editor/ide_editor_08.jpg",
+        "hard_negative/screen_photo_to_screenshot/ide_editor_08_conf0.64.jpg",
+        "screen_photo/ide_editor_08.jpg"
+      ]
+    },
+    {
+      "sha256": "2a150e2be18ecbdf2af5fbc155f5ead2f7d5aa01ec5433cb37eed60f513b64df",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        "hard_negative/dark_mode/dark_mode_01.jpg",
+        "screen_photo/dark_mode_01.jpg"
+      ]
+    },
+    {
+      "sha256": "2dec23cb0bfb83ffb17c1266be8a8aee75ffcbaa67a54101f4745e88994001dc",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        "hard_negative/ide_editor/ide_editor_01.jpg",
+        "screen_photo/ide_editor_01.jpg"
+      ]
+    },
+    {
+      "sha256": "331ff4864e7e59b7524172e46e2d01d06d46b1bb4541ba5257545e5d9ac6a7c7",
+      "observed_labels": [
+        "natural",
+        "screenshot"
+      ],
+      "reviewed_label": "screenshot",
+      "paths": [
+        "natural_photo/331ff4864e7e59b7524172e46e2d01d06d46b1bb4541ba5257545e5d9ac6a7c7.jpg",
+        "screenshot/331ff4864e7e59b7524172e46e2d01d06d46b1bb4541ba5257545e5d9ac6a7c7.jpg"
+      ]
+    },
+    {
+      "sha256": "459f5e7352622559e8bd63b0b90e4e4a3d0d6b29ddf0ea2bb02931759aa2e592",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        "hard_negative/dark_mode/dark_mode_06.jpg",
+        "screen_photo/dark_mode_06.jpg"
+      ]
+    },
+    {
+      "sha256": "498b0499c2a3ddf0f6f8d899fbfb0911c5d60de00d2fd8ad8ff0ee0073bbb78f",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        "hard_negative/ide_editor/ide_editor_06.jpg",
+        "screen_photo/ide_editor_06.jpg"
+      ]
+    },
+    {
+      "sha256": "517b459c2a63e0408761f1793b8e5fe10768989d47cab34fa034b25dff7d2a5f",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        "hard_negative/ide_editor/ide_editor_02.jpg",
+        "screen_photo/ide_editor_02.jpg"
+      ]
+    },
+    {
+      "sha256": "5c1552cf51d096b94d6ac80fc01fe0e1e490ea0dc1e1cf7283e3fcd66cf3ac5d",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        "hard_negative/anime_ui/anime_ui_37.jpg",
+        "hard_negative/dark_mode/dark_mode_17.jpg",
+        "hard_negative/ui_poster/ui_poster_10.jpg",
+        "screen_photo/ui_poster_10.jpg"
+      ]
+    },
+    {
+      "sha256": "5e7c370c4cee0faa328ad38e12a3c93834ecb38420af362503298cac7e239284",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        "hard_negative/anime_ui/anime_ui_07.jpg",
+        "hard_negative/dark_mode/dark_mode_18.jpg",
+        "hard_negative/ui_poster/ui_poster_01.jpg",
+        "screen_photo/anime_ui_06.jpg"
+      ]
+    },
+    {
+      "sha256": "5e926ef2131cd7f6e9af036b6c0f1283d7bbb2d7172c7169a250f254c3aee62c",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        "hard_negative/ide_editor/ide_editor_09.jpg",
+        "screen_photo/ide_editor_09.jpg"
+      ]
+    },
+    {
+      "sha256": "6470d3ae53a269ae6234c2bdf8bbaf3f3b432f760384a0bd58fbe19f21d24420",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        "hard_negative/dark_mode/dark_mode_03.jpg",
+        "screen_photo/dark_mode_03.jpg"
+      ]
+    },
+    {
+      "sha256": "6fc697a3aeb82d88637d5b93329678fe8c0fe59e08cdd160c61f134222fd9499",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        "hard_negative/dark_mode/dark_mode_05.jpg",
+        "screen_photo/dark_mode_05.jpg"
+      ]
+    },
+    {
+      "sha256": "80616e9dc5ff2e4d5184547498e1941536cca255adde88d608bc3dcdfc7c606d",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        "hard_negative/ide_editor/ide_editor_10.jpg",
+        "screen_photo/ide_editor_10.jpg"
+      ]
+    },
+    {
+      "sha256": "8ec7a60927da66c8f834cff85da1e1328012468118ce5203b97b62ee9b5f080e",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        "hard_negative/dark_mode/dark_mode_07.jpg",
+        "screen_photo/dark_mode_07.jpg"
+      ]
+    },
+    {
+      "sha256": "c04e5fc01dafa28e7042293e692eb1cf542ecf1ada7645af0a2828bae13444db",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        "hard_negative/ide_editor/ide_editor_05.jpg",
+        "screen_photo/ide_editor_05.jpg"
+      ]
+    },
+    {
+      "sha256": "c21c70434bffff5c09877f78fc5f9927e0947752ba4d6e1cfbe337821d732daf",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        "hard_negative/anime_ui/anime_ui_11.jpg",
+        "screen_photo/anime_ui_10.jpg"
+      ]
+    },
+    {
+      "sha256": "e518ee5a4397609f7f9332701186a4063302a15762e590c5e186b5ad97a5b957",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        "hard_negative/dark_mode/dark_mode_09.jpg",
+        "screen_photo/dark_mode_09.jpg"
+      ]
+    },
+    {
+      "sha256": "f04572b066b2d9c2962497d7757b9b0941be8a675fa9bd8fe24256b202f231b2",
+      "observed_labels": [
+        "screen_photo"
+      ],
+      "reviewed_label": "screenshot",
+      "paths": [
+        "screen_photo/f04572b066b2d9c2962497d7757b9b0941be8a675fa9bd8fe24256b202f231b2.jpg"
+      ]
+    },
+    {
+      "sha256": "f26cf16936a4f41cd7f83167082feacaab0e9f0e7c149e7d7e0b4dd992ec0422",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        "hard_negative/dark_mode/dark_mode_02.jpg",
+        "screen_photo/dark_mode_02.jpg"
+      ]
+    }
+  ],
+  "conflicts": [
+    {
+      "sha256": "246bb5ed64dbf3836a96a6f3eab5ab4724ce5ef70cf69ce0b43d1f233eaed223",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        {
+          "path": "hard_negative/ide_editor/ide_editor_08.jpg",
+          "observed_label": "screenshot",
+          "hard_negative": true
+        },
+        {
+          "path": "hard_negative/screen_photo_to_screenshot/ide_editor_08_conf0.64.jpg",
+          "observed_label": "screen_photo",
+          "hard_negative": true
+        },
+        {
+          "path": "screen_photo/ide_editor_08.jpg",
+          "observed_label": "screen_photo",
+          "hard_negative": false
+        }
+      ]
+    },
+    {
+      "sha256": "2a150e2be18ecbdf2af5fbc155f5ead2f7d5aa01ec5433cb37eed60f513b64df",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        {
+          "path": "hard_negative/dark_mode/dark_mode_01.jpg",
+          "observed_label": "screenshot",
+          "hard_negative": true
+        },
+        {
+          "path": "screen_photo/dark_mode_01.jpg",
+          "observed_label": "screen_photo",
+          "hard_negative": false
+        }
+      ]
+    },
+    {
+      "sha256": "2dec23cb0bfb83ffb17c1266be8a8aee75ffcbaa67a54101f4745e88994001dc",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        {
+          "path": "hard_negative/ide_editor/ide_editor_01.jpg",
+          "observed_label": "screenshot",
+          "hard_negative": true
+        },
+        {
+          "path": "screen_photo/ide_editor_01.jpg",
+          "observed_label": "screen_photo",
+          "hard_negative": false
+        }
+      ]
+    },
+    {
+      "sha256": "331ff4864e7e59b7524172e46e2d01d06d46b1bb4541ba5257545e5d9ac6a7c7",
+      "observed_labels": [
+        "natural",
+        "screenshot"
+      ],
+      "reviewed_label": "screenshot",
+      "paths": [
+        {
+          "path": "natural_photo/331ff4864e7e59b7524172e46e2d01d06d46b1bb4541ba5257545e5d9ac6a7c7.jpg",
+          "observed_label": "natural",
+          "hard_negative": false
+        },
+        {
+          "path": "screenshot/331ff4864e7e59b7524172e46e2d01d06d46b1bb4541ba5257545e5d9ac6a7c7.jpg",
+          "observed_label": "screenshot",
+          "hard_negative": false
+        }
+      ]
+    },
+    {
+      "sha256": "459f5e7352622559e8bd63b0b90e4e4a3d0d6b29ddf0ea2bb02931759aa2e592",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        {
+          "path": "hard_negative/dark_mode/dark_mode_06.jpg",
+          "observed_label": "screenshot",
+          "hard_negative": true
+        },
+        {
+          "path": "screen_photo/dark_mode_06.jpg",
+          "observed_label": "screen_photo",
+          "hard_negative": false
+        }
+      ]
+    },
+    {
+      "sha256": "498b0499c2a3ddf0f6f8d899fbfb0911c5d60de00d2fd8ad8ff0ee0073bbb78f",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        {
+          "path": "hard_negative/ide_editor/ide_editor_06.jpg",
+          "observed_label": "screenshot",
+          "hard_negative": true
+        },
+        {
+          "path": "screen_photo/ide_editor_06.jpg",
+          "observed_label": "screen_photo",
+          "hard_negative": false
+        }
+      ]
+    },
+    {
+      "sha256": "517b459c2a63e0408761f1793b8e5fe10768989d47cab34fa034b25dff7d2a5f",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        {
+          "path": "hard_negative/ide_editor/ide_editor_02.jpg",
+          "observed_label": "screenshot",
+          "hard_negative": true
+        },
+        {
+          "path": "screen_photo/ide_editor_02.jpg",
+          "observed_label": "screen_photo",
+          "hard_negative": false
+        }
+      ]
+    },
+    {
+      "sha256": "5c1552cf51d096b94d6ac80fc01fe0e1e490ea0dc1e1cf7283e3fcd66cf3ac5d",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        {
+          "path": "hard_negative/anime_ui/anime_ui_37.jpg",
+          "observed_label": "screenshot",
+          "hard_negative": true
+        },
+        {
+          "path": "hard_negative/dark_mode/dark_mode_17.jpg",
+          "observed_label": "screenshot",
+          "hard_negative": true
+        },
+        {
+          "path": "hard_negative/ui_poster/ui_poster_10.jpg",
+          "observed_label": "screenshot",
+          "hard_negative": true
+        },
+        {
+          "path": "screen_photo/ui_poster_10.jpg",
+          "observed_label": "screen_photo",
+          "hard_negative": false
+        }
+      ]
+    },
+    {
+      "sha256": "5e7c370c4cee0faa328ad38e12a3c93834ecb38420af362503298cac7e239284",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        {
+          "path": "hard_negative/anime_ui/anime_ui_07.jpg",
+          "observed_label": "screenshot",
+          "hard_negative": true
+        },
+        {
+          "path": "hard_negative/dark_mode/dark_mode_18.jpg",
+          "observed_label": "screenshot",
+          "hard_negative": true
+        },
+        {
+          "path": "hard_negative/ui_poster/ui_poster_01.jpg",
+          "observed_label": "screenshot",
+          "hard_negative": true
+        },
+        {
+          "path": "screen_photo/anime_ui_06.jpg",
+          "observed_label": "screen_photo",
+          "hard_negative": false
+        }
+      ]
+    },
+    {
+      "sha256": "5e926ef2131cd7f6e9af036b6c0f1283d7bbb2d7172c7169a250f254c3aee62c",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        {
+          "path": "hard_negative/ide_editor/ide_editor_09.jpg",
+          "observed_label": "screenshot",
+          "hard_negative": true
+        },
+        {
+          "path": "screen_photo/ide_editor_09.jpg",
+          "observed_label": "screen_photo",
+          "hard_negative": false
+        }
+      ]
+    },
+    {
+      "sha256": "6470d3ae53a269ae6234c2bdf8bbaf3f3b432f760384a0bd58fbe19f21d24420",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        {
+          "path": "hard_negative/dark_mode/dark_mode_03.jpg",
+          "observed_label": "screenshot",
+          "hard_negative": true
+        },
+        {
+          "path": "screen_photo/dark_mode_03.jpg",
+          "observed_label": "screen_photo",
+          "hard_negative": false
+        }
+      ]
+    },
+    {
+      "sha256": "6fc697a3aeb82d88637d5b93329678fe8c0fe59e08cdd160c61f134222fd9499",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        {
+          "path": "hard_negative/dark_mode/dark_mode_05.jpg",
+          "observed_label": "screenshot",
+          "hard_negative": true
+        },
+        {
+          "path": "screen_photo/dark_mode_05.jpg",
+          "observed_label": "screen_photo",
+          "hard_negative": false
+        }
+      ]
+    },
+    {
+      "sha256": "80616e9dc5ff2e4d5184547498e1941536cca255adde88d608bc3dcdfc7c606d",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        {
+          "path": "hard_negative/ide_editor/ide_editor_10.jpg",
+          "observed_label": "screenshot",
+          "hard_negative": true
+        },
+        {
+          "path": "screen_photo/ide_editor_10.jpg",
+          "observed_label": "screen_photo",
+          "hard_negative": false
+        }
+      ]
+    },
+    {
+      "sha256": "8ec7a60927da66c8f834cff85da1e1328012468118ce5203b97b62ee9b5f080e",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        {
+          "path": "hard_negative/dark_mode/dark_mode_07.jpg",
+          "observed_label": "screenshot",
+          "hard_negative": true
+        },
+        {
+          "path": "screen_photo/dark_mode_07.jpg",
+          "observed_label": "screen_photo",
+          "hard_negative": false
+        }
+      ]
+    },
+    {
+      "sha256": "c04e5fc01dafa28e7042293e692eb1cf542ecf1ada7645af0a2828bae13444db",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        {
+          "path": "hard_negative/ide_editor/ide_editor_05.jpg",
+          "observed_label": "screenshot",
+          "hard_negative": true
+        },
+        {
+          "path": "screen_photo/ide_editor_05.jpg",
+          "observed_label": "screen_photo",
+          "hard_negative": false
+        }
+      ]
+    },
+    {
+      "sha256": "c21c70434bffff5c09877f78fc5f9927e0947752ba4d6e1cfbe337821d732daf",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        {
+          "path": "hard_negative/anime_ui/anime_ui_11.jpg",
+          "observed_label": "screenshot",
+          "hard_negative": true
+        },
+        {
+          "path": "screen_photo/anime_ui_10.jpg",
+          "observed_label": "screen_photo",
+          "hard_negative": false
+        }
+      ]
+    },
+    {
+      "sha256": "e518ee5a4397609f7f9332701186a4063302a15762e590c5e186b5ad97a5b957",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        {
+          "path": "hard_negative/dark_mode/dark_mode_09.jpg",
+          "observed_label": "screenshot",
+          "hard_negative": true
+        },
+        {
+          "path": "screen_photo/dark_mode_09.jpg",
+          "observed_label": "screen_photo",
+          "hard_negative": false
+        }
+      ]
+    },
+    {
+      "sha256": "f26cf16936a4f41cd7f83167082feacaab0e9f0e7c149e7d7e0b4dd992ec0422",
+      "observed_labels": [
+        "screenshot",
+        "screen_photo"
+      ],
+      "reviewed_label": "screen_photo",
+      "paths": [
+        {
+          "path": "hard_negative/dark_mode/dark_mode_02.jpg",
+          "observed_label": "screenshot",
+          "hard_negative": true
+        },
+        {
+          "path": "screen_photo/dark_mode_02.jpg",
+          "observed_label": "screen_photo",
+          "hard_negative": false
+        }
+      ]
+    }
+  ]
+}

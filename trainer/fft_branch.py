@@ -20,6 +20,10 @@ import torch.nn as nn
 
 from .attention import create_attention
 
+FREQUENCY_INPUT_SIZE = 224
+POOLED_SIZE = 4
+POOL_KERNEL_SIZE = FREQUENCY_INPUT_SIZE // POOLED_SIZE
+
 
 class ResBlock(nn.Module):
     """残差块"""
@@ -77,7 +81,7 @@ class FrequencyBranch(nn.Module):
         if use_attention:
             self.attention = create_attention(64, attention_type, attention_reduction)
 
-        self.pool = nn.AdaptiveAvgPool2d(4)
+        self.pool = nn.AvgPool2d(kernel_size=POOL_KERNEL_SIZE, stride=POOL_KERNEL_SIZE)
         self.classifier = nn.Sequential(
             nn.Flatten(),
             nn.Linear(64 * 4 * 4, out_features),
@@ -153,7 +157,7 @@ class FrequencyBranchWithDWT(nn.Module):
 
         # Fusion: 64 (FFT) + 64 (DWT) = 128 channels
         self.fusion = nn.Sequential(
-            nn.AdaptiveAvgPool2d(4),
+            nn.AvgPool2d(kernel_size=POOL_KERNEL_SIZE, stride=POOL_KERNEL_SIZE),
             nn.Flatten(),
             nn.Linear(128 * 4 * 4, out_features),
             nn.ReLU(inplace=True),

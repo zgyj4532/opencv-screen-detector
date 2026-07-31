@@ -20,6 +20,13 @@ from .arcface import create_arcface_classifier
 from .fft_branch import FrequencyBranch, FrequencyBranchWithDWT
 
 
+class DeterministicGlobalAvgPool2d(nn.Module):
+    """Global average pooling expressed as a deterministic reduction."""
+
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        return inputs.mean(dim=(-2, -1))
+
+
 class ScreenDetectorModel(nn.Module):
     """EfficientNet + FFT Branch fusion model.
 
@@ -64,6 +71,7 @@ class ScreenDetectorModel(nn.Module):
             pretrained=pretrained,
             num_classes=0,
         )
+        self.backbone.global_pool = DeterministicGlobalAvgPool2d()
         self.spatial_dim = cast("int", self.backbone.num_features)  # 1280
 
         # Frequency Branch (FFT)
@@ -196,6 +204,7 @@ class ScreenDetectorModelWithDWT(nn.Module):
             pretrained=pretrained,
             num_classes=0,
         )
+        self.backbone.global_pool = DeterministicGlobalAvgPool2d()
         self.spatial_dim = cast("int", self.backbone.num_features)  # 1280
 
         # Frequency Branch (FFT + DWT)

@@ -1,8 +1,9 @@
 """Autonomous experiment harness for screen-detector V3.
 
 Clean, fast, reproducible training pipeline that fixes the audited bugs:
-- No hard_negative double-loading / label conflicts (clean label map, path dedup)
-- Stratified train/val/test split, saved once and reused across all experiments
+- Content-level deduplication with explicit reviewed decisions for label conflicts
+- Content represented under hard_negative remains train-only
+- Portable frozen val/test identities reused across experiments; new content enters train
 - FFT/DWT features cached to disk (computed from raw RGB image, matches inference)
 - Fixed unfreeze (only real MBConv stages + conv_head + bn2)
 - Stage-A optimizer includes LayerNorm params
@@ -19,8 +20,11 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import os
+import random
 import sys
 import time
+from collections import defaultdict
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
@@ -30,6 +34,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from albumentations.core.composition import BaseCompose
+from albumentations.core.transforms_interface import BasicTransform
 from albumentations.pytorch import ToTensorV2
 from PIL import Image
 from sklearn.metrics import precision_recall_fscore_support
@@ -51,6 +57,9 @@ EXP_DIR = ABLATION_DIR / "exp"
 SPLIT_PATH = ABLATION_DIR / "split.json"
 LEADERBOARD = ABLATION_DIR / "leaderboard.jsonl"
 FOCUS_MANIFEST = ROOT / "trainer" / "hard_examples.txt"
+LABEL_OVERRIDES_PATH = ROOT / "trainer" / "content_label_overrides.json"
+SPLIT_SCHEMA_VERSION = 4
+SPLIT_ASSIGNMENT_POLICY = "frozen_val_test_new_content_to_train_hard_content_train_only"
 IMAGE_SIZE = 224
 CLASS_NAMES = ["natural", "screenshot", "screen_photo"]
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
@@ -80,38 +89,131 @@ HN_MAP = {
 # --------------------------------------------------------------------------
 # Data collection & split
 # --------------------------------------------------------------------------
-def collect_samples(
-    data_dir: Path = DATA_DIR,
-) -> tuple[list[tuple[str, int]], list[tuple[str, int]]]:
-    """Return (main_samples, hard_neg_samples), deduped by resolved path."""
-    seen: set[str] = set()
-    main: list[tuple[str, int]] = []
-    hard: list[tuple[str, int]] = []
+_CONTENT_HASH_CACHE: dict[tuple[str, int, int], str] = {}
 
+
+def content_sha256(path: str | Path) -> str:
+    """Return a content identity that is stable across path and mtime changes."""
+    resolved = Path(path).resolve()
+    stat = resolved.stat()
+    cache_key = (str(resolved), stat.st_size, stat.st_mtime_ns)
+    if cached := _CONTENT_HASH_CACHE.get(cache_key):
+        return cached
+
+    digest = hashlib.sha256()
+    with resolved.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    value = digest.hexdigest()
+    _CONTENT_HASH_CACHE[cache_key] = value
+    return value
+
+
+def load_label_overrides(path: Path = LABEL_OVERRIDES_PATH) -> dict[str, int]:
+    """Load human-reviewed labels keyed by lowercase SHA-256 content hash."""
+    if not path.exists():
+        return {}
+
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if payload.get("schema_version") != 1:
+        raise RuntimeError(f"Unsupported content-label override schema: {path}")
+
+    resolved: dict[str, int] = {}
+    for digest, entry in payload.get("overrides", {}).items():
+        label_value = entry["label"] if isinstance(entry, dict) else entry
+        if isinstance(label_value, str):
+            if label_value not in CLASS_NAMES:
+                raise RuntimeError(f"Unknown label {label_value!r} for content {digest}")
+            label = CLASS_NAMES.index(label_value)
+        else:
+            label = int(label_value)
+        normalized = digest.lower()
+        if len(normalized) != 64 or any(char not in "0123456789abcdef" for char in normalized):
+            raise RuntimeError(f"Invalid SHA-256 in {path}: {digest}")
+        if label not in range(len(CLASS_NAMES)):
+            raise RuntimeError(f"Invalid label {label} for content {digest}")
+        resolved[normalized] = label
+    return resolved
+
+
+def _scan_sample_candidates(data_dir: Path) -> list[tuple[str, int, bool, str]]:
+    candidates: list[tuple[str, int, bool, str]] = []
     main_map = {"natural_photo": 0, "screenshot": 1, "screen_photo": 2}
     for folder, label in main_map.items():
-        for p in (data_dir / folder).rglob("*"):
-            if p.suffix.lower() not in IMAGE_EXTS:
-                continue
-            key = str(p.resolve())
-            if key in seen:
-                continue
-            seen.add(key)
-            main.append((str(p), label))
+        candidates.extend(
+            (str(path), label, False, content_sha256(path))
+            for path in sorted((data_dir / folder).rglob("*"))
+            if path.suffix.lower() in IMAGE_EXTS
+        )
 
     hn_root = data_dir / "hard_negative"
     for sub, label in HN_MAP.items():
-        d = hn_root / sub
-        if not d.exists():
+        directory = hn_root / sub
+        if not directory.exists():
             continue
-        for p in d.rglob("*"):
-            if p.suffix.lower() not in IMAGE_EXTS:
-                continue
-            key = str(p.resolve())
-            if key in seen:
-                continue
-            seen.add(key)
-            hard.append((str(p), label))
+        candidates.extend(
+            (str(path), label, True, content_sha256(path))
+            for path in sorted(directory.rglob("*"))
+            if path.suffix.lower() in IMAGE_EXTS
+        )
+    return candidates
+
+
+def collect_samples(
+    data_dir: Path = DATA_DIR,
+    label_overrides: dict[str, int] | None = None,
+    preferred_paths: set[str] | None = None,
+) -> tuple[list[tuple[str, int]], list[tuple[str, int]]]:
+    """Return content-deduplicated samples after resolving reviewed label conflicts."""
+    overrides = load_label_overrides() if label_overrides is None else label_overrides
+    preferred = {str(Path(path).resolve()) for path in (preferred_paths or set())}
+    groups: dict[str, list[tuple[str, int, bool, str]]] = defaultdict(list)
+    for candidate in _scan_sample_candidates(data_dir):
+        groups[candidate[3]].append(candidate)
+
+    main: list[tuple[str, int]] = []
+    hard: list[tuple[str, int]] = []
+    root = data_dir.resolve()
+    for digest, candidates in sorted(groups.items()):
+        labels = {candidate[1] for candidate in candidates}
+        if digest in overrides:
+            label = overrides[digest]
+        elif len(labels) == 1:
+            label = next(iter(labels))
+        else:
+            details = "; ".join(
+                f"{Path(path).resolve().relative_to(root).as_posix()}={CLASS_NAMES[candidate_label]}"
+                for path, candidate_label, _is_hard, _digest in sorted(candidates)
+            )
+            raise RuntimeError(
+                f"Conflicting labels for content {digest}: {details}. "
+                f"Add a reviewed decision to {LABEL_OVERRIDES_PATH}."
+            )
+
+        def candidate_key(
+            candidate: tuple[str, int, bool, str], resolved_label: int = label
+        ) -> tuple[int, int, int, str]:
+            path, candidate_label, is_hard, _digest = candidate
+            resolved_path = str(Path(path).resolve())
+            relative = Path(path).resolve().relative_to(root).as_posix()
+            return (
+                int(resolved_path not in preferred),
+                int(candidate_label != resolved_label),
+                int(is_hard),
+                relative,
+            )
+
+        canonical = min(candidates, key=candidate_key)
+        sample = (canonical[0], label)
+        # A content identity that was curated into hard_negative remains train-only,
+        # even when a byte-identical copy also exists under a main class directory.
+        if any(candidate[2] for candidate in candidates):
+            hard.append(sample)
+        else:
+            main.append(sample)
+
+    main.sort(key=lambda sample: Path(sample[0]).resolve().relative_to(root).as_posix())
+    hard.sort(key=lambda sample: Path(sample[0]).resolve().relative_to(root).as_posix())
     return main, hard
 
 
@@ -136,18 +238,75 @@ def load_focus_paths(
 
 def _dataset_fingerprint(
     samples: list[tuple[str, int]],
-    data_dir: Path,
 ) -> str:
-    """Fingerprint paths, labels, sizes and mtimes so stale splits are not reused."""
-    root = data_dir.resolve()
-    rows = []
-    for raw_path, label in samples:
-        path = Path(raw_path).resolve()
-        stat = path.stat()
-        relative = path.relative_to(root).as_posix()
-        rows.append(f"{relative}\0{label}\0{stat.st_size}\0{stat.st_mtime_ns}")
+    """Fingerprint unique content and reviewed labels, independent of path or mtime."""
+    rows = [f"{content_sha256(raw_path)}\0{label}" for raw_path, label in samples]
     payload = "\n".join(sorted(rows)).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
+
+
+def _evaluation_fingerprint(split: dict) -> str:
+    rows = []
+    for role in ("val", "test"):
+        rows.extend(f"{role}\0{content_sha256(path)}\0{label}" for path, label in split[role])
+    return hashlib.sha256("\n".join(sorted(rows)).encode("utf-8")).hexdigest()
+
+
+def _focus_fingerprint(focus_paths: set[str]) -> str:
+    """Fingerprint focus examples by content so the split stays portable."""
+    hashes = sorted({content_sha256(path) for path in focus_paths})
+    return hashlib.sha256("\n".join(hashes).encode("utf-8")).hexdigest()
+
+
+def _serialize_split(split: dict, data_dir: Path) -> dict:
+    root = data_dir.resolve()
+    return {
+        "meta": split["meta"],
+        **{
+            role: [
+                [
+                    Path(path).resolve().relative_to(root).as_posix(),
+                    label,
+                    content_sha256(path),
+                ]
+                for path, label in split[role]
+            ]
+            for role in ("train", "val", "test")
+        },
+    }
+
+
+def _load_frozen_split(saved: dict, current: dict[str, tuple[str, int, bool]]) -> dict:
+    split = {"train": [], "val": [], "test": []}
+    assigned: set[str] = set()
+    for role in ("train", "val", "test"):
+        for _relative, expected_label, digest in saved[role]:
+            normalized = digest.lower()
+            candidate = current.get(normalized)
+            if candidate is None:
+                if role in {"val", "test"}:
+                    raise RuntimeError(
+                        f"Frozen {role} content is missing: {digest}. Restore it or explicitly version a new split."
+                    )
+                continue
+            path, label, is_hard = candidate
+            if label != expected_label:
+                raise RuntimeError(
+                    f"Frozen {role} label changed for {digest}: expected {expected_label}, current {label}. "
+                    "Review the label override before versioning a new split."
+                )
+            if role in {"val", "test"} and is_hard:
+                raise RuntimeError(f"Frozen {role} content now exists only as a hard-negative sample: {digest}")
+            if normalized in assigned:
+                raise RuntimeError(f"Frozen split repeats content across roles: {digest}")
+            assigned.add(normalized)
+            split[role].append((path, label))
+
+    for digest, (path, label, _is_hard) in sorted(current.items()):
+        if digest not in assigned:
+            split["train"].append((path, label))
+            assigned.add(digest)
+    return split
 
 
 def build_split(
@@ -156,26 +315,49 @@ def build_split(
     split_path: Path = SPLIT_PATH,
     focus_paths: set[str] | None = None,
 ) -> dict:
-    """Build a cached stratified split; hard/focus examples always stay in train."""
-    main, hard = collect_samples(data_dir)
-    all_samples = main + hard
-    fingerprint = _dataset_fingerprint(all_samples, data_dir)
+    """Build a content-clean split whose validation and test identities never reshuffle."""
     focus = focus_paths if focus_paths is not None else load_focus_paths(data_dir)
+    main, hard = collect_samples(data_dir, preferred_paths=focus)
+    all_samples = main + hard
+    fingerprint = _dataset_fingerprint(all_samples)
     collected_paths = {str(Path(path).resolve()) for path, _ in all_samples}
     if missing_focus := focus - collected_paths:
         missing = "\n".join(f"- {path}" for path in sorted(missing_focus))
         raise RuntimeError(f"Focus examples are not part of the collected dataset:\n{missing}")
-    focus_fingerprint = hashlib.sha256("\n".join(sorted(focus)).encode("utf-8")).hexdigest()
+    focus_fingerprint = _focus_fingerprint(focus)
 
-    if split_path.exists():
-        saved = json.loads(split_path.read_text(encoding="utf-8"))
-        meta = saved.get("meta", {})
-        if (
-            meta.get("dataset_fingerprint") == fingerprint
-            and meta.get("focus_fingerprint") == focus_fingerprint
-            and meta.get("seed") == seed
-        ):
-            return saved
+    sample_kind = {content_sha256(path): False for path, _label in main}
+    sample_kind.update({content_sha256(path): True for path, _label in hard})
+    current = {
+        content_sha256(path): (str(Path(path).resolve()), label, sample_kind[content_sha256(path)])
+        for path, label in all_samples
+    }
+
+    saved = json.loads(split_path.read_text(encoding="utf-8")) if split_path.exists() else None
+    if saved and saved.get("meta", {}).get("schema_version") == SPLIT_SCHEMA_VERSION:
+        saved_seed = saved["meta"].get("seed")
+        if saved_seed != seed:
+            raise RuntimeError(f"Frozen split uses seed {saved_seed}; refusing to replace it with seed {seed}")
+        split = _load_frozen_split(saved, current)
+        train_paths = {str(Path(path).resolve()) for path, _ in split["train"]}
+        if missing_train_focus := focus - train_paths:
+            missing = "\n".join(f"- {path}" for path in sorted(missing_train_focus))
+            raise RuntimeError(f"Frozen split places focus content outside train or cannot resolve it:\n{missing}")
+        split["meta"] = {
+            "schema_version": SPLIT_SCHEMA_VERSION,
+            "seed": seed,
+            "dataset_fingerprint": fingerprint,
+            "evaluation_fingerprint": _evaluation_fingerprint(split),
+            "focus_fingerprint": focus_fingerprint,
+            "main_count": len(main),
+            "hard_negative_count": len(hard),
+            "focus_count": len(focus),
+            "assignment_policy": SPLIT_ASSIGNMENT_POLICY,
+        }
+        serialized = _serialize_split(split, data_dir)
+        if serialized != saved:
+            split_path.write_text(json.dumps(serialized, ensure_ascii=False, indent=2), encoding="utf-8")
+        return split
 
     rng = np.random.default_rng(seed)
     train, val, test = [], [], []
@@ -223,20 +405,23 @@ def build_split(
 
     split = {
         "meta": {
-            "schema_version": 2,
+            "schema_version": SPLIT_SCHEMA_VERSION,
             "seed": seed,
             "dataset_fingerprint": fingerprint,
+            "evaluation_fingerprint": "",
             "focus_fingerprint": focus_fingerprint,
             "main_count": len(main),
             "hard_negative_count": len(hard),
             "focus_count": len(focus),
+            "assignment_policy": SPLIT_ASSIGNMENT_POLICY,
         },
         "train": train,
         "val": val,
         "test": test,
     }
+    split["meta"]["evaluation_fingerprint"] = _evaluation_fingerprint(split)
     split_path.parent.mkdir(parents=True, exist_ok=True)
-    split_path.write_text(json.dumps(split, ensure_ascii=False), encoding="utf-8")
+    split_path.write_text(json.dumps(_serialize_split(split, data_dir), ensure_ascii=False, indent=2), encoding="utf-8")
     return split
 
 
@@ -285,32 +470,36 @@ def precompute_cache(samples: list[tuple[str, int]]) -> None:
 # --------------------------------------------------------------------------
 # Transforms
 # --------------------------------------------------------------------------
-def train_tf(heavy: bool = False) -> A.Compose:
+def train_tf(heavy: bool = False, seed: int | None = None) -> A.Compose:
     if heavy:
         from trainer.augment import get_train_transforms
 
-        return get_train_transforms()
-    return A.Compose(
-        [
-            A.RandomResizedCrop(size=(IMAGE_SIZE, IMAGE_SIZE), scale=(0.6, 1.0), ratio=(0.75, 1.333)),
-            A.HorizontalFlip(p=0.5),
-            A.Rotate(limit=15, p=0.5),
-            A.Perspective(scale=(0.02, 0.08), p=0.4),
-            A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.05, p=0.5),
-            A.GaussianBlur(blur_limit=(3, 7), p=0.25),
-            A.ImageCompression(quality_range=(40, 95), p=0.3),
-            A.GaussNoise(std_range=(0.05, 0.2), p=0.25),
-            A.CoarseDropout(
-                num_holes_range=(1, 6),
-                hole_height_range=(8, 28),
-                hole_width_range=(8, 28),
-                fill=0,
-                p=0.25,
-            ),
-            A.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
-            ToTensorV2(),
-        ]
-    )
+        transform = get_train_transforms()
+    else:
+        transform = A.Compose(
+            [
+                A.RandomResizedCrop(size=(IMAGE_SIZE, IMAGE_SIZE), scale=(0.6, 1.0), ratio=(0.75, 1.333)),
+                A.HorizontalFlip(p=0.5),
+                A.Rotate(limit=15, p=0.5),
+                A.Perspective(scale=(0.02, 0.08), p=0.4),
+                A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.05, p=0.5),
+                A.GaussianBlur(blur_limit=(3, 7), p=0.25),
+                A.ImageCompression(quality_range=(40, 95), p=0.3),
+                A.GaussNoise(std_range=(0.05, 0.2), p=0.25),
+                A.CoarseDropout(
+                    num_holes_range=(1, 6),
+                    hole_height_range=(8, 28),
+                    hole_width_range=(8, 28),
+                    fill=0,
+                    p=0.25,
+                ),
+                A.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
+                ToTensorV2(),
+            ]
+        )
+    if seed is not None:
+        transform.set_random_seed(seed)
+    return transform
 
 
 def eval_tf() -> A.Compose:
@@ -365,6 +554,7 @@ def make_sampler(
     beta: float | None,
     focus_paths: set[str] | None = None,
     focus_weight: float = 1.0,
+    seed: int | None = None,
 ) -> WeightedRandomSampler:
     """Balance classes and optionally upweight curated regression examples."""
     labels = [s[1] for s in samples]
@@ -378,7 +568,69 @@ def make_sampler(
         [cls_w[label] * (focus_weight if str(Path(path).resolve()) in focus else 1.0) for path, label in samples],
         dtype=np.float64,
     )
-    return WeightedRandomSampler(torch.from_numpy(w), num_samples=len(w), replacement=True)
+    generator = None
+    if seed is not None:
+        generator = torch.Generator()
+        generator.manual_seed(seed)
+    return WeightedRandomSampler(torch.from_numpy(w), num_samples=len(w), replacement=True, generator=generator)
+
+
+def seed_everything(seed: int) -> None:
+    """Seed every RNG used by the release trainer and require deterministic kernels."""
+    os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+    torch.use_deterministic_algorithms(True)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
+def _transform_nodes(transform: BasicTransform | BaseCompose) -> list[BasicTransform | BaseCompose]:
+    nodes: list[BasicTransform | BaseCompose] = [transform]
+    if isinstance(transform, BaseCompose):
+        for child in transform.transforms:
+            nodes.extend(_transform_nodes(child))
+    return nodes
+
+
+def _capture_runtime_rng(transform: A.Compose, sampler: WeightedRandomSampler) -> dict:
+    """Capture every RNG that advances while producing training batches."""
+    transform_states = [
+        {
+            "numpy": copy.deepcopy(node.random_generator.bit_generator.state),
+            "python": node.py_random.getstate(),
+        }
+        for node in _transform_nodes(transform)
+    ]
+    return {
+        "python": random.getstate(),
+        "numpy": np.random.get_state(),
+        "torch": torch.get_rng_state(),
+        "cuda": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else [],
+        "sampler": sampler.generator.get_state() if sampler.generator is not None else None,
+        "transforms": transform_states,
+    }
+
+
+def _restore_runtime_rng(state: dict, transform: A.Compose, sampler: WeightedRandomSampler) -> None:
+    """Restore captured training RNG state before the next epoch starts."""
+    random.setstate(state["python"])
+    np.random.set_state(state["numpy"])
+    torch.set_rng_state(state["torch"])
+    if torch.cuda.is_available() and state["cuda"]:
+        torch.cuda.set_rng_state_all(state["cuda"])
+    if sampler.generator is not None and state["sampler"] is not None:
+        sampler.generator.set_state(state["sampler"])
+
+    nodes = _transform_nodes(transform)
+    if len(nodes) != len(state["transforms"]):
+        raise RuntimeError("Training transform structure changed; refusing an inexact resume")
+    for node, node_state in zip(nodes, state["transforms"], strict=True):
+        node.random_generator.bit_generator.state = node_state["numpy"]
+        node.py_random.setstate(node_state["python"])
 
 
 # --------------------------------------------------------------------------
@@ -545,17 +797,40 @@ def sp_threshold_search(probs: np.ndarray, labels: np.ndarray) -> dict:
 # --------------------------------------------------------------------------
 # Train
 # --------------------------------------------------------------------------
-def train_one(cfg: ExpConfig, split: dict, device: str = "cuda") -> dict:
-    torch.manual_seed(cfg.seed)
-    np.random.seed(cfg.seed)
+def train_one(
+    cfg: ExpConfig,
+    split: dict,
+    device: str = "cuda",
+    evaluate_test: bool = True,
+    resume: bool = False,
+    max_total_epochs: int | None = None,
+) -> dict:
+    seed_everything(cfg.seed)
+
+    total_epochs = cfg.epochs_head + cfg.epochs_finetune
+    if max_total_epochs is not None and max_total_epochs not in range(1, total_epochs + 1):
+        raise ValueError(f"max_total_epochs must be between 1 and {total_epochs}")
+
+    out_dir = EXP_DIR / cfg.id
+    out_dir.mkdir(parents=True, exist_ok=True)
+    last_path = out_dir / "last.pth"
+    resume_state = None
+    if resume:
+        if not last_path.exists():
+            raise RuntimeError(f"Resume checkpoint does not exist: {last_path}")
+        resume_state = torch.load(last_path, map_location="cpu", weights_only=False)
+        saved_cfg = {key: value for key, value in resume_state["cfg"].items() if key != "desc"}
+        current_cfg = {key: value for key, value in asdict(cfg).items() if key != "desc"}
+        if saved_cfg != current_cfg:
+            raise RuntimeError("Resume configuration differs from the saved training configuration")
 
     train_s = [tuple(x) for x in split["train"]]
     val_s = [tuple(x) for x in split["val"]]
     test_s = [tuple(x) for x in split["test"]]
 
-    train_ds = CachedDataset(train_s, train_tf(cfg.heavy_aug))
+    train_ds = CachedDataset(train_s, train_tf(cfg.heavy_aug, seed=cfg.seed))
     val_ds = CachedDataset(val_s, eval_tf())
-    test_ds = CachedDataset(test_s, eval_tf())
+    test_ds = CachedDataset(test_s, eval_tf()) if evaluate_test else None
 
     focus_paths = load_focus_paths()
     focus_s = [sample for sample in train_s if str(Path(sample[0]).resolve()) in focus_paths]
@@ -565,6 +840,7 @@ def train_one(cfg: ExpConfig, split: dict, device: str = "cuda") -> dict:
         cfg.sampler_beta,
         focus_paths=focus_paths,
         focus_weight=cfg.focus_weight,
+        seed=cfg.seed,
     )
     nw = 0  # Windows shared-memory mapping fails with workers>0; FFT/DWT are cached so CPU is light
     train_loader = DataLoader(
@@ -575,7 +851,11 @@ def train_one(cfg: ExpConfig, split: dict, device: str = "cuda") -> dict:
         pin_memory=True,
     )
     val_loader = DataLoader(val_ds, batch_size=32, shuffle=False, num_workers=nw, pin_memory=True)
-    test_loader = DataLoader(test_ds, batch_size=32, shuffle=False, num_workers=nw, pin_memory=True)
+    test_loader = (
+        DataLoader(test_ds, batch_size=32, shuffle=False, num_workers=nw, pin_memory=True)
+        if test_ds is not None
+        else None
+    )
     focus_loader = (
         DataLoader(focus_ds, batch_size=32, shuffle=False, num_workers=nw, pin_memory=True)
         if focus_ds is not None
@@ -590,7 +870,7 @@ def train_one(cfg: ExpConfig, split: dict, device: str = "cuda") -> dict:
     model = create_model(
         model_name=cfg.backbone,
         num_classes=3,
-        pretrained=True,
+        pretrained=resume_state is None,
         freeze_backbone=True,
         use_dwt=cfg.use_dwt,
         use_arcface=cfg.use_arcface,
@@ -601,6 +881,38 @@ def train_one(cfg: ExpConfig, split: dict, device: str = "cuda") -> dict:
     criterion = FocalLossLS(cfg.gamma, cfg.alpha, cfg.smoothing).to(device)
     scaler = torch.amp.GradScaler("cuda", enabled=(device == "cuda"))
     ema = ModelEMA(model, cfg.ema_decay) if cfg.ema else None
+
+    history: list[dict] = []
+    best = {
+        "best_metric": -1,
+        "focus_pass": False,
+        "focus_correct": 0,
+        "focus_total": len(focus_s),
+    }
+    best_key = (-1, -1, -1.0)
+    best_state = None
+    completed_head = 0
+    completed_finetune = 0
+
+    if resume_state is not None:
+        model.load_state_dict(resume_state["model_state_dict"])
+        if ema is not None:
+            if resume_state["ema_state_dict"] is None:
+                raise RuntimeError("Resume checkpoint is missing EMA state")
+            ema.ema.load_state_dict(resume_state["ema_state_dict"])
+        scaler.load_state_dict(resume_state["scaler_state_dict"])
+        history = resume_state["history"]
+        best = resume_state["selection"]
+        best_key = tuple(resume_state["best_key"])
+        best_state = resume_state["best_state_dict"]
+        completed_head = resume_state["completed_head"]
+        completed_finetune = resume_state["completed_finetune"]
+        _restore_runtime_rng(resume_state["runtime_rng"], train_ds.transform, sampler)
+        print(
+            f"  Resuming after A={completed_head}/{cfg.epochs_head}, "
+            f"B={completed_finetune}/{cfg.epochs_finetune}",
+            flush=True,
+        )
 
     def run_epoch(optimizer):
         model.train()
@@ -621,18 +933,6 @@ def train_one(cfg: ExpConfig, split: dict, device: str = "cuda") -> dict:
             scaler.update()
             if ema:
                 ema.update(model)
-
-    out_dir = EXP_DIR / cfg.id
-    out_dir.mkdir(parents=True, exist_ok=True)
-    history: list[dict] = []
-    best = {
-        "best_metric": -1,
-        "focus_pass": False,
-        "focus_correct": 0,
-        "focus_total": len(focus_s),
-    }
-    best_key = (-1, -1, -1.0)
-    best_state = None
 
     def maybe_save(tag_model, stage: str, epoch: int):
         nonlocal best, best_key, best_state
@@ -677,6 +977,47 @@ def train_one(cfg: ExpConfig, split: dict, device: str = "cuda") -> dict:
         )
         return m
 
+    def save_last(stage: str, optimizer, scheduler) -> None:
+        payload = {
+            "schema_version": 1,
+            "cfg": asdict(cfg),
+            "stage": stage,
+            "completed_head": completed_head,
+            "completed_finetune": completed_finetune,
+            "model_state_dict": model.state_dict(),
+            "ema_state_dict": ema.ema.state_dict() if ema is not None else None,
+            "optimizer_state_dict": optimizer.state_dict(),
+            "scheduler_state_dict": scheduler.state_dict(),
+            "scaler_state_dict": scaler.state_dict(),
+            "runtime_rng": _capture_runtime_rng(train_ds.transform, sampler),
+            "history": history,
+            "selection": best,
+            "best_key": best_key,
+            "best_state_dict": best_state,
+        }
+        temporary = out_dir / "last.tmp.pth"
+        torch.save(payload, temporary)
+        temporary.replace(last_path)
+
+    def paused_result() -> dict:
+        return {
+            "status": "paused",
+            "progress": {
+                "completed_head": completed_head,
+                "completed_finetune": completed_finetune,
+                "total_epochs": total_epochs,
+            },
+            "val": None,
+            "test": None,
+            "test_threshold": None,
+            "selection": best,
+            "history": history,
+        }
+
+    def should_pause() -> bool:
+        completed = completed_head + completed_finetune
+        return max_total_epochs is not None and completed >= max_total_epochs and completed < total_epochs
+
     # Stage A: head + freq_branch + norms
     from torch.optim.lr_scheduler import CosineAnnealingLR
 
@@ -688,11 +1029,16 @@ def train_one(cfg: ExpConfig, split: dict, device: str = "cuda") -> dict:
     )
     opt_a = torch.optim.AdamW(params_a, lr=cfg.lr, weight_decay=cfg.weight_decay)
     sch_a = CosineAnnealingLR(opt_a, T_max=cfg.epochs_head)
-    for ep in range(cfg.epochs_head):
+    if resume_state is not None and resume_state["stage"] == "head" and completed_head < cfg.epochs_head:
+        opt_a.load_state_dict(resume_state["optimizer_state_dict"])
+        sch_a.load_state_dict(resume_state["scheduler_state_dict"])
+    for ep in range(completed_head, cfg.epochs_head):
         t0 = time.time()
         run_epoch(opt_a)
         sch_a.step()
         m = maybe_save(ema.ema if ema else model, "head", ep + 1)
+        completed_head = ep + 1
+        save_last("head", opt_a, sch_a)
         focus_status = f" focus={history[-1]['focus_correct']}/{history[-1]['focus_total']}" if focus_s else ""
         print(
             f"  [A {ep + 1}/{cfg.epochs_head}] acc={m['accuracy']:.4f} spF1={m['sp_f1']:.4f} "
@@ -700,6 +1046,9 @@ def train_one(cfg: ExpConfig, split: dict, device: str = "cuda") -> dict:
             f"({time.time() - t0:.0f}s)",
             flush=True,
         )
+        if should_pause():
+            print(f"  Paused safely after {completed_head + completed_finetune}/{total_epochs} epochs", flush=True)
+            return paused_result()
 
     # Stage B: unfreeze
     unfreeze_stages(model, cfg.unfreeze)
@@ -715,11 +1064,16 @@ def train_one(cfg: ExpConfig, split: dict, device: str = "cuda") -> dict:
     ]
     opt_b = torch.optim.AdamW(params_b, weight_decay=cfg.weight_decay)
     sch_b = CosineAnnealingLR(opt_b, T_max=cfg.epochs_finetune)
-    for ep in range(cfg.epochs_finetune):
+    if resume_state is not None and resume_state["stage"] == "finetune":
+        opt_b.load_state_dict(resume_state["optimizer_state_dict"])
+        sch_b.load_state_dict(resume_state["scheduler_state_dict"])
+    for ep in range(completed_finetune, cfg.epochs_finetune):
         t0 = time.time()
         run_epoch(opt_b)
         sch_b.step()
         m = maybe_save(ema.ema if ema else model, "finetune", ep + 1)
+        completed_finetune = ep + 1
+        save_last("finetune", opt_b, sch_b)
         focus_status = f" focus={history[-1]['focus_correct']}/{history[-1]['focus_total']}" if focus_s else ""
         print(
             f"  [B {ep + 1}/{cfg.epochs_finetune}] acc={m['accuracy']:.4f} spF1={m['sp_f1']:.4f} "
@@ -727,6 +1081,9 @@ def train_one(cfg: ExpConfig, split: dict, device: str = "cuda") -> dict:
             f"({time.time() - t0:.0f}s)",
             flush=True,
         )
+        if should_pause():
+            print(f"  Paused safely after {completed_head + completed_finetune}/{total_epochs} epochs", flush=True)
+            return paused_result()
 
     # Final eval on TEST with best checkpoint
     eval_model = create_model(
@@ -740,8 +1097,11 @@ def train_one(cfg: ExpConfig, split: dict, device: str = "cuda") -> dict:
     ).to(device)
     eval_model.load_state_dict(best_state)
     val_m, _, _ = evaluate(eval_model, val_loader, device)
-    test_m, test_probs, test_labels = evaluate(eval_model, test_loader, device)
-    thr = sp_threshold_search(test_probs, test_labels)
+    test_m = None
+    thr = None
+    if test_loader is not None:
+        test_m, test_probs, test_labels = evaluate(eval_model, test_loader, device)
+        thr = sp_threshold_search(test_probs, test_labels)
 
     # Save best checkpoint with final selection metadata.
     torch.save(
@@ -758,12 +1118,34 @@ def train_one(cfg: ExpConfig, split: dict, device: str = "cuda") -> dict:
     )
 
     return {
+        "status": "complete",
         "val": val_m,
         "test": test_m,
         "test_threshold": thr,
         "selection": best,
         "history": history,
     }
+
+
+def evaluate_checkpoint_on_test(checkpoint_path: Path, split: dict, device: str = "cuda") -> dict:
+    """Evaluate one validation-selected checkpoint on the frozen test set."""
+    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    cfg = checkpoint.get("cfg", {})
+    model = create_model(
+        model_name=checkpoint.get("model_name", cfg.get("backbone", "efficientnet_b0")),
+        num_classes=checkpoint.get("num_classes", 3),
+        pretrained=False,
+        use_dwt=checkpoint.get("use_dwt", cfg.get("use_dwt", True)),
+        use_arcface=checkpoint.get("use_arcface", cfg.get("use_arcface", False)),
+        use_fft_attention=cfg.get("use_attention", False),
+        attention_type=cfg.get("attention_type", "cbam"),
+    ).to(device)
+    model.load_state_dict(checkpoint["model_state_dict"])
+
+    samples = [tuple(sample) for sample in split["test"]]
+    loader = DataLoader(CachedDataset(samples, eval_tf()), batch_size=32, shuffle=False, num_workers=0, pin_memory=True)
+    metrics, probabilities, labels = evaluate(model, loader, device)
+    return {"metrics": metrics, "threshold_diagnostic": sp_threshold_search(probabilities, labels)}
 
 
 def append_leaderboard(cfg: ExpConfig, result: dict, elapsed: float) -> None:

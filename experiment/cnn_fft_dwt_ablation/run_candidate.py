@@ -1,8 +1,9 @@
 """Run one release-training candidate without promoting it to production paths.
 
 This is intentionally narrower than ``trainer.release_train``: it uses the same
-split/cache/train_one harness, appends the leaderboard, and writes a JSON
-summary, but it does not copy the result to ``trainer/checkpoints``.
+split/cache/train_one harness and writes a JSON summary, but it does not copy
+the result to ``trainer/checkpoints``. Validation-only runs keep test sealed
+and do not append the historical test leaderboard.
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ from experiment.cnn_fft_dwt_ablation.harness import (
     ExpConfig,
     append_leaderboard,
     build_split,
+    evaluate_checkpoint_on_test,
     load_focus_paths,
     precompute_cache,
     preload_ram,
@@ -39,11 +41,12 @@ def main() -> None:
     parser.add_argument("--id", required=True)
     parser.add_argument("--desc", default="release candidate")
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--split-seed", type=int, default=42)
     parser.add_argument("--backbone", default="efficientnet_b0")
-    parser.add_argument("--unfreeze", type=int, default=1)
-    parser.add_argument("--focus-weight", type=float, default=4.0)
-    parser.add_argument("--epochs-head", type=int, default=10)
-    parser.add_argument("--epochs-finetune", type=int, default=20)
+    parser.add_argument("--unfreeze", type=int, default=3)
+    parser.add_argument("--focus-weight", type=float, default=2.0)
+    parser.add_argument("--epochs-head", type=int, default=6)
+    parser.add_argument("--epochs-finetune", type=int, default=12)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--gamma", type=float, default=2.0)
     parser.add_argument("--smoothing", type=float, default=0.05)
@@ -53,7 +56,14 @@ def main() -> None:
     parser.add_argument("--no-dwt", action="store_true")
     parser.add_argument("--no-ema", action="store_true")
     parser.add_argument("--device", choices=["auto", "cpu", "cuda"], default="auto")
+    parser.add_argument("--resume", action="store_true", help="continue exactly from this candidate's last epoch")
+    parser.add_argument("--max-total-epochs", type=int, default=None, help="pause safely after this many total epochs")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--validation-only", action="store_true", help="keep the frozen test set sealed")
+    mode.add_argument("--evaluate-only", action="store_true", help="evaluate this existing candidate on frozen test")
     args = parser.parse_args()
+    if args.evaluate_only and (args.resume or args.max_total_epochs is not None):
+        parser.error("--evaluate-only cannot be combined with --resume or --max-total-epochs")
 
     device = "cuda" if args.device == "auto" and torch.cuda.is_available() else args.device
     if device == "auto":
@@ -65,15 +75,45 @@ def main() -> None:
     if args.focus_weight > 1.0 and not focus_paths:
         raise RuntimeError("Focus weighting was requested but trainer/hard_examples.txt has no available images")
 
-    split = build_split(seed=args.seed, focus_paths=focus_paths)
-    all_samples = [tuple(sample) for sample in split["train"] + split["val"] + split["test"]]
+    split = build_split(seed=args.split_seed, focus_paths=focus_paths)
+    summary_path = LOG_DIR / f"{args.id}.summary.json"
+    evaluation_summary = None
+    checkpoint_path = EXP_DIR / args.id / "best.pth"
+    if args.evaluate_only:
+        if not checkpoint_path.exists():
+            raise RuntimeError(f"Candidate checkpoint does not exist: {checkpoint_path}")
+        if not summary_path.exists():
+            raise RuntimeError(f"Candidate summary does not exist: {summary_path}")
+        evaluation_summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        if evaluation_summary.get("training_status") != "complete":
+            raise RuntimeError("Candidate training is incomplete; refusing to open the frozen test set")
+        if evaluation_summary.get("test_status") == "evaluated_once_after_validation_selection":
+            raise RuntimeError("Candidate was already evaluated on the frozen test set")
+
+    if args.evaluate_only:
+        active_samples = [tuple(sample) for sample in split["test"]]
+    elif args.validation_only:
+        active_samples = [tuple(sample) for sample in split["train"] + split["val"]]
+    else:
+        active_samples = [tuple(sample) for sample in split["train"] + split["val"] + split["test"]]
     print(
         f"Candidate split: train={len(split['train'])} val={len(split['val'])} "
         f"test={len(split['test'])} focus={len(focus_paths)}",
         flush=True,
     )
-    precompute_cache(all_samples)
-    preload_ram(all_samples)
+    precompute_cache(active_samples)
+    preload_ram(active_samples)
+
+    if args.evaluate_only:
+        summary = evaluation_summary
+        test_result = evaluate_checkpoint_on_test(checkpoint_path, split, device)
+        summary["test"] = test_result["metrics"]
+        summary["test_threshold_diagnostic"] = test_result["threshold_diagnostic"]
+        summary["test_status"] = "evaluated_once_after_validation_selection"
+        summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(json.dumps(summary, ensure_ascii=False, indent=2), flush=True)
+        print(f"Candidate test summary: {summary_path}", flush=True)
+        return
 
     cfg = ExpConfig(
         id=args.id,
@@ -96,9 +136,17 @@ def main() -> None:
 
     started_at = datetime.now().astimezone()
     started = time.monotonic()
-    result = train_one(cfg, split, device)
+    result = train_one(
+        cfg,
+        split,
+        device,
+        evaluate_test=not args.validation_only,
+        resume=args.resume,
+        max_total_epochs=args.max_total_epochs,
+    )
     elapsed = time.monotonic() - started
-    append_leaderboard(cfg, result, elapsed)
+    if result["status"] == "complete" and not args.validation_only:
+        append_leaderboard(cfg, result, elapsed)
 
     summary = {
         "id": cfg.id,
@@ -117,13 +165,21 @@ def main() -> None:
             for path in focus_paths
         ),
         "selection": result["selection"],
+        "training_status": result["status"],
+        "progress": result.get("progress"),
         "validation": result["val"],
         "test": result["test"],
-        "test_threshold": result["test_threshold"],
+        "test_threshold_diagnostic": result["test_threshold"],
+        "test_status": (
+            "sealed_paused"
+            if result["status"] == "paused"
+            else "sealed_validation_only"
+            if args.validation_only
+            else "evaluated_during_training_run"
+        ),
         "source_checkpoint": str(EXP_DIR / cfg.id / "best.pth"),
     }
     LOG_DIR.mkdir(parents=True, exist_ok=True)
-    summary_path = LOG_DIR / f"{cfg.id}.summary.json"
     summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(summary, ensure_ascii=False, indent=2), flush=True)
     print(f"Candidate summary: {summary_path}", flush=True)

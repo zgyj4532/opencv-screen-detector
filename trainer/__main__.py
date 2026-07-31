@@ -2,12 +2,16 @@ import sys
 
 
 def main() -> None:
-    usage = "Usage: python -m trainer <train|train_legacy|export|train_pahvit|benchmark|validate_pahvit|ablation>"
+    usage = "Usage: python -m trainer <audit|train|train_legacy|export|train_pahvit|benchmark|validate_pahvit|ablation>"
     if len(sys.argv) < 2:
         print(usage)
         sys.exit(1)
 
     match sys.argv[1].lower():
+        case "audit":
+            from .data_audit import main as audit_main
+
+            audit_main(sys.argv[2:])
         case "train":
             from .release_train import main as train_main
 

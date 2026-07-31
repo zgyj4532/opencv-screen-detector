@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "description": "Visually reviewed labels for byte-identical files that appear under conflicting class directories.",
+  "overrides": {
+    "246bb5ed64dbf3836a96a6f3eab5ab4724ce5ef70cf69ce0b43d1f233eaed223": {
+      "label": "screen_photo",
+      "reason": "Visible photographed display perspective and optical artifacts."
+    },
+    "2a150e2be18ecbdf2af5fbc155f5ead2f7d5aa01ec5433cb37eed60f513b64df": {
+      "label": "screen_photo",
+      "reason": "Photograph of physical phones displaying UI."
+    },
+    "2dec23cb0bfb83ffb17c1266be8a8aee75ffcbaa67a54101f4745e88994001dc": {
+      "label": "screen_photo",
+      "reason": "Photographed display content, not a direct screenshot."
+    },
+    "331ff4864e7e59b7524172e46e2d01d06d46b1bb4541ba5257545e5d9ac6a7c7": {
+      "label": "screenshot",
+      "reason": "Direct captured video frame with player overlays and no photographed display boundary."
+    },
+    "459f5e7352622559e8bd63b0b90e4e4a3d0d6b29ddf0ea2bb02931759aa2e592": {
+      "label": "screen_photo",
+      "reason": "Photograph of a physical display."
+    },
+    "498b0499c2a3ddf0f6f8d899fbfb0911c5d60de00d2fd8ad8ff0ee0073bbb78f": {
+      "label": "screen_photo",
+      "reason": "Photograph of a physical display."
+    },
+    "517b459c2a63e0408761f1793b8e5fe10768989d47cab34fa034b25dff7d2a5f": {
+      "label": "screen_photo",
+      "reason": "Visible focus falloff and display-pixel artifacts from a camera photo."
+    },
+    "5c1552cf51d096b94d6ac80fc01fe0e1e490ea0dc1e1cf7283e3fcd66cf3ac5d": {
+      "label": "screen_photo",
+      "reason": "Angled photograph of a physical display."
+    },
+    "5e7c370c4cee0faa328ad38e12a3c93834ecb38420af362503298cac7e239284": {
+      "label": "screen_photo",
+      "reason": "Angled close-up photograph of a display with optical blur."
+    },
+    "5e926ef2131cd7f6e9af036b6c0f1283d7bbb2d7172c7169a250f254c3aee62c": {
+      "label": "screen_photo",
+      "reason": "Photograph of a physical display."
+    },
+    "6470d3ae53a269ae6234c2bdf8bbaf3f3b432f760384a0bd58fbe19f21d24420": {
+      "label": "screen_photo",
+      "reason": "Photograph of a physical display."
+    },
+    "6fc697a3aeb82d88637d5b93329678fe8c0fe59e08cdd160c61f134222fd9499": {
+      "label": "screen_photo",
+      "reason": "Photograph of a physical display."
+    },
+    "80616e9dc5ff2e4d5184547498e1941536cca255adde88d608bc3dcdfc7c606d": {
+      "label": "screen_photo",
+      "reason": "Photograph of a physical display."
+    },
+    "8ec7a60927da66c8f834cff85da1e1328012468118ce5203b97b62ee9b5f080e": {
+      "label": "screen_photo",
+      "reason": "Photograph of a physical display."
+    },
+    "c04e5fc01dafa28e7042293e692eb1cf542ecf1ada7645af0a2828bae13444db": {
+      "label": "screen_photo",
+      "reason": "Photograph of a physical display."
+    },
+    "c21c70434bffff5c09877f78fc5f9927e0947752ba4d6e1cfbe337821d732daf": {
+      "label": "screen_photo",
+      "reason": "Photograph of a physical display."
+    },
+    "e518ee5a4397609f7f9332701186a4063302a15762e590c5e186b5ad97a5b957": {
+      "label": "screen_photo",
+      "reason": "Photograph of a physical display."
+    },
+    "f04572b066b2d9c2962497d7757b9b0941be8a675fa9bd8fe24256b202f231b2": {
+      "label": "screenshot",
+      "reason": "Direct social-media screenshot; no camera or physical-display evidence."
+    },
+    "f26cf16936a4f41cd7f83167082feacaab0e9f0e7c149e7d7e0b4dd992ec0422": {
+      "label": "screen_photo",
+      "reason": "Photograph of a physical display."
+    }
+  }
+}

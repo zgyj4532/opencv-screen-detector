@@ -48,6 +48,7 @@ def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--id", default="candidate_20260722_unf3_focus2_6x12")
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--split-seed", type=int, default=42)
     parser.add_argument("--focus-weight", type=float, default=2.0)
     parser.add_argument("--epochs-head", type=int, default=6)
     parser.add_argument("--epochs-finetune", type=int, default=12)
@@ -66,7 +67,7 @@ def main(argv: list[str] | None = None) -> None:
     if args.focus_weight > 1.0 and not focus_paths:
         raise RuntimeError("Focus weighting was requested but trainer/hard_examples.txt has no available images")
 
-    split = build_split(seed=args.seed, focus_paths=focus_paths)
+    split = build_split(seed=args.split_seed, focus_paths=focus_paths)
     all_samples = [tuple(sample) for sample in split["train"] + split["val"] + split["test"]]
     print(
         f"Release split: train={len(split['train'])} val={len(split['val'])} "
