@@ -183,16 +183,16 @@ flowchart TD
 | `hard_negative/` | Derived from subdirectory | Confirmed boundary cases keep their true class; train only, never in val/test |
 | `screen_photo/` | `screen_photo` | Camera photographs of displays |
 
-**Audited current data view** (updated 2026-07-31):
+**Audited current data view** (updated 2026-08-04):
 
-- Raw paths: **3,008**; unique SHA-256 content identities: **2,876**; byte-duplicate paths removed: **132**.
+- Raw paths: **3,021**; unique SHA-256 content identities: **2,889**; byte-duplicate paths removed: **132**.
 - The audit found 18 conflicting-label groups. All are resolved by 19 reviewed decisions in `trainer/content_label_overrides.json`; unresolved conflicts are rejected.
-- Frozen split seed 42: **train 2,150 / val 361 / test 365**. Cross-role content overlap and hard-negative content in val/test are both zero.
-- Current dataset fingerprint: `9e1946e53ad4851ab9d96649d2904517f15a9cb8819490b6a0c8a397156185e1`.
+- Frozen split seed 42: **train 2,163 / val 361 / test 365**. Cross-role content overlap and hard-negative content in val/test are both zero.
+- Current dataset fingerprint: `6b75f6188ffb2c6f0ecb9fd8fadddb0d61dd7fa5edc112a8ea29283017e25aa5`.
 - Evaluation fingerprint: `da74a983a7af3b5c1f73d1c80ccd5a7ed84a290e6f72dfb615a5eb6f73390eff`.
 - Any content identity represented under `hard_negative/` stays train-only, including its byte-identical copies elsewhere. New content is added to train without reshuffling frozen val/test identities.
 
-Run `uv run python -m trainer audit` before training. The full machine-readable report is `trainer/data_audit.json`; the portable frozen manifest is `experiment/cnn_fft_dwt_ablation/split.json`. The production model used the immediately preceding fingerprint `6a29c895…` with train/val/test 2,136/361/365. Fourteen unique contents added afterward were assigned only to train; the evaluation fingerprint and frozen val/test identities did not change.
+Run `uv run python -m trainer audit` before training. The full machine-readable report is `trainer/data_audit.json`; the portable frozen manifest is `experiment/cnn_fft_dwt_ablation/split.json`. The current production model uses the fingerprint above and the 2,163/361/365 split.
 
 Dataset composition changes over time; report the exact split with every new model.
 
@@ -278,7 +278,7 @@ Training outputs belong in `trainer/checkpoints/` and `trainer/logs/`.
 
 ### Current release configuration
 
-The 2026-07-31 release uses the same loss, EMA, backbone, augmentation, and FFT+DWT choices from the ablation sweep, with content-clean frozen data and deterministic multi-seed candidate selection:
+The 2026-08-04 release uses the same loss, EMA, backbone, augmentation, and FFT+DWT choices from the ablation sweep, with content-clean frozen data and deterministic seed-42 training:
 
 | Setting | Value | Note |
 | --- | --- | --- |
@@ -288,7 +288,7 @@ The 2026-07-31 release uses the same loss, EMA, backbone, augmentation, and FFT+
 | EMA | decay=0.999 | disabling costs 2.4pp sp_f1 |
 | Unfrozen stages | 3 | current release candidate; earlier 15-config screen favored 1 stage |
 | Hard-example sampler weight | 2.0 | selected from 1×/2×/4× candidates on 2026-07-22 |
-| Epochs | 6 + 12 | selected checkpoint is finetune epoch 12 for training seed 2024 |
+| Epochs | 6 + 12 | selected checkpoint is finetune epoch 9 for training seed 42 |
 | Backbone | efficientnet_b0 | B1 gives no measurable gain on a 6GB GPU |
 | Augmentation | moderate | strong aug costs ~5pp acc |
 | FFT + DWT | both enabled | removing DWT costs 5pp sp_f1 |
@@ -416,36 +416,34 @@ opencv-screen-detector/
 
 ## Experimental Results
 
-> Status: `clean_v4_s2024_final_20260730` is the deployed clean-benchmark release. Candidate selection used only the mandatory screenshot gate and validation metrics; its 365-image test split was opened once after selection.
+> Status: `release_20260804_unf3_focus2_6x12` is the current production release. Selection used the 2/2 hard-example gate and validation metrics; the 365-image test split was opened once after selection.
 
-### Current deployment (2026-07-31, `clean_v4_s2024_final_20260730`)
+### Current deployment (2026-08-04, `release_20260804_unf3_focus2_6x12`)
 
-All three deterministic candidates passed the 2/2 gate. Seed 2024 won on validation and was the only candidate evaluated on the frozen test set:
+The seed-42 release run passed the 2/2 gate. The selected checkpoint is finetune epoch 9:
 
 | Training seed | Validation accuracy | Validation screen_photo F1 | Validation Macro F1 | Validation metric | Gate |
 | ---: | ---: | ---: | ---: | ---: | ---: |
-| 42 | 0.9030 | 0.8400 | 0.8890 | 0.8687 | 2/2 |
-| **2024** | **0.9529** | **0.9358** | **0.9495** | **0.9437** | **2/2** |
-| 7 | 0.9169 | 0.8600 | 0.9046 | 0.8860 | 2/2 |
+| **42** | **0.9363** | **0.9369** | **0.9359** | **0.9365** | **2/2** |
 
-The promoted checkpoint is `finetune-12`, trained on dataset fingerprint `6a29c895…`. `three_class_best.pth` and `three_class_final.pth` have SHA-256 `0885f437…`; the 22.18 MB LFS-tracked ONNX has SHA-256 `5c3130b0…` and passed PyTorch/ONNX numerical parity.
+The promoted checkpoint uses dataset fingerprint `6b75f618…`. `three_class_best.pth` and `three_class_final.pth` have SHA-256 `642a5c8a…`; the 22.18 MB LFS-tracked ONNX has SHA-256 `aae260f3…` and passed PyTorch/ONNX numerical parity.
 
 | Evaluation path | Accuracy | SP precision | SP recall | SP F1 | Macro F1 | Metric |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Validation winner (argmax) | 0.9529 | 0.9623 | 0.9107 | 0.9358 | 0.9495 | 0.9437 |
-| Frozen test, PyTorch (argmax) | **0.9397** | **0.9608** | **0.8596** | **0.9074** | **0.9325** | **0.9221** |
-| Production ONNX (TTA + OOD + threshold) | 0.9178 | 0.9592 | 0.8246 | 0.8868 | 0.9211 | 0.9030 |
+| Validation winner (argmax) | 0.9363 | 0.9455 | 0.9286 | 0.9369 | 0.9359 | 0.9365 |
+| Frozen test, PyTorch (argmax) | **0.9233** | **0.9074** | **0.8596** | **0.8829** | **0.9137** | **0.9012** |
+| Production ONNX (TTA + OOD + threshold) | 0.8959 | 0.9020 | 0.8070 | 0.8519 | 0.9000 | 0.8747 |
 
-The production row counts all 11 `unknown` results as errors, matching the API. The test-only screen-photo threshold search is diagnostic and is not reported as a release score because tuning on test would be optimistic.
+The production row counts all 16 `unknown` results as errors, matching the API. The test-only screen-photo threshold search (0.375) is diagnostic and is not reported as a release score because tuning on test would be optimistic.
 
 **Confirmed screenshot regressions** (production ONNX with TTA):
 
 | Image | Result | screenshot probability | screen_photo probability |
 | --- | --- | ---: | ---: |
-| `4a6e…ae8f9.png` | **`screenshot`** | 0.4551 | 0.3225 |
-| `5cdc3…12a62.png` | **`screenshot`** | 0.4825 | 0.1781 |
+| `4a6e…ae8f9.png` | **`screenshot`** | 0.5231 | 0.3159 |
+| `5cdc3…12a62.png` | **`screenshot`** | 0.4551 | 0.2836 |
 
-**Production distribution**: 103 accept, 134 review, 117 low-confidence, and 11 OOD; actions are 103 accept / 134 review / 128 ignore. The clean-test CPU TTA run measured mean 172 ms / p50 162 ms / p95 223 ms. Serial latency is environment-sensitive and was not used for candidate selection.
+**Production distribution**: 63 accept, 141 review, 145 low-confidence, and 16 OOD; actions are 63 accept / 141 review / 161 ignore. The clean-test CPU TTA run measured mean 333.4 ms / p50 317.1 ms / p95 410.1 ms. Serial latency is environment-sensitive and was not used for candidate selection. The machine-readable result is `experiment/cnn_fft_dwt_ablation/deploy_eval_release_20260804.json`.
 
 ### Historical deployment context
 
@@ -513,13 +511,13 @@ The repository does contain a 22.2 MB `three_class.onnx` deployable artifact. It
 
 ## Performance Comparison
 
-The clean release's one-time PyTorch test result is **acc 0.9397 / sp_f1 0.9074 / macro_f1 0.9325 / metric 0.9221**. The real production ONNX path, which adds TTA, OOD handling, and screen-photo thresholding, records **acc 0.9178 / sp_f1 0.8868 / macro_f1 0.9211 / metric 0.9030** and passes the 2/2 screenshot gate.
+The current release's one-time PyTorch test result is **acc 0.9233 / sp_f1 0.8829 / macro_f1 0.9137 / metric 0.9012**. The real production ONNX path, which adds TTA, OOD handling, and screen-photo thresholding, records **acc 0.8959 / sp_f1 0.8519 / macro_f1 0.9000 / metric 0.8747**; the 2/2 hard-example gate passed.
 
 The 2026-07-22 PyTorch argmax result (0.9429 / 0.9076 / 0.9361 / 0.9239) is numerically close, but it was measured on a different split. The small deltas are not evidence that one model generalizes better; the clean release is preferred because its data identities, labels, frozen evaluation split, candidate selection, and one-time test opening are auditable.
 
 For research models, the CNN baseline had the highest overall accuracy and screen-photo F1 (87.67%), while DWT+FFT+DeiT had the highest recorded screen-photo recall (91.67%). One trial per model and aggressive early stopping mean those observations are directional, not production benchmarks.
 
-For a deployment comparison, benchmark exported models on the target hardware with the same warm-up, image set, batch size, and ONNX Runtime provider. Record p50/p95 latency, throughput, peak memory, artifact size, class-wise metrics, and mandatory regression gates. `experiment/cnn_fft_dwt_ablation/deploy_eval.py` accepts `--model`, `--output`, and `--label`; the clean release result is stored in `deploy_eval_clean_v4_s2024_final_20260731.json` and measured mean 172 ms / p50 162 ms / p95 223 ms on the recorded CPU run.
+For a deployment comparison, benchmark exported models on the target hardware with the same warm-up, image set, batch size, and ONNX Runtime provider. Record p50/p95 latency, throughput, peak memory, artifact size, class-wise metrics, and mandatory regression gates. `experiment/cnn_fft_dwt_ablation/deploy_eval.py` accepts `--model`, `--output`, and `--label`; the current release result is stored in `deploy_eval_release_20260804.json` and measured mean 333.4 ms / p50 317.1 ms / p95 410.1 ms on the recorded CPU run.
 
 ## Model Evolution
 

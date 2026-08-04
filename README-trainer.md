@@ -88,12 +88,12 @@ hard_negative/  →  按子目录名称恢复真实标签（仅 train，不入 v
 
 `trainer/hard_examples.txt` 记录已经人工确认的线上/本地误判。清单中的图片必须存在于主数据集，发布切分会确保它们只进入 train，当前发布默认使用 2× sampler 权重；最佳 checkpoint 先要求这些回归样本全部正确，再按验证集指标选优。
 
-**已审计当前数据视图**（2026-07-31）：
+**已审计当前数据视图**（2026-08-04）：
 
-- 原始路径 3,008 个；唯一内容 2,876 个；按内容去除重复路径 132 个。
+- 原始路径 3,021 个；唯一内容 2,889 个；按内容去除重复路径 132 个。
 - 18 组原始标签冲突均已解决；19 条复核决定，无未使用决定。
-- 冻结切分 seed=42：train 2,150 / val 361 / test 365；跨集合内容重合为 0，评测集 hard-negative 内容为 0。
-- 当前数据集指纹：`9e1946e53ad4851ab9d96649d2904517f15a9cb8819490b6a0c8a397156185e1`。
+- 冻结切分 seed=42：train 2,163 / val 361 / test 365；跨集合内容重合为 0，评测集 hard-negative 内容为 0。
+- 当前数据集指纹：`6b75f6188ffb2c6f0ecb9fd8fadddb0d61dd7fa5edc112a8ea29283017e25aa5`。
 - 评测集指纹：`da74a983a7af3b5c1f73d1c80ccd5a7ed84a290e6f72dfb615a5eb6f73390eff`。
 
 `--split-seed` 只控制首次生成的冻结评测身份；`--seed` 控制模型初始化、采样器和增强。冻结后新增内容只进入 train，val/test 内容缺失或改标会直接失败。训练前执行 `uv run python -m trainer audit`。
@@ -210,42 +210,40 @@ BEST_METRIC_MACRO_F1_WEIGHT = 0.2
 - `three_class.onnx` - ONNX 模型 (推荐, 22.2 MB)
 - `three_class.torchscript` - TorchScript 临时导出（不作为仓库发布工件）
 
-## 最新训练结果（2026-07-31 部署）
+## 最新训练结果（2026-08-04 部署）
 
-**发布 ID**：`clean_v4_s2024_final_20260730`，选择 `finetune-12`，hard-example 门槛 **2/2**。
+**发布 ID**：`release_20260804_unf3_focus2_6x12`，选择 `finetune-9`，hard-example 门槛 **2/2**。
 
-**发布训练快照**：数据指纹 `6a29c895…`，原始路径 2,993 个、唯一内容 2,862 个；内容清洗冻结切分 seed=42，train/val/test = 2,136/361/365，跨集合内容重合为 0。训练后新增的 14 个唯一内容只进入当前 train，冻结 val/test 未变化。
+**发布训练快照**：数据指纹 `6b75f618…`，原始路径 3,021 个、唯一内容 2,889 个；内容清洗冻结切分 seed=42，train/val/test = 2,163/361/365，跨集合内容重合为 0。
 
-### Validation 多种子选择
+### Validation 选择
 
 | 训练 seed | Accuracy | screen_photo F1 | Macro F1 | Metric | 门槛 |
 |---:|---:|---:|---:|---:|---:|
-| 42 | 0.9030 | 0.8400 | 0.8890 | 0.8687 | 2/2 |
-| **2024** | **0.9529** | **0.9358** | **0.9495** | **0.9437** | **2/2** |
-| 7 | 0.9169 | 0.8600 | 0.9046 | 0.8860 | 2/2 |
+| **42** | **0.9363** | **0.9369** | **0.9359** | **0.9365** | **2/2** |
 
-候选选择只看 hard-example 门槛和 validation；只有 seed=2024 胜出后一次性打开冻结 test。
+候选选择只看 hard-example 门槛和 validation；通过后一次性打开冻结 test。
 
 | 评估路径 | Accuracy | screen_photo Precision | screen_photo Recall | screen_photo F1 | Macro F1 | Metric |
 |---|---:|---:|---:|---:|---:|---:|
-| Validation 胜出指标（argmax） | 0.9529 | 0.9623 | 0.9107 | 0.9358 | 0.9495 | 0.9437 |
-| 冻结 test，PyTorch（argmax） | **0.9397** | **0.9608** | **0.8596** | **0.9074** | **0.9325** | **0.9221** |
-| 生产 ONNX（TTA + OOD + 阈值） | 0.9178 | 0.9592 | 0.8246 | 0.8868 | 0.9211 | 0.9030 |
+| Validation 胜出指标（argmax） | 0.9363 | 0.9455 | 0.9286 | 0.9369 | 0.9359 | 0.9365 |
+| 冻结 test，PyTorch（argmax） | **0.9233** | **0.9074** | **0.8596** | **0.8829** | **0.9137** | **0.9012** |
+| 生产 ONNX（TTA + OOD + 阈值） | 0.8959 | 0.9020 | 0.8070 | 0.8519 | 0.9000 | 0.8747 |
 
-生产 ONNX 的 11 个 `unknown` 直接按错误计数，与 API 行为一致。置信度分布为 103 high、134 medium、117 low、11 OOD；CPU TTA 单跑为 mean 172 ms / p50 162 ms / p95 223 ms。
+生产 ONNX 的 16 个 `unknown` 直接按错误计数，与 API 行为一致。置信度分布为 63 high、141 medium、145 low、16 OOD；CPU TTA 单跑为 mean 333.4 ms / p50 317.1 ms / p95 410.1 ms。机器可读结果为 `experiment/cnn_fft_dwt_ablation/deploy_eval_release_20260804.json`。
 
 **生产工件**：
 
-- `three_class_best.pth` / `three_class_final.pth`：SHA-256 `0885f437…`
-- `three_class.onnx`：22.18 MB，SHA-256 `5c3130b0…`，已通过 PyTorch/ONNX parity
-- 端到端结果：`experiment/cnn_fft_dwt_ablation/deploy_eval_clean_v4_s2024_final_20260731.json`
+- `three_class_best.pth` / `three_class_final.pth`：SHA-256 `642a5c8a…`
+- `three_class.onnx`：22.18 MB，SHA-256 `aae260f3…`，已通过 PyTorch/ONNX parity
+- 端到端结果：`experiment/cnn_fft_dwt_ablation/deploy_eval_release_20260804.json`
 
 **两张目标 screenshot 的 ONNX+TTA 回归**：
 
 | 图片 | 结果 | screenshot 概率 | screen_photo 概率 |
 |---|---|---:|---:|
-| `4a6e…ae8f9.png` | **`screenshot`** | 0.4551 | 0.3225 |
-| `5cdc3…12a62.png` | **`screenshot`** | 0.4825 | 0.1781 |
+| `4a6e…ae8f9.png` | **`screenshot`** | 0.5231 | 0.3159 |
+| `5cdc3…12a62.png` | **`screenshot`** | 0.4551 | 0.2836 |
 
 2026-07-22 PyTorch argmax 历史值为 acc 0.9429 / sp_f1 0.9076 / macro_f1 0.9361 / metric 0.9239，数值与本次接近，但来自不同切分，不能当作受控优劣结论。当前版本以可审计的内容身份、标签、冻结评测集、validation 选种和一次性 test 作为发布依据。
 

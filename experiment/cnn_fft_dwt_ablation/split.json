@@ -2,10 +2,10 @@
   "meta": {
     "schema_version": 4,
     "seed": 42,
-    "dataset_fingerprint": "9e1946e53ad4851ab9d96649d2904517f15a9cb8819490b6a0c8a397156185e1",
+    "dataset_fingerprint": "6b75f6188ffb2c6f0ecb9fd8fadddb0d61dd7fa5edc112a8ea29283017e25aa5",
     "evaluation_fingerprint": "da74a983a7af3b5c1f73d1c80ccd5a7ed84a290e6f72dfb615a5eb6f73390eff",
     "focus_fingerprint": "174d1d29220abcdb3ecf48eb04075a883e421a0b544c9a3598951bd09ab86a79",
-    "main_count": 2431,
+    "main_count": 2444,
     "hard_negative_count": 445,
     "focus_count": 2,
     "assignment_policy": "frozen_val_test_new_content_to_train_hard_content_train_only"
@@ -10760,6 +10760,71 @@
       "screen_photo/f8f84483cb83425467ba38504b6576ccffbec6cbba31667a880ad7bfd77f172c.jpg",
       2,
       "f8f84483cb83425467ba38504b6576ccffbec6cbba31667a880ad7bfd77f172c"
+    ],
+    [
+      "screenshot/071b53cde1687a17f4dbddd167127f6a88ceb8f36c1769a0e3ea2ac0774a91f0.png",
+      1,
+      "071b53cde1687a17f4dbddd167127f6a88ceb8f36c1769a0e3ea2ac0774a91f0"
+    ],
+    [
+      "screenshot/22f952bc45434e88e640b5e27a7a9458faafed1dfd935a3551bb07947c8d2c32.jpg",
+      1,
+      "22f952bc45434e88e640b5e27a7a9458faafed1dfd935a3551bb07947c8d2c32"
+    ],
+    [
+      "screenshot/39a816252aabf92d58931638d05b43d53dd8c3e0f8bd83dc5dabbd723cd3ef0b.jpg",
+      1,
+      "39a816252aabf92d58931638d05b43d53dd8c3e0f8bd83dc5dabbd723cd3ef0b"
+    ],
+    [
+      "screenshot/538a85568d05e15132d60776efafb18af2cec897d753a2a05664fdeae0c6260f.jpg",
+      1,
+      "538a85568d05e15132d60776efafb18af2cec897d753a2a05664fdeae0c6260f"
+    ],
+    [
+      "screen_photo/89dc01446c5d2a504ae342029a419f8c61803a5bd3aa3520d34673724b221f8a.jpg",
+      2,
+      "89dc01446c5d2a504ae342029a419f8c61803a5bd3aa3520d34673724b221f8a"
+    ],
+    [
+      "screen_photo/9e57f6eeb1cdca428a809faa123c72b0db41373361d6de3f188918b1d2acffbd.jpg",
+      2,
+      "9e57f6eeb1cdca428a809faa123c72b0db41373361d6de3f188918b1d2acffbd"
+    ],
+    [
+      "screen_photo/af826c13f6e1e38e26f244272eed280b47d2841b9a125a4d734c3eb14432899c.jpg",
+      2,
+      "af826c13f6e1e38e26f244272eed280b47d2841b9a125a4d734c3eb14432899c"
+    ],
+    [
+      "screenshot/cc17192735021302e51050c9b66096f19d2fd9c2d197d53a3e85db0d1b94f3ca.jpg",
+      1,
+      "cc17192735021302e51050c9b66096f19d2fd9c2d197d53a3e85db0d1b94f3ca"
+    ],
+    [
+      "screenshot/cc8b08ca892e82d03c7821a39e9f4f351d8973100315eea8ee0b522b54d3b9b0.jpg",
+      1,
+      "cc8b08ca892e82d03c7821a39e9f4f351d8973100315eea8ee0b522b54d3b9b0"
+    ],
+    [
+      "screenshot/ccbb991b412b5161b5742c759402b7d56e4ff6e9404eb49f507d5e3a146ad956.png",
+      1,
+      "ccbb991b412b5161b5742c759402b7d56e4ff6e9404eb49f507d5e3a146ad956"
+    ],
+    [
+      "screen_photo/d852519e1947909e77882f42d6c8c3888965e3d8c126db6235eb711f9a1f5da1.jpg",
+      2,
+      "d852519e1947909e77882f42d6c8c3888965e3d8c126db6235eb711f9a1f5da1"
+    ],
+    [
+      "screen_photo/e9707f8dd9cb0654184675fac43559517dc01e94ad3143154f829488f7d9f7f5.jpg",
+      2,
+      "e9707f8dd9cb0654184675fac43559517dc01e94ad3143154f829488f7d9f7f5"
+    ],
+    [
+      "screenshot/eab5d57d6737c5dc7f0ccb7dfc3c64295083c26a415a8aa3bdbfe661ab5053f8.jpg",
+      1,
+      "eab5d57d6737c5dc7f0ccb7dfc3c64295083c26a415a8aa3bdbfe661ab5053f8"
     ]
   ],
   "val": [

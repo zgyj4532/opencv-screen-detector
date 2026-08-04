@@ -1,0 +1,44 @@
+{
+  "label": "release_20260804",
+  "onnx_path": "inference/models/three_class.onnx",
+  "onnx_sha256": "aae260f3c16d651ddd9a01b4e8729b8c4815aaaa4bc4908d846590e86f568792",
+  "size_mb": 22.18,
+  "n_test": 365,
+  "raw": {
+    "accuracy": 0.8958904109589041,
+    "sp_f1": 0.8518518518518519,
+    "sp_precision": 0.9019607843137255,
+    "sp_recall": 0.8070175438596491,
+    "macro_f1": 0.9000388604908379,
+    "metric": 0.8747008213117649
+  },
+  "hypothetical_ood_as_screen_photo": {
+    "accuracy": 0.915068493150685,
+    "sp_f1": 0.8548387096774193,
+    "sp_precision": 0.7910447761194029,
+    "sp_recall": 0.9298245614035088,
+    "macro_f1": 0.901034479766027,
+    "metric": 0.8821467987371204
+  },
+  "latency_ms": {
+    "mean": 333.44071531948975,
+    "p50": 317.09766387939453,
+    "p95": 410.10775566101074
+  },
+  "tiers": {
+    "low": 145,
+    "medium": 141,
+    "high": 63,
+    "ood": 16
+  },
+  "actions": {
+    "ignore": 161,
+    "review": 141,
+    "accept": 63
+  },
+  "baseline_to_beat": {
+    "acc": 0.8946,
+    "macro_f1": 0.8668,
+    "sp_f1": 0.763
+  }
+}

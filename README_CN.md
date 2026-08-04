@@ -183,16 +183,16 @@ flowchart TD
 | `hard_negative/` | 按子目录推导 | 已确认边界案例保留真实类别；仅参与 train，不进入 val/test |
 | `screen_photo/` | `screen_photo` | 相机拍摄的显示设备照片 |
 
-**已审计的当前数据视图**（2026-07-31 更新）：
+**已审计的当前数据视图**（2026-08-04 更新）：
 
-- 原始路径 **3,008** 个，SHA-256 唯一内容 **2,876** 个，移除字节级重复路径 **132** 个。
+- 原始路径 **3,021** 个，SHA-256 唯一内容 **2,889** 个，移除字节级重复路径 **132** 个。
 - 审计发现 18 组标签冲突，已由 `trainer/content_label_overrides.json` 中 19 条人工复核决定全部解决；存在未解决冲突时训练会直接失败。
-- 冻结切分 seed=42：**train 2,150 / val 361 / test 365**；集合之间内容重合为 0，val/test 中 hard-negative 内容为 0。
-- 当前数据集指纹：`9e1946e53ad4851ab9d96649d2904517f15a9cb8819490b6a0c8a397156185e1`。
+- 冻结切分 seed=42：**train 2,163 / val 361 / test 365**；集合之间内容重合为 0，val/test 中 hard-negative 内容为 0。
+- 当前数据集指纹：`6b75f6188ffb2c6f0ecb9fd8fadddb0d61dd7fa5edc112a8ea29283017e25aa5`。
 - 评测集指纹：`da74a983a7af3b5c1f73d1c80ccd5a7ed84a290e6f72dfb615a5eb6f73390eff`。
 - 只要某个内容身份曾出现在 `hard_negative/`，它及其他目录中的字节级副本都只进入 train。新增内容只加入 train，不重排已冻结的 val/test。
 
-训练前先执行 `uv run python -m trainer audit`。完整机器可读报告位于 `trainer/data_audit.json`，可移植冻结清单位于 `experiment/cnn_fft_dwt_ablation/split.json`。生产模型使用紧邻此前的数据指纹 `6a29c895…`，train/val/test 为 2,136/361/365。训练后新增的 14 个唯一内容只进入 train，评测指纹和冻结 val/test 身份均未变化。
+训练前先执行 `uv run python -m trainer audit`。完整机器可读报告位于 `trainer/data_audit.json`，可移植冻结清单位于 `experiment/cnn_fft_dwt_ablation/split.json`。当前生产模型使用上述数据指纹，切分为 2,163/361/365。
 
 数据集会变化；每个新模型都应同时报告其确切数据划分。
 
@@ -278,7 +278,7 @@ uv run python -m trainer ablation --modules baseline,arcface,attention --epochs-
 
 ### 当前发布配置
 
-2026-07-31 当前发布沿用消融验证出的损失函数、EMA、backbone、增广与 FFT+DWT 选择，并采用内容清洗后的冻结数据和确定性多种子候选选择：
+2026-08-04 当前发布沿用消融验证出的损失函数、EMA、backbone、增广与 FFT+DWT 选择，并采用内容清洗后的冻结数据和 seed=42 确定性训练：
 
 | 项 | 值 | 说明 |
 | --- | --- | --- |
@@ -288,7 +288,7 @@ uv run python -m trainer ablation --modules baseline,arcface,attention --epochs-
 | EMA | decay=0.999 | 关闭后 sp_f1 退步 2.4pp |
 | 解冻 stage 数 | 3 | 当前发布候选；早期 15 配置筛选中 1 stage 更优 |
 | hard-example 采样权重 | 2.0 | 2026-07-22 在 1×/2×/4× 候选中选中 |
-| 训练轮数 | 6 + 12 | seed=2024 的最佳 checkpoint 为 finetune 第 12 轮 |
+| 训练轮数 | 6 + 12 | seed=42 的最佳 checkpoint 为 finetune 第 9 轮 |
 | Backbone | efficientnet_b0 | B1 在 6GB 显存下无明显收益 |
 | 增强 | 温和（关 MoireSimulation 等强增广） | 强增广退步 ~5pp acc |
 | FFT + DWT | 都启用 | 移除 DWT 后 sp_f1 退步 5pp |
@@ -416,36 +416,34 @@ opencv-screen-detector/
 
 ## 实验结果
 
-> 状态说明：`clean_v4_s2024_final_20260730` 已作为干净基准生产版本部署。候选选择只使用强制 screenshot 门槛和 validation 指标；选定后才一次性打开 365 张 test。
+> 状态说明：`release_20260804_unf3_focus2_6x12` 是当前生产版本。候选选择使用 2/2 hard-example 门槛和 validation 指标；选定后才一次性打开 365 张 test。
 
-### 当前部署模型（2026-07-31，`clean_v4_s2024_final_20260730`）
+### 当前部署模型（2026-08-04，`release_20260804_unf3_focus2_6x12`）
 
-三个确定性候选均通过 2/2 门槛。seed=2024 的 validation 指标最高，因此只有它进入冻结 test：
+seed=42 的发布训练通过 2/2 门槛，选中的 checkpoint 为 finetune 第 9 轮：
 
 | 训练 seed | Validation Accuracy | Validation screen_photo F1 | Validation Macro F1 | Validation Metric | 门槛 |
 | ---: | ---: | ---: | ---: | ---: | ---: |
-| 42 | 0.9030 | 0.8400 | 0.8890 | 0.8687 | 2/2 |
-| **2024** | **0.9529** | **0.9358** | **0.9495** | **0.9437** | **2/2** |
-| 7 | 0.9169 | 0.8600 | 0.9046 | 0.8860 | 2/2 |
+| **42** | **0.9363** | **0.9369** | **0.9359** | **0.9365** | **2/2** |
 
-晋升的 checkpoint 为 `finetune-12`，训练数据指纹为 `6a29c895…`。`three_class_best.pth` 与 `three_class_final.pth` 的 SHA-256 为 `0885f437…`；Git LFS 跟踪的 ONNX 为 22.18 MB，SHA-256 为 `5c3130b0…`，并已通过 PyTorch/ONNX 数值一致性验证。
+晋升的 checkpoint 使用数据指纹 `6b75f618…`。`three_class_best.pth` 与 `three_class_final.pth` 的 SHA-256 为 `642a5c8a…`；Git LFS 跟踪的 ONNX 为 22.18 MB，SHA-256 为 `aae260f3…`，并已通过 PyTorch/ONNX 数值一致性验证。
 
 | 评估路径 | Accuracy | SP Precision | SP Recall | SP F1 | Macro F1 | Metric |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Validation 胜出指标（argmax） | 0.9529 | 0.9623 | 0.9107 | 0.9358 | 0.9495 | 0.9437 |
-| 冻结 test，PyTorch（argmax） | **0.9397** | **0.9608** | **0.8596** | **0.9074** | **0.9325** | **0.9221** |
-| 生产 ONNX（TTA + OOD + 阈值） | 0.9178 | 0.9592 | 0.8246 | 0.8868 | 0.9211 | 0.9030 |
+| Validation 胜出指标（argmax） | 0.9363 | 0.9455 | 0.9286 | 0.9369 | 0.9359 | 0.9365 |
+| 冻结 test，PyTorch（argmax） | **0.9233** | **0.9074** | **0.8596** | **0.8829** | **0.9137** | **0.9012** |
+| 生产 ONNX（TTA + OOD + 阈值） | 0.8959 | 0.9020 | 0.8070 | 0.8519 | 0.9000 | 0.8747 |
 
-生产 ONNX 行把 11 个 `unknown` 全部按错误计数，与 API 一致。test 上搜索 screen-photo 阈值的结果只作诊断，不作为发布成绩，因为直接在 test 调参会产生乐观偏差。
+生产 ONNX 行把 16 个 `unknown` 全部按错误计数，与 API 一致。test 上搜索到的 screen-photo 阈值 0.375 只作诊断，不作为发布成绩，因为直接在 test 调参会产生乐观偏差。
 
 **已确认 screenshot 回归**（生产 ONNX + TTA）：
 
 | 图片 | 结果 | screenshot 概率 | screen_photo 概率 |
 | --- | --- | ---: | ---: |
-| `4a6e…ae8f9.png` | **`screenshot`** | 0.4551 | 0.3225 |
-| `5cdc3…12a62.png` | **`screenshot`** | 0.4825 | 0.1781 |
+| `4a6e…ae8f9.png` | **`screenshot`** | 0.5231 | 0.3159 |
+| `5cdc3…12a62.png` | **`screenshot`** | 0.4551 | 0.2836 |
 
-**生产分布**：103 accept、134 review、117 low-confidence、11 OOD；动作分布为 103 accept / 134 review / 128 ignore。干净 test 的 CPU TTA 单跑为 mean 172 ms / p50 162 ms / p95 223 ms。串行延迟受环境影响，不参与候选选择。
+**生产分布**：63 accept、141 review、145 low-confidence、16 OOD；动作分布为 63 accept / 141 review / 161 ignore。干净 test 的 CPU TTA 单跑为 mean 333.4 ms / p50 317.1 ms / p95 410.1 ms。串行延迟受环境影响，不参与候选选择。机器可读结果位于 `experiment/cnn_fft_dwt_ablation/deploy_eval_release_20260804.json`。
 
 ### 历史生产背景
 
@@ -513,13 +511,13 @@ opencv-screen-detector/
 
 ## 性能对比
 
-干净发布的一次性 PyTorch test 为 **acc 0.9397 / sp_f1 0.9074 / macro_f1 0.9325 / metric 0.9221**。加入 TTA、OOD 与 screen-photo 阈值后的真实生产 ONNX 为 **acc 0.9178 / sp_f1 0.8868 / macro_f1 0.9211 / metric 0.9030**，并通过 2/2 screenshot 门槛。
+当前发布的一次性 PyTorch test 为 **acc 0.9233 / sp_f1 0.8829 / macro_f1 0.9137 / metric 0.9012**。加入 TTA、OOD 与 screen-photo 阈值后的真实生产 ONNX 为 **acc 0.8959 / sp_f1 0.8519 / macro_f1 0.9000 / metric 0.8747**，并通过 2/2 hard-example 门槛。
 
 2026-07-22 PyTorch argmax（0.9429 / 0.9076 / 0.9361 / 0.9239）在数值上接近，但来自不同切分。细小差异不能证明哪一个模型泛化更好；当前版本的内容身份、标签、冻结评测集、候选选择和一次性 test 开启均可审计，因此作为正式发布。
 
 研究模型对比中 CNN 基线的总体 Accuracy 和屏幕照片 F1（87.67%）最高，而 DWT+FFT+DeiT 的已记录屏幕照片 Recall（91.67%）最高。每个研究模型仅有一次试验且 early stopping 较激进，这些观察只能作为方向性结论，不能视为生产基准。
 
-部署比较应在目标硬件上使用相同的预热、图片集、batch size 和 ONNX Runtime provider，并同时记录 p50/p95 延迟、吞吐量、峰值内存、工件大小、各类别指标与强制回归门槛。`experiment/cnn_fft_dwt_ablation/deploy_eval.py` 支持 `--model`、`--output`、`--label`；干净发布结果保存在 `deploy_eval_clean_v4_s2024_final_20260731.json`，本次 CPU 运行（含 TTA）为 mean 172 ms / p50 162 ms / p95 223 ms。
+部署比较应在目标硬件上使用相同的预热、图片集、batch size 和 ONNX Runtime provider，并同时记录 p50/p95 延迟、吞吐量、峰值内存、工件大小、各类别指标与强制回归门槛。`experiment/cnn_fft_dwt_ablation/deploy_eval.py` 支持 `--model`、`--output`、`--label`；当前发布结果保存在 `deploy_eval_release_20260804.json`，本次 CPU 运行（含 TTA）为 mean 333.4 ms / p50 317.1 ms / p95 410.1 ms。
 
 ## 模型演进
 
