@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "raw_paths": 3021,
-  "unique_content": 2889,
+  "raw_paths": 3070,
+  "unique_content": 2938,
   "duplicate_content_groups": 123,
   "cross_source_duplicate_groups": 67,
   "duplicate_paths_removed": 132,
@@ -12,19 +12,19 @@
   "split": {
     "schema_version": 4,
     "seed": 42,
-    "dataset_fingerprint": "6b75f6188ffb2c6f0ecb9fd8fadddb0d61dd7fa5edc112a8ea29283017e25aa5",
+    "dataset_fingerprint": "b194d30758f9512a077246ab2c309da9b5189d1441d2a3cfa6d7962738f7f53d",
     "evaluation_fingerprint": "da74a983a7af3b5c1f73d1c80ccd5a7ed84a290e6f72dfb615a5eb6f73390eff",
     "focus_fingerprint": "174d1d29220abcdb3ecf48eb04075a883e421a0b544c9a3598951bd09ab86a79",
-    "main_count": 2444,
+    "main_count": 2493,
     "hard_negative_count": 445,
     "focus_count": 2,
     "assignment_policy": "frozen_val_test_new_content_to_train_hard_content_train_only",
     "train": {
-      "total": 2163,
+      "total": 2212,
       "classes": {
-        "natural": 644,
-        "screenshot": 1211,
-        "screen_photo": 308
+        "natural": 646,
+        "screenshot": 1221,
+        "screen_photo": 345
       }
     },
     "val": {

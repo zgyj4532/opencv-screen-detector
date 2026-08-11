@@ -1,0 +1,44 @@
+{
+  "label": "release_20260807_unf3_focus2_6x12",
+  "onnx_path": "inference/models/three_class.onnx",
+  "onnx_sha256": "c53b00d5511f0deb358df387f5e21202fc348f2b3f6fbbb8f39e676a03a7b390",
+  "size_mb": 22.18,
+  "n_test": 365,
+  "raw": {
+    "accuracy": 0.9232876712328767,
+    "sp_f1": 0.9122807017543859,
+    "sp_precision": 0.9122807017543859,
+    "sp_recall": 0.9122807017543859,
+    "macro_f1": 0.9295947701383905,
+    "metric": 0.9190456062747341
+  },
+  "hypothetical_ood_as_screen_photo": {
+    "accuracy": 0.9260273972602739,
+    "sp_f1": 0.8548387096774193,
+    "sp_precision": 0.7910447761194029,
+    "sp_recall": 0.9298245614035088,
+    "macro_f1": 0.9104474394460684,
+    "metric": 0.8873170619060056
+  },
+  "latency_ms": {
+    "mean": 353.76385205412566,
+    "p50": 327.4264335632324,
+    "p95": 471.82636260986334
+  },
+  "tiers": {
+    "low": 114,
+    "medium": 148,
+    "high": 93,
+    "ood": 10
+  },
+  "actions": {
+    "ignore": 124,
+    "review": 148,
+    "accept": 93
+  },
+  "baseline_to_beat": {
+    "acc": 0.8946,
+    "macro_f1": 0.8668,
+    "sp_f1": 0.763
+  }
+}

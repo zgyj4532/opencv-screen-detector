@@ -1,0 +1,50 @@
+{
+  "promotion_status": "rejected_production_hard_example_gate_0_of_2",
+  "label": "release_20260811_unf3_focus2_6x12",
+  "onnx_path": "inference/models/three_class.onnx",
+  "onnx_sha256": "6cd176eba9e67c628e2aae2db466c7fa38872f15c9345c4c56dff416b4904ab6",
+  "size_mb": 22.18,
+  "n_test": 365,
+  "raw": {
+    "accuracy": 0.8849315068493151,
+    "sp_f1": 0.8363636363636363,
+    "sp_precision": 0.8679245283018868,
+    "sp_recall": 0.8070175438596491,
+    "macro_f1": 0.8964146228132966,
+    "metric": 0.8629441947992721
+  },
+  "hypothetical_ood_as_screen_photo": {
+    "accuracy": 0.9095890410958904,
+    "sp_f1": 0.8208955223880597,
+    "sp_precision": 0.7142857142857143,
+    "sp_recall": 0.9649122807017544,
+    "macro_f1": 0.8912585848214377,
+    "metric": 0.8615761904870846
+  },
+  "latency_ms": {
+    "mean": 161.16666205941814,
+    "p50": 149.51658248901367,
+    "p95": 216.52531623840332
+  },
+  "tiers": {
+    "low": 217,
+    "medium": 90,
+    "high": 34,
+    "ood": 24
+  },
+  "actions": {
+    "ignore": 241,
+    "review": 90,
+    "accept": 34
+  },
+  "hard_example_gate": {
+    "passed": 0,
+    "total": 2,
+    "predictions": ["unknown", "unknown"]
+  },
+  "baseline_to_beat": {
+    "acc": 0.8946,
+    "macro_f1": 0.8668,
+    "sp_f1": 0.763
+  }
+}

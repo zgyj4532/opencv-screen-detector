@@ -88,12 +88,12 @@ hard_negative/  →  按子目录名称恢复真实标签（仅 train，不入 v
 
 `trainer/hard_examples.txt` 记录已经人工确认的线上/本地误判。清单中的图片必须存在于主数据集，发布切分会确保它们只进入 train，当前发布默认使用 2× sampler 权重；最佳 checkpoint 先要求这些回归样本全部正确，再按验证集指标选优。
 
-**已审计当前数据视图**（2026-08-04）：
+**已审计当前数据视图**（2026-08-11）：
 
-- 原始路径 3,021 个；唯一内容 2,889 个；按内容去除重复路径 132 个。
+- 原始路径 3,070 个；唯一内容 2,938 个；按内容去除重复路径 132 个。
 - 18 组原始标签冲突均已解决；19 条复核决定，无未使用决定。
-- 冻结切分 seed=42：train 2,163 / val 361 / test 365；跨集合内容重合为 0，评测集 hard-negative 内容为 0。
-- 当前数据集指纹：`6b75f6188ffb2c6f0ecb9fd8fadddb0d61dd7fa5edc112a8ea29283017e25aa5`。
+- 冻结切分 seed=42：train 2,212 / val 361 / test 365；跨集合内容重合为 0，评测集 hard-negative 内容为 0。
+- 当前数据集指纹：`b194d30758f9512a077246ab2c309da9b5189d1441d2a3cfa6d7962738f7f53d`。
 - 评测集指纹：`da74a983a7af3b5c1f73d1c80ccd5a7ed84a290e6f72dfb615a5eb6f73390eff`。
 
 `--split-seed` 只控制首次生成的冻结评测身份；`--seed` 控制模型初始化、采样器和增强。冻结后新增内容只进入 train，val/test 内容缺失或改标会直接失败。训练前执行 `uv run python -m trainer audit`。
@@ -210,42 +210,48 @@ BEST_METRIC_MACRO_F1_WEIGHT = 0.2
 - `three_class.onnx` - ONNX 模型 (推荐, 22.2 MB)
 - `three_class.torchscript` - TorchScript 临时导出（不作为仓库发布工件）
 
-## 最新训练结果（2026-08-04 部署）
+## 最新训练结果（2026-08-07 部署）
 
-**发布 ID**：`release_20260804_unf3_focus2_6x12`，选择 `finetune-9`，hard-example 门槛 **2/2**。
+**发布 ID**：`release_20260807_unf3_focus2_6x12`，选择 `finetune-12`，hard-example 门槛 **2/2**。
 
-**发布训练快照**：数据指纹 `6b75f618…`，原始路径 3,021 个、唯一内容 2,889 个；内容清洗冻结切分 seed=42，train/val/test = 2,163/361/365，跨集合内容重合为 0。
+**发布训练快照**：数据指纹 `972fc082…`，原始路径 3,041 个、唯一内容 2,909 个；内容清洗冻结切分 seed=42，train/val/test = 2,183/361/365，跨集合内容重合为 0。
 
 ### Validation 选择
 
 | 训练 seed | Accuracy | screen_photo F1 | Macro F1 | Metric | 门槛 |
 |---:|---:|---:|---:|---:|---:|
-| **42** | **0.9363** | **0.9369** | **0.9359** | **0.9365** | **2/2** |
+| **42** | **0.9363** | **0.9550** | **0.9399** | **0.9463** | **2/2** |
 
 候选选择只看 hard-example 门槛和 validation；通过后一次性打开冻结 test。
 
 | 评估路径 | Accuracy | screen_photo Precision | screen_photo Recall | screen_photo F1 | Macro F1 | Metric |
 |---|---:|---:|---:|---:|---:|---:|
-| Validation 胜出指标（argmax） | 0.9363 | 0.9455 | 0.9286 | 0.9369 | 0.9359 | 0.9365 |
-| 冻结 test，PyTorch（argmax） | **0.9233** | **0.9074** | **0.8596** | **0.8829** | **0.9137** | **0.9012** |
-| 生产 ONNX（TTA + OOD + 阈值） | 0.8959 | 0.9020 | 0.8070 | 0.8519 | 0.9000 | 0.8747 |
+| Validation 胜出指标（argmax） | 0.9363 | 0.9636 | 0.9464 | 0.9550 | 0.9399 | 0.9463 |
+| 冻结 test，PyTorch（argmax） | **0.9425** | **0.8966** | **0.9123** | **0.9043** | **0.9340** | **0.9217** |
+| 生产 ONNX（TTA + OOD + 阈值） | 0.9233 | 0.9123 | 0.9123 | 0.9123 | 0.9296 | 0.9190 |
 
-生产 ONNX 的 16 个 `unknown` 直接按错误计数，与 API 行为一致。置信度分布为 63 high、141 medium、145 low、16 OOD；CPU TTA 单跑为 mean 333.4 ms / p50 317.1 ms / p95 410.1 ms。机器可读结果为 `experiment/cnn_fft_dwt_ablation/deploy_eval_release_20260804.json`。
+生产 ONNX 的 10 个 `unknown` 直接按错误计数，与 API 行为一致。置信度分布为 93 high、148 medium、114 low、10 OOD；CPU TTA 单跑为 mean 353.8 ms / p50 327.4 ms / p95 471.8 ms。机器可读结果为 `experiment/cnn_fft_dwt_ablation/deploy_eval_release_20260807.json`。
 
 **生产工件**：
 
-- `three_class_best.pth` / `three_class_final.pth`：SHA-256 `642a5c8a…`
-- `three_class.onnx`：22.18 MB，SHA-256 `aae260f3…`，已通过 PyTorch/ONNX parity
-- 端到端结果：`experiment/cnn_fft_dwt_ablation/deploy_eval_release_20260804.json`
+- `three_class_best.pth` / `three_class_final.pth`：SHA-256 `cfd5c75c…`
+- `three_class.onnx`：22.18 MB，SHA-256 `c53b00d5…`，已通过 PyTorch/ONNX parity
+- 端到端结果：`experiment/cnn_fft_dwt_ablation/deploy_eval_release_20260807.json`
 
 **两张目标 screenshot 的 ONNX+TTA 回归**：
 
 | 图片 | 结果 | screenshot 概率 | screen_photo 概率 |
 |---|---|---:|---:|
-| `4a6e…ae8f9.png` | **`screenshot`** | 0.5231 | 0.3159 |
-| `5cdc3…12a62.png` | **`screenshot`** | 0.4551 | 0.2836 |
+| `4a6e…ae8f9.png` | **`screenshot`** | 0.5818 | 0.2641 |
+| `5cdc3…12a62.png` | **`screenshot`** | 0.5319 | 0.1690 |
 
 2026-07-22 PyTorch argmax 历史值为 acc 0.9429 / sp_f1 0.9076 / macro_f1 0.9361 / metric 0.9239，数值与本次接近，但来自不同切分，不能当作受控优劣结论。当前版本以可审计的内容身份、标签、冻结评测集、validation 选种和一次性 test 作为发布依据。
+
+### 2026-08-11 重训记录（未部署）
+
+当前数据视图新增 29 个 train-only 唯一内容。seed=42 的 `release_20260811_unf3_focus2_6x12` 选择 finetune-7，validation 为 acc 0.9086 / sp_f1 0.8762 / macro_f1 0.9012 / metric 0.8909；训练 argmax 门槛 2/2，但导出 ONNX 经真实 Predictor 后两张目标截图均为 `unknown`，生产门槛 0/2。该候选在冻结 test 的生产路径为 acc 0.8849 / sp_f1 0.8364 / macro_f1 0.8964 / metric 0.8629，24 个 OOD。
+
+seed=2024 的 `release_20260811_s2024_unf3_focus2_6x12` 选择 finetune-11，validation 为 acc 0.9224 / sp_f1 0.9000 / macro_f1 0.9181 / metric 0.9104；训练门槛 2/2，但生产门槛只有 1/2，因此 test 保持封存。两个候选都通过 PyTorch/ONNX parity，但都没有替换 2026-08-07 生产工件。
 
 ## 环境要求
 
