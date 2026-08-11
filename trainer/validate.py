@@ -73,9 +73,7 @@ def validate_model(
     f1 = f1_score(all_labels, all_preds, average=None, zero_division=0)
 
     # Overall metrics
-    precision_macro = precision_score(
-        all_labels, all_preds, average="macro", zero_division=0
-    )
+    precision_macro = precision_score(all_labels, all_preds, average="macro", zero_division=0)
     recall_macro = recall_score(all_labels, all_preds, average="macro", zero_division=0)
     f1_macro = f1_score(all_labels, all_preds, average="macro", zero_division=0)
 

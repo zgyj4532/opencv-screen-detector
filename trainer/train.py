@@ -280,9 +280,7 @@ def train_three_class(
     best_metric = 0.0  # 0.5 * screen_photo_f1 + 0.3 * accuracy + 0.2 * macro_f1
 
     # screen_photo is class index 2
-    screen_photo_class_idx = (
-        class_names.index("screen_photo") if "screen_photo" in class_names else 2
-    )
+    screen_photo_class_idx = class_names.index("screen_photo") if "screen_photo" in class_names else 2
 
     # ==========================================
     # Stage A: Train classification head
@@ -300,7 +298,11 @@ def train_three_class(
         start_time = time.time()
 
         train_loss, train_acc = train_one_epoch(
-            model, train_loader, criterion, optimizer, device,
+            model,
+            train_loader,
+            criterion,
+            optimizer,
+            device,
             use_arcface=use_arcface,
             use_center_loss=use_center_loss,
             center_loss_optimizer=center_loss_optimizer,
@@ -371,7 +373,11 @@ def train_three_class(
         start_time = time.time()
 
         train_loss, train_acc = train_one_epoch(
-            model, train_loader, criterion, optimizer, device,
+            model,
+            train_loader,
+            criterion,
+            optimizer,
+            device,
             use_arcface=use_arcface,
             use_center_loss=use_center_loss,
             center_loss_optimizer=center_loss_optimizer,
@@ -454,6 +460,7 @@ def train_three_class(
                 all_labels.extend(labels.numpy())
 
         import numpy as np
+
         all_probs = np.array(all_probs)
         all_labels = np.array(all_labels)
 

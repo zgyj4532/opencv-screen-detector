@@ -43,11 +43,13 @@ def validate_pahvit_model(
         model: PAH-ViT model
         val_loader: Validation data loader (rgb, labels)
         device: Device to use
-        class_names: Class names
+        class_names: Retained for call compatibility; metrics are index-based
 
     Returns:
         dict with metrics
     """
+    del class_names
+
     from sklearn.metrics import (
         accuracy_score,
         confusion_matrix,
@@ -85,9 +87,7 @@ def validate_pahvit_model(
     recall = recall_score(all_labels, all_preds, average=None, zero_division=0)
     f1 = f1_score(all_labels, all_preds, average=None, zero_division=0)
 
-    precision_macro = precision_score(
-        all_labels, all_preds, average="macro", zero_division=0
-    )
+    precision_macro = precision_score(all_labels, all_preds, average="macro", zero_division=0)
     recall_macro = recall_score(all_labels, all_preds, average="macro", zero_division=0)
     f1_macro = f1_score(all_labels, all_preds, average="macro", zero_division=0)
 
@@ -156,9 +156,7 @@ def train_one_epoch_pahvit(
 
         with torch.amp.autocast("cuda" if device == "cuda" else "cpu", enabled=use_amp):
             logits, anomaly_scores = model(rgb)
-            total_loss, ce_loss, contrastive_loss = criterion(
-                logits, anomaly_scores, labels
-            )
+            total_loss, ce_loss, contrastive_loss = criterion(logits, anomaly_scores, labels)
 
         optimizer.zero_grad()
         scaler.scale(total_loss).backward()
@@ -276,9 +274,7 @@ def train_pahvit(
     best_val_acc = 0.0
     best_metric = 0.0
 
-    screen_photo_class_idx = (
-        class_names.index("screen_photo") if "screen_photo" in class_names else 2
-    )
+    screen_photo_class_idx = class_names.index("screen_photo") if "screen_photo" in class_names else 2
 
     # ==========================================
     # Stage A: Train classification head

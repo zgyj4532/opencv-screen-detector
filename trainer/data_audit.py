@@ -87,10 +87,7 @@ def build_report(split_seed: int = 42) -> dict:
         raise RuntimeError(f"Frozen split contains cross-role content leakage: {overlap}")
 
     hard_hashes = {digest for digest, group in groups.items() if any(candidate[2] for candidate in group)}
-    hard_content_in_eval = {
-        role: sorted(role_hashes[role] & hard_hashes)
-        for role in ("val", "test")
-    }
+    hard_content_in_eval = {role: sorted(role_hashes[role] & hard_hashes) for role in ("val", "test")}
     if any(hard_content_in_eval.values()):
         raise RuntimeError(f"Hard-negative content escaped into evaluation: {hard_content_in_eval}")
 

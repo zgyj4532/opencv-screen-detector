@@ -65,9 +65,7 @@ class ImageIndex:
             await conn.commit()
             yield conn
 
-    async def _find_by_hash(
-        self, conn: aiosqlite.Connection, file_hash: str
-    ) -> ImageEntry | None:
+    async def _find_by_hash(self, conn: aiosqlite.Connection, file_hash: str) -> ImageEntry | None:
         cursor = await conn.execute(
             "SELECT file_name, class_name, created_at FROM images WHERE file_hash = ?",
             (file_hash,),
@@ -95,8 +93,7 @@ class ImageIndex:
 
             entry = ImageEntry(file_name=new_path.name, file_hash=file_hash)
             await conn.execute(
-                "INSERT INTO images (file_hash, file_name, class_name, created_at) "
-                "VALUES (?, ?, ?, ?)",
+                "INSERT INTO images (file_hash, file_name, class_name, created_at) VALUES (?, ?, ?, ?)",
                 (
                     entry.file_hash,
                     entry.file_name,
@@ -133,14 +130,11 @@ class ImageIndex:
             await conn.commit()
 
     @contextlib.asynccontextmanager
-    async def list_entries_after(
-        self, ts: datetime
-    ) -> AsyncGenerator[list[ImageEntry]]:
+    async def list_entries_after(self, ts: datetime) -> AsyncGenerator[list[ImageEntry]]:
         timestamp = ts.astimezone(UTC).timestamp()
         async with self._get_connection() as conn:
             cursor = await conn.execute(
-                "SELECT file_hash, file_name, class_name, created_at "
-                "FROM images WHERE created_at > ?",
+                "SELECT file_hash, file_name, class_name, created_at FROM images WHERE created_at > ?",
                 (timestamp,),
             )
             rows = await cursor.fetchall()
@@ -165,9 +159,7 @@ class ImageIndex:
         async with self._get_connection() as conn:
             for entry in entries.values():
                 await conn.execute(
-                    "INSERT OR IGNORE INTO images "
-                    "(file_hash, file_name, class_name, created_at) "
-                    "VALUES (?, ?, ?, ?)",
+                    "INSERT OR IGNORE INTO images (file_hash, file_name, class_name, created_at) VALUES (?, ?, ?, ?)",
                     (
                         entry.file_hash,
                         entry.file_name,

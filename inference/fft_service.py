@@ -49,9 +49,7 @@ class FFTService:
         self._put(cache_key, result)
         return result
 
-    def get_fft_input_from_array(
-        self, image: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray]:
+    def get_fft_input_from_array(self, image: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Get FFT spectrum and DWT features for a numpy array (no caching).
 
         Returns:

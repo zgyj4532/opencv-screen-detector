@@ -33,7 +33,7 @@ class MoireSimulation(A.ImageOnlyTransform):
         self.frequency_range = frequency_range
         self.amplitude_range = amplitude_range
 
-    def apply(self, img: np.ndarray, **params) -> np.ndarray:
+    def apply(self, img: np.ndarray, **_params: object) -> np.ndarray:
         h, w = img.shape[:2]
         freq = np.random.uniform(*self.frequency_range)
         amp = np.random.uniform(*self.amplitude_range)
@@ -79,7 +79,7 @@ class ScreenReflection(A.ImageOnlyTransform):
         self.num_spots_range = num_spots_range
         self.intensity_range = intensity_range
 
-    def apply(self, img: np.ndarray, **params) -> np.ndarray:
+    def apply(self, img: np.ndarray, **_params: object) -> np.ndarray:
         h, w = img.shape[:2]
         num_spots = np.random.randint(*self.num_spots_range)
 

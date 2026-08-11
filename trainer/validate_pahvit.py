@@ -106,9 +106,7 @@ def train_and_evaluate_single_run(
             focal_gamma=config.PAH_VIT_FOCAL_GAMMA,
         )
 
-        screen_photo_class_idx = (
-            class_names.index("screen_photo") if "screen_photo" in class_names else 2
-        )
+        screen_photo_class_idx = class_names.index("screen_photo") if "screen_photo" in class_names else 2
 
         best_metric = 0.0
         best_val_acc = 0.0
@@ -125,9 +123,7 @@ def train_and_evaluate_single_run(
         scheduler = CosineAnnealingLR(optimizer, T_max=epochs_head)
 
         for epoch in range(epochs_head):
-            train_loss, train_acc, _, _ = train_one_epoch_pahvit(
-                model, train_loader, criterion, optimizer, device
-            )
+            train_one_epoch_pahvit(model, train_loader, criterion, optimizer, device)
 
             val_metrics = validate_pahvit_model(model, val_loader, device, class_names)
             val_acc = val_metrics["accuracy"]
@@ -169,9 +165,7 @@ def train_and_evaluate_single_run(
         scheduler = CosineAnnealingLR(optimizer, T_max=epochs_finetune)
 
         for epoch in range(epochs_finetune):
-            train_loss, train_acc, _, _ = train_one_epoch_pahvit(
-                model, train_loader, criterion, optimizer, device
-            )
+            train_one_epoch_pahvit(model, train_loader, criterion, optimizer, device)
 
             val_metrics = validate_pahvit_model(model, val_loader, device, class_names)
             val_acc = val_metrics["accuracy"]
@@ -204,20 +198,14 @@ def train_and_evaluate_single_run(
         )
         best_model = best_model.to(device)
 
-        final_metrics = validate_pahvit_model(
-            best_model, val_loader, device, class_names
-        )
+        final_metrics = validate_pahvit_model(best_model, val_loader, device, class_names)
 
         return {
             "seed": seed,
             "accuracy": final_metrics["accuracy"],
             "screen_photo_f1": final_metrics["f1_per_class"][screen_photo_class_idx],
-            "screen_photo_precision": final_metrics["precision_per_class"][
-                screen_photo_class_idx
-            ],
-            "screen_photo_recall": final_metrics["recall_per_class"][
-                screen_photo_class_idx
-            ],
+            "screen_photo_precision": final_metrics["precision_per_class"][screen_photo_class_idx],
+            "screen_photo_recall": final_metrics["recall_per_class"][screen_photo_class_idx],
             "macro_f1": final_metrics["f1_macro"],
             "f1_per_class": final_metrics["f1_per_class"].tolist(),
             "best_metric": best_metric,
@@ -364,8 +352,8 @@ def run_5fold_validation(
     }
 
     output_path = config.LOG_DIR / "pahvit_5fold_validation.json"
-    with open(output_path, "w") as f:
-        json.dump(output, f, indent=2)
+    with output_path.open("w", encoding="utf-8") as output_file:
+        json.dump(output, output_file, indent=2)
     print(f"\nResults saved to: {output_path}")
 
     return output

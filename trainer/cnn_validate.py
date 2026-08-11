@@ -78,12 +78,8 @@ def compute_cnn_metrics_three_class(
     f1_macro = f1_score(all_labels, all_preds, average="macro")
 
     # Per-class metrics
-    precision_per_class = cast(
-        "np.ndarray", precision_score(all_labels, all_preds, average=None)
-    )
-    recall_per_class = cast(
-        "np.ndarray", recall_score(all_labels, all_preds, average=None)
-    )
+    precision_per_class = cast("np.ndarray", precision_score(all_labels, all_preds, average=None))
+    recall_per_class = cast("np.ndarray", recall_score(all_labels, all_preds, average=None))
     f1_per_class = cast("np.ndarray", f1_score(all_labels, all_preds, average=None))
 
     # Confusion matrix

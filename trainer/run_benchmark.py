@@ -100,18 +100,14 @@ def run_quick_benchmark(
 
     # Test loss computation
     dummy_labels = torch.tensor([0, 1]).to(device)
-    total_loss, ce_loss, contrastive_loss = criterion(
-        logits, anomaly_scores, dummy_labels
-    )
+    total_loss, ce_loss, contrastive_loss = criterion(logits, anomaly_scores, dummy_labels)
     print(f"  Total loss: {total_loss.item():.4f}")
     print(f"  CE loss: {ce_loss.item():.4f}")
     print(f"  Contrastive loss: {contrastive_loss.item():.4f}")
 
     # Quick training
     print(f"\n[4/4] Running quick training ({epochs_head}+{epochs_finetune} epochs)...")
-    screen_photo_class_idx = (
-        class_names.index("screen_photo") if "screen_photo" in class_names else 2
-    )
+    screen_photo_class_idx = class_names.index("screen_photo") if "screen_photo" in class_names else 2
 
     best_metric = 0.0
     start_time = time.time()
@@ -130,9 +126,7 @@ def run_quick_benchmark(
 
     for epoch in range(epochs_head):
         epoch_start = time.time()
-        train_loss, train_acc, ce_loss, cl_loss = train_one_epoch_pahvit(
-            model, train_loader, criterion, optimizer, device
-        )
+        train_loss, train_acc, ce_loss, _ = train_one_epoch_pahvit(model, train_loader, criterion, optimizer, device)
 
         val_metrics = validate_pahvit_model(model, val_loader, device, class_names)
         val_acc = val_metrics["accuracy"]
@@ -182,9 +176,7 @@ def run_quick_benchmark(
 
     for epoch in range(epochs_finetune):
         epoch_start = time.time()
-        train_loss, train_acc, ce_loss, cl_loss = train_one_epoch_pahvit(
-            model, train_loader, criterion, optimizer, device
-        )
+        train_loss, train_acc, ce_loss, _ = train_one_epoch_pahvit(model, train_loader, criterion, optimizer, device)
 
         val_metrics = validate_pahvit_model(model, val_loader, device, class_names)
         val_acc = val_metrics["accuracy"]

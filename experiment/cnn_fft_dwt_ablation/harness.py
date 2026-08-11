@@ -909,8 +909,7 @@ def train_one(
         completed_finetune = resume_state["completed_finetune"]
         _restore_runtime_rng(resume_state["runtime_rng"], train_ds.transform, sampler)
         print(
-            f"  Resuming after A={completed_head}/{cfg.epochs_head}, "
-            f"B={completed_finetune}/{cfg.epochs_finetune}",
+            f"  Resuming after A={completed_head}/{cfg.epochs_head}, B={completed_finetune}/{cfg.epochs_finetune}",
             flush=True,
         )
 

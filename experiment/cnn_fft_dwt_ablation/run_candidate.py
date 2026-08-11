@@ -161,8 +161,7 @@ def main() -> None:
             "test": len(split["test"]),
         },
         "focus_examples": sorted(
-            Path(path).resolve().relative_to((ROOT / "data" / "input").resolve()).as_posix()
-            for path in focus_paths
+            Path(path).resolve().relative_to((ROOT / "data" / "input").resolve()).as_posix() for path in focus_paths
         ),
         "selection": result["selection"],
         "training_status": result["status"],

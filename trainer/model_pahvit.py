@@ -11,7 +11,6 @@ Key insight: screen_photo vs screenshot difference is local patch-level
 distortion (moiré, reflection, perspective) not global semantics.
 """
 
-
 import timm
 import torch
 import torch.nn as nn
@@ -91,7 +90,7 @@ class SpectralTokenMixer(nn.Module):
         Returns:
             Mixed features (B, N, D)
         """
-        B, N, D = x.shape
+        token_count = x.shape[1]
 
         # Apply 1D FFT along token dimension
         x_freq = torch.fft.rfft(x, dim=1, norm="ortho")
@@ -101,7 +100,7 @@ class SpectralTokenMixer(nn.Module):
         x_freq = x_freq * freq_weight
 
         # Inverse FFT
-        x_mixed = torch.fft.irfft(x_freq, n=N, dim=1, norm="ortho")
+        x_mixed = torch.fft.irfft(x_freq, n=token_count, dim=1, norm="ortho")
 
         # Gate to control mixing intensity
         gate = self.gate(x)
@@ -177,13 +176,13 @@ class PatchTokenBranch(nn.Module):
             - patch_features: Aggregated patch features (B, patch_dim)
             - anomaly_scores: Per-patch anomaly scores (B, N)
         """
-        B, N, D = x.shape
+        batch_size = x.shape[0]
 
         # Project patch tokens
         x_proj = self.proj(x)  # (B, N, patch_dim)
 
         # Expand queries for batch
-        queries = self.query_tokens.expand(B, -1, -1)  # (B, num_queries, patch_dim)
+        queries = self.query_tokens.expand(batch_size, -1, -1)  # (B, num_queries, patch_dim)
 
         # Cross-attention: queries attend to patches
         attn_out, _ = self.cross_attn(queries, x_proj, x_proj)  # (B, Q, patch_dim)
@@ -246,9 +245,7 @@ class GlobalLocalFusion(nn.Module):
 
         self.norm = nn.LayerNorm(fused_dim)
 
-    def forward(
-        self, global_feat: torch.Tensor, local_feat: torch.Tensor
-    ) -> torch.Tensor:
+    def forward(self, global_feat: torch.Tensor, local_feat: torch.Tensor) -> torch.Tensor:
         """Forward pass.
 
         Args:
@@ -260,10 +257,10 @@ class GlobalLocalFusion(nn.Module):
         """
         # Project
         g = self.global_proj(global_feat).unsqueeze(1)  # (B, 1, D_fused)
-        l = self.local_proj(local_feat).unsqueeze(1)  # (B, 1, D_fused)
+        local = self.local_proj(local_feat).unsqueeze(1)  # (B, 1, D_fused)
 
         # Cross-attention: global attends to local
-        attn_out, _ = self.cross_attn(g, l, l)  # (B, 1, D_fused)
+        attn_out, _ = self.cross_attn(g, local, local)  # (B, 1, D_fused)
         attn_out = attn_out.squeeze(1)  # (B, D_fused)
 
         # Concatenate and fuse
@@ -373,12 +370,9 @@ class PAHVitModel(nn.Module):
             x = stage(x)
         # x shape: (B, 128, 7, 7)
         # Reshape to (B, N, D)
-        B, C, H, W = x.shape
         return rearrange(x, "b c h w -> b (h w) c")
 
-    def forward(
-        self, rgb_input: torch.Tensor
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, rgb_input: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Forward pass.
 
         Args:

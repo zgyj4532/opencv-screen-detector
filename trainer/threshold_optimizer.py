@@ -179,15 +179,9 @@ class ThresholdOptimizer:
         from sklearn.metrics import accuracy_score
 
         # Per-class metrics
-        precision_per_class = precision_score(
-            labels, predictions, average=None, zero_division=0
-        )
-        recall_per_class = recall_score(
-            labels, predictions, average=None, zero_division=0
-        )
-        f1_per_class = f1_score(
-            labels, predictions, average=None, zero_division=0
-        )
+        precision_per_class = precision_score(labels, predictions, average=None, zero_division=0)
+        recall_per_class = recall_score(labels, predictions, average=None, zero_division=0)
+        f1_per_class = f1_score(labels, predictions, average=None, zero_division=0)
 
         return {
             "accuracy": accuracy_score(labels, predictions),
@@ -211,9 +205,7 @@ class ThresholdOptimizer:
         if self.optimal_thresholds is None:
             raise ValueError("Must call search() before predict()")
 
-        target_threshold = self.optimal_thresholds.get(
-            self.target_class, 0.5
-        )
+        target_threshold = self.optimal_thresholds.get(self.target_class, 0.5)
         return self._apply_thresholds(probabilities, target_threshold)
 
     def print_thresholds(self) -> None:

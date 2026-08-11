@@ -15,8 +15,8 @@ from shared.fft_transform import (
 __all__ = [
     "FFT_NORM_MEAN",
     "FFT_NORM_STD",
-    "compute_fft_spectrum",
-    "compute_fft_spectrum_from_bytes",
     "compute_dwt_features",
     "compute_dwt_features_from_bytes",
+    "compute_fft_spectrum",
+    "compute_fft_spectrum_from_bytes",
 ]

@@ -101,7 +101,7 @@ ADAPTIVE_THRESHOLD_METRIC = "f1"  # Metric to optimize
 # PAH-ViT Configuration (Legacy - not used in current optimization)
 # ============================================================
 PAH_VIT_MODEL_NAME = "efficientvit_b0"
-PAH_VIT_EPOCHS_HEAD = 3       # Stage A: freeze backbone
+PAH_VIT_EPOCHS_HEAD = 3  # Stage A: freeze backbone
 PAH_VIT_EPOCHS_FINETUNE = 10  # Stage B: unfreeze last 4 stages
 PAH_VIT_BATCH_SIZE = 16
 PAH_VIT_LEARNING_RATE = 1e-3
@@ -109,7 +109,7 @@ PAH_VIT_WEIGHT_DECAY = 1e-4
 PAH_VIT_LAMBDA_CONTRASTIVE = 0.3  # Weight for Patch Contrastive Loss
 PAH_VIT_FOCAL_GAMMA = 3.0
 PAH_VIT_NUM_WORKERS = 0
-PAH_VIT_NUM_QUERIES = 4       # Number of learnable query tokens in Patch Branch
-PAH_VIT_PATCH_DIM = 256       # Patch branch feature dimension
-PAH_VIT_FUSED_DIM = 512       # Fusion output dimension
-PAH_VIT_MIXER_LAYERS = 2      # Number of Fourier Token Mixer layers
+PAH_VIT_NUM_QUERIES = 4  # Number of learnable query tokens in Patch Branch
+PAH_VIT_PATCH_DIM = 256  # Patch branch feature dimension
+PAH_VIT_FUSED_DIM = 512  # Fusion output dimension
+PAH_VIT_MIXER_LAYERS = 2  # Number of Fourier Token Mixer layers

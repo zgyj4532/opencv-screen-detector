@@ -95,7 +95,6 @@ class PatchContrastiveLoss(nn.Module):
             Scalar loss value
         """
         device = anomaly_scores.device
-        B, N = anomaly_scores.shape
 
         # Only consider screen_photo and screenshot samples
         mask = (labels == self.screen_photo_idx) | (labels == self.screenshot_idx)
@@ -105,9 +104,9 @@ class PatchContrastiveLoss(nn.Module):
         # Filter to relevant classes
         scores = anomaly_scores[mask]  # (B', N)
         filtered_labels = labels[mask]  # (B',)
-        B_prime = scores.shape[0]
+        batch_size = scores.shape[0]
 
-        if B_prime < 2:
+        if batch_size < 2:
             return torch.tensor(0.0, device=device)
 
         # Compute pairwise similarity matrix
@@ -118,7 +117,7 @@ class PatchContrastiveLoss(nn.Module):
         # Create positive mask: same class
         labels_expanded = filtered_labels.unsqueeze(0) == filtered_labels.unsqueeze(1)  # (B', B')
         # Remove self-similarity
-        self_mask = ~torch.eye(B_prime, dtype=torch.bool, device=device)
+        self_mask = ~torch.eye(batch_size, dtype=torch.bool, device=device)
         pos_mask = labels_expanded & self_mask  # (B', B')
         neg_mask = ~labels_expanded  # (B', B')
 
@@ -127,7 +126,7 @@ class PatchContrastiveLoss(nn.Module):
         loss = torch.tensor(0.0, device=device)
         count = 0
 
-        for i in range(B_prime):
+        for i in range(batch_size):
             pos_indices = pos_mask[i].nonzero(as_tuple=True)[0]
             neg_indices = neg_mask[i].nonzero(as_tuple=True)[0]
 

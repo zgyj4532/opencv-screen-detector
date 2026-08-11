@@ -2,6 +2,7 @@
 
 Usage: uv run python experiment/cnn_fft_dwt_ablation/finalist.py [--seeds 42 2024 7]
 """
+
 import argparse
 import json
 import sys
@@ -12,9 +13,14 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from harness import (  # type: ignore  # noqa: E402
-    ExpConfig, build_split, evaluate, precompute_cache, preload_ram,
-    sp_threshold_search, train_one, append_leaderboard, EXP_DIR,
+from harness import (  # type: ignore
+    EXP_DIR,
+    ExpConfig,
+    append_leaderboard,
+    build_split,
+    precompute_cache,
+    preload_ram,
+    train_one,
 )
 
 FINAL_DIR = ROOT / "experiment" / "cnn_fft_dwt_ablation" / "finalist"
@@ -34,7 +40,8 @@ def run_one(cfg: ExpConfig, tag: str, device: str = "cuda", skip_existing: bool 
                 if rec.get("id") == tag:
                     print(f"\n=== skip {tag}: cached in leaderboard ===", flush=True)
                     return {
-                        "id": tag, "cfg": cfg.__dict__,
+                        "id": tag,
+                        "cfg": cfg.__dict__,
                         "val_acc": rec.get("val_acc", float("nan")),
                         "val_sp_f1": rec.get("val_sp_f1", float("nan")),
                         "val_metric": rec.get("val_metric", float("nan")),
@@ -48,7 +55,7 @@ def run_one(cfg: ExpConfig, tag: str, device: str = "cuda", skip_existing: bool 
                         "elapsed_s": rec.get("elapsed_s", 0),
                     }
         raise RuntimeError(f"{tag} checkpoint exists but no leaderboard entry; delete the checkpoint to re-run")
-    print(f"\n{'='*70}\n### {tag}: {cfg.desc}\n{'='*70}", flush=True)
+    print(f"\n{'=' * 70}\n### {tag}: {cfg.desc}\n{'=' * 70}", flush=True)
     split = build_split()
     print(f"Split: train={len(split['train'])} val={len(split['val'])} test={len(split['test'])}", flush=True)
     all_samples = [tuple(x) for x in split["train"] + split["val"] + split["test"]]
@@ -58,9 +65,12 @@ def run_one(cfg: ExpConfig, tag: str, device: str = "cuda", skip_existing: bool 
     t0 = time.time()
     result = train_one(cfg, split, device)
     elapsed = time.time() - t0
-    print(f">>> {tag} test_acc={result['test']['accuracy']:.4f} "
-          f"test_spF1={result['test']['sp_f1']:.4f} test_macroF1={result['test']['macro_f1']:.4f} "
-          f"thr_spF1={result['test_threshold']['sp_f1']:.4f} ({elapsed:.0f}s)", flush=True)
+    print(
+        f">>> {tag} test_acc={result['test']['accuracy']:.4f} "
+        f"test_spF1={result['test']['sp_f1']:.4f} test_macroF1={result['test']['macro_f1']:.4f} "
+        f"thr_spF1={result['test_threshold']['sp_f1']:.4f} ({elapsed:.0f}s)",
+        flush=True,
+    )
 
     # Move/copy best.pth to a tag-specific final dir
     src_ckpt = EXP_DIR / cfg.id / "best.pth"
@@ -68,7 +78,7 @@ def run_one(cfg: ExpConfig, tag: str, device: str = "cuda", skip_existing: bool 
     dst.mkdir(exist_ok=True, parents=True)
     if src_ckpt.exists():
         (dst / "best.pth").write_bytes(src_ckpt.read_bytes())
-        print(f"  copied {src_ckpt} -> {dst/'best.pth'}", flush=True)
+        print(f"  copied {src_ckpt} -> {dst / 'best.pth'}", flush=True)
 
     row = {
         "id": tag,
@@ -123,15 +133,18 @@ def main():
         )
         rows.append(run_one(cfg, cfg.id, args.device, skip_existing=args.skip_existing))
 
-    print(f"\n{'='*70}\nFINALIST SUMMARY\n{'='*70}")
+    print(f"\n{'=' * 70}\nFINALIST SUMMARY\n{'=' * 70}")
     print(f"{'id':<22} {'test_acc':>8} {'test_spF1':>9} {'macroF1':>8} {'metric':>7}")
     for r in rows:
-        print(f"{r['id']:<22} {r['test_acc']:>8.4f} {r['test_sp_f1']:>9.4f} "
-              f"{r['test_macro_f1']:>8.4f} {r['test_metric']:>7.4f}")
-    avg = {k: sum(r[k] for r in rows) / len(rows)
-           for k in ["test_acc", "test_sp_f1", "test_macro_f1", "test_metric"]}
-    print(f"{'AVG':<22} {avg['test_acc']:>8.4f} {avg['test_sp_f1']:>9.4f} "
-          f"{avg['test_macro_f1']:>8.4f} {avg['test_metric']:>7.4f}")
+        print(
+            f"{r['id']:<22} {r['test_acc']:>8.4f} {r['test_sp_f1']:>9.4f} "
+            f"{r['test_macro_f1']:>8.4f} {r['test_metric']:>7.4f}"
+        )
+    avg = {k: sum(r[k] for r in rows) / len(rows) for k in ["test_acc", "test_sp_f1", "test_macro_f1", "test_metric"]}
+    print(
+        f"{'AVG':<22} {avg['test_acc']:>8.4f} {avg['test_sp_f1']:>9.4f} "
+        f"{avg['test_macro_f1']:>8.4f} {avg['test_metric']:>7.4f}"
+    )
 
     (FINAL_DIR / "summary.json").write_text(
         json.dumps({"runs": rows, "avg": avg}, ensure_ascii=False, indent=2), encoding="utf-8"

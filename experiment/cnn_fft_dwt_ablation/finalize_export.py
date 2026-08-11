@@ -2,6 +2,7 @@
 
 Usage: uv run python experiment/cnn_fft_dwt_ablation/finalize_export.py <checkpoint.pth> <out.onnx>
 """
+
 import sys
 from pathlib import Path
 
@@ -12,7 +13,7 @@ import torch
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT))
-from trainer.model import load_model  # noqa: E402
+from trainer.model import load_model
 
 IMAGE_SIZE = 224
 
@@ -24,8 +25,12 @@ def export(ckpt: str, onnx_path: str) -> None:
     fft = torch.randn(1, 1, IMAGE_SIZE, IMAGE_SIZE)
     dwt = torch.randn(1, 4, IMAGE_SIZE, IMAGE_SIZE)
     torch.onnx.export(
-        model, (rgb, fft, dwt), onnx_path, opset_version=11,
-        input_names=["rgb_input", "fft_input", "dwt_input"], output_names=["output"],
+        model,
+        (rgb, fft, dwt),
+        onnx_path,
+        opset_version=11,
+        input_names=["rgb_input", "fft_input", "dwt_input"],
+        output_names=["output"],
         dynamic_axes={"rgb_input": {0: "b"}, "fft_input": {0: "b"}, "dwt_input": {0: "b"}, "output": {0: "b"}},
     )
     onnx.checker.check_model(onnx.load(onnx_path))

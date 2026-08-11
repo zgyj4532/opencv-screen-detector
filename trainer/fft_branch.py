@@ -184,9 +184,7 @@ class FrequencyBranchWithDWT(nn.Module):
             dwt_feat = self.dwt_attention(dwt_feat)
 
         # Resize DWT to match FFT spatial dimensions
-        dwt_feat = nn.functional.interpolate(
-            dwt_feat, size=fft_feat.shape[2:], mode="bilinear", align_corners=False
-        )
+        dwt_feat = nn.functional.interpolate(dwt_feat, size=fft_feat.shape[2:], mode="bilinear", align_corners=False)
 
         # Concatenate and fuse
         fused = torch.cat([fft_feat, dwt_feat], dim=1)  # (B, 128, H, W)

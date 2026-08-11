@@ -151,9 +151,7 @@ class TwoInputDataset(Dataset):
     def __len__(self) -> int:
         return len(self.samples)
 
-    def __getitem__(
-        self, idx: int
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, int]:
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, int]:
         img_path, label = self.samples[idx]
 
         # Skip images larger than 10MB to avoid MemoryError (check BEFORE loading)
@@ -174,9 +172,7 @@ class TwoInputDataset(Dataset):
         else:
             # Default: resize and normalize
             image_resized = cv2.resize(image, (self.image_size, self.image_size))
-            rgb_tensor = (
-                torch.from_numpy(image_resized).permute(2, 0, 1).float() / 255.0
-            )
+            rgb_tensor = torch.from_numpy(image_resized).permute(2, 0, 1).float() / 255.0
 
         # FFT 分支
         fft_spectrum = compute_fft_spectrum(image, self.image_size)
@@ -203,9 +199,7 @@ class TransformSubset(Dataset):
     def __len__(self) -> int:
         return len(self.subset)
 
-    def __getitem__(
-        self, idx: int
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, int]:
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, int]:
         rgb_tensor, fft_tensor, dwt_tensor, label = self.subset[idx]
 
         # Convert tensor back to numpy for albumentations
@@ -316,9 +310,7 @@ class SingleInputDataset(Dataset):
             rgb_tensor = augmented["image"]
         else:
             image_resized = cv2.resize(image, (self.image_size, self.image_size))
-            rgb_tensor = (
-                torch.from_numpy(image_resized).permute(2, 0, 1).float() / 255.0
-            )
+            rgb_tensor = torch.from_numpy(image_resized).permute(2, 0, 1).float() / 255.0
 
         return rgb_tensor, label
 
@@ -421,9 +413,7 @@ def create_single_input_data_loaders(
 
         class_counts = Counter(train_labels)
         total_samples = len(train_labels)
-        class_weights = {
-            cls: total_samples / count for cls, count in class_counts.items()
-        }
+        class_weights = {cls: total_samples / count for cls, count in class_counts.items()}
 
         sample_weights = []
         hard_negative_set = set(full_dataset.hard_negative_indices)
@@ -539,9 +529,7 @@ def create_data_loaders(
         # Calculate class counts and weights
         class_counts = Counter(train_labels)
         total_samples = len(train_labels)
-        class_weights = {
-            cls: total_samples / count for cls, count in class_counts.items()
-        }
+        class_weights = {cls: total_samples / count for cls, count in class_counts.items()}
 
         # Assign weight to each sample
         # Hard negative samples get extra weight

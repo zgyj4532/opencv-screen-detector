@@ -228,10 +228,7 @@ def create_criterion(
     alpha = torch.tensor(class_weights) if class_weights else None
 
     # Base loss
-    if use_focal_loss:
-        base_criterion = FocalLoss(gamma=focal_gamma, alpha=alpha)
-    else:
-        base_criterion = nn.CrossEntropyLoss(weight=alpha)
+    base_criterion = FocalLoss(gamma=focal_gamma, alpha=alpha) if use_focal_loss else nn.CrossEntropyLoss(weight=alpha)
 
     # Apply OHEM if requested
     if use_ohem:

@@ -187,7 +187,9 @@ def print_results(results: list[AblationResult]) -> None:
     print("\n" + "=" * 80)
     print("ABLATION STUDY RESULTS")
     print("=" * 80)
-    print(f"{'Config':<20} {'Accuracy':<10} {'SP Prec':<10} {'SP Recall':<10} {'SP F1':<10} {'Macro F1':<10} {'Time':<10}")
+    print(
+        f"{'Config':<20} {'Accuracy':<10} {'SP Prec':<10} {'SP Recall':<10} {'SP F1':<10} {'Macro F1':<10} {'Time':<10}"
+    )
     print("-" * 80)
 
     for result in results:
@@ -237,16 +239,18 @@ def save_results(
     }
 
     for result in results:
-        data["results"].append({
-            "config_name": result.config_name,
-            "accuracy": result.accuracy,
-            "sp_precision": result.sp_precision,
-            "sp_recall": result.sp_recall,
-            "sp_f1": result.sp_f1,
-            "macro_f1": result.macro_f1,
-            "training_time": result.training_time,
-            "details": result.details,
-        })
+        data["results"].append(
+            {
+                "config_name": result.config_name,
+                "accuracy": result.accuracy,
+                "sp_precision": result.sp_precision,
+                "sp_recall": result.sp_recall,
+                "sp_f1": result.sp_f1,
+                "macro_f1": result.macro_f1,
+                "training_time": result.training_time,
+                "details": result.details,
+            }
+        )
 
     with Path(save_path).open("w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
