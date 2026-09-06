@@ -18,13 +18,16 @@ uv sync --group train
 # 启动 API 服务 (端口 8325)
 uv run python main.py
 
-# 训练模型
-uv run python -m trainer train
+# 只从 daily-package zip 抽出 screen_photo
+uv run python -m trainer ingest
+
+# 训练候选（不覆盖当前生产 checkpoint）
+uv run python -m trainer train --id <candidate-id>
 
 # 复现历史训练器
 uv run python -m trainer train_legacy
 
-# 导出 ONNX 模型
+# 导出当前 canonical checkpoint；候选应使用 finalize_export.py 从 exp/<candidate-id>/best.pth 显式导出
 uv run python -m trainer export
 
 # 运行测试
@@ -64,19 +67,20 @@ Image → ┌──────────────────┬───�
 关键组件：
 - **损失函数**: Focal Loss (gamma=2.0, alpha=[1.0, 1.0, 1.5], label smoothing=0.05)
 - **权重平滑**: EMA decay=0.999
-- **最佳检查点**: 先通过 `trainer/hard_examples.txt` 回归门槛，再最大化 `best_metric = 0.5 * screen_photo_f1 + 0.3 * accuracy + 0.2 * macro_f1`
+- **最佳检查点**: 仅最大化 validation `best_metric = 0.5 * screen_photo_f1 + 0.3 * accuracy + 0.2 * macro_f1`；选定后再通过 `trainer/evaluation_sets/canary.json` 回归门槛
 - **数据增强**: 透视变换、运动模糊、噪声、随机擦除等
 
 ### 推理流程
 
 1. TTA (Test-Time Augmentation): 原图 + 水平翻转，概率平均
-2. OOD 检测: max_prob < 0.45 → 返回 unknown
+2. 低置信度拒绝: max_prob < 0.45 → 返回 unknown；真 OOD 能力必须用独立 OOD 标签集评测
 3. 阈值后处理: screen_photo 概率 >= 0.60 → 强制判定为 screen_photo
 4. 置信度分级: accept (>=0.92) / review (0.75-0.92) / ignore (<0.75)
 
 ## 目录结构
 
 - `trainer/` - 发布训练、历史训练器、模型、导出与验证
+- `trainer/evaluation_sets/` - Canary、Frozen challenge、Rolling error pool、真 OOD 与采集组元数据清单
 - `inference/` - 推理系统 (predictor, model_loader, fft_service, api/)
 - `shared/` - 共享模块 (fft_transform.py 训练/推理共用)
 - `data/input/` - 数据集 (natural_photo/, screenshot/, screen_photo/, hard_negative/)
@@ -88,7 +92,7 @@ Image → ┌──────────────────┬───�
 发布训练配置在 `trainer/release_train.py` 与 `experiment/cnn_fft_dwt_ablation/harness.py`：
 - `IMAGE_SIZE = 224`, `BATCH_SIZE = 16`
 - `LEARNING_RATE = 1e-3`, `WEIGHT_DECAY = 1e-4`
-- `FOCAL_LOSS_GAMMA = 2.0`, `LABEL_SMOOTHING = 0.05`, `UNFREEZE_STAGES = 3`, `HARD_EXAMPLE_WEIGHT = 2.0`
+- `FOCAL_LOSS_GAMMA = 2.0`, `LABEL_SMOOTHING = 0.05`, `UNFREEZE_STAGES = 3`, Canary sampler weight = 2.0（底层 `focus_weight` 仅兼容历史 checkpoint）
 
 `trainer/config.py` 仅服务 `train_legacy` 与 PAH-ViT 研究路径，不代表发布默认值。
 
