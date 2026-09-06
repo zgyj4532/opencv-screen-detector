@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "set_type": "frozen_challenge",
+  "status": "NOT_READY",
+  "purpose": "Independent, group-isolated deployment-domain statistics used for model promotion.",
+  "policy": {
+    "training_eligible": false,
+    "threshold_tuning_eligible": false,
+    "promotion_statistics": true,
+    "frozen_after_review": true
+  },
+  "readiness": {
+    "minimum_entries": 100,
+    "maximum_entries": 300,
+    "requires_complete_group_metadata": true
+  },
+  "entries": []
+}

@@ -183,16 +183,19 @@ flowchart TD
 | `hard_negative/` | Derived from subdirectory | Confirmed boundary cases keep their true class; train only, never in val/test |
 | `screen_photo/` | `screen_photo` | Camera photographs of displays |
 
-**Audited current data view** (updated 2026-08-11):
+**Audited current data view** (updated 2026-09-06):
 
-- Raw paths: **3,070**; unique SHA-256 content identities: **2,938**; byte-duplicate paths removed: **132**.
+- Raw paths: **3,075**; unique SHA-256 content identities: **2,943**; byte-duplicate paths removed: **132**.
 - The audit found 18 conflicting-label groups. All are resolved by 19 reviewed decisions in `trainer/content_label_overrides.json`; unresolved conflicts are rejected.
-- Frozen split seed 42: **train 2,212 / val 361 / test 365**. Cross-role content overlap and hard-negative content in val/test are both zero.
-- Current dataset fingerprint: `b194d30758f9512a077246ab2c309da9b5189d1441d2a3cfa6d7962738f7f53d`.
-- Evaluation fingerprint: `da74a983a7af3b5c1f73d1c80ccd5a7ed84a290e6f72dfb615a5eb6f73390eff`.
+- Frozen split seed 42: **train 2,217 / val 361 / test 365**. Cross-role content overlap and hard-negative content in val/test are both zero.
+- Current dataset fingerprint: `d8e5e2030fb4cb29e6404abfc75f64ef5ce1a70bea7b0502814ff7325f192704`.
+- Evaluation fingerprint: `da74a983a7af3b5c1f73d1c80ccd5a7ed84a290e6f72dfb615a5eb6f73390eff` (unchanged).
 - Any content identity represented under `hard_negative/` stays train-only, including its byte-identical copies elsewhere. New content is added to train without reshuffling frozen val/test identities.
+- Five unique `screen_photo` images from `data/input/daily-package-2026-09-02.zip` … `2026-09-05.zip` were streamed into `data/input/screen_photo` with `uv run python -m trainer ingest`. Other zip folders, including `normal_photo`, were not written.
 
-Run `uv run python -m trainer audit` before training. The full machine-readable report is `trainer/data_audit.json`; the portable frozen manifest is `experiment/cnn_fft_dwt_ablation/split.json`. The production model was trained on the 2026-08-07 snapshot (`972fc082…`, 2,183/361/365); the 29 newer unique contents are train-only and are not represented in the promoted weights.
+Run `uv run python -m trainer ingest` then `uv run python -m trainer audit` before training. The full machine-readable report is `trainer/data_audit.json`; the portable frozen manifest is `experiment/cnn_fft_dwt_ablation/split.json`. Exact SHA-256 overlap is currently zero, but group metadata is still 0/2,943 and a DCT-pHash scan found 19 cross-split candidate pairs in 17 clusters that require review. Therefore content/capture-group isolation is `NOT_READY`, not proven clean. The production model was trained on the 2026-08-07 snapshot (`972fc082…`, 2,183/361/365); the 34 newer unique contents are train-only and are not represented in the promoted weights.
+
+Evaluation governance lives in `trainer/evaluation_sets/`: two known regressions are Canaries and may enter training; the independent Frozen challenge and true-OOD manifests are train/tuning-ineligible and currently `NOT_READY`; the Rolling error pool is an intake queue for reviewed future training rounds. The existing 365-image test remains a historical closed-set benchmark and is not the Frozen challenge or a true-OOD set.
 
 Dataset composition changes over time; report the exact split with every new model.
 
@@ -235,9 +238,11 @@ print(result["class"], result["confidence"])
 
 ```bash
 uv sync --group train
+uv run python -m trainer ingest
 uv run python -m trainer audit
-uv run python -m trainer train
-uv run python -m trainer export
+uv run python -m trainer train --id <candidate-id>
+uv run python experiment/cnn_fft_dwt_ablation/finalize_export.py experiment/cnn_fft_dwt_ablation/exp/<candidate-id>/best.pth experiment/cnn_fft_dwt_ablation/exp/<candidate-id>/candidate.onnx
+uv run python experiment/cnn_fft_dwt_ablation/deploy_eval.py --model experiment/cnn_fft_dwt_ablation/exp/<candidate-id>/candidate.onnx --output experiment/cnn_fft_dwt_ablation/exp/<candidate-id>/deploy_eval.json
 ```
 
 The exporter writes `inference/models/three_class.onnx`, which is the path used by the service.
@@ -246,7 +251,7 @@ The exporter writes `inference/models/three_class.onnx`, which is the path used 
 
 ### Two-stage training strategy
 
-The release trainer initializes EfficientNet-B0 with pretrained weights, trains the head and frequency branch for 6 epochs, then unfreezes the last 3 MBConv stages for 12 fine-tuning epochs. It first requires every available sample in `trainer/hard_examples.txt` to classify correctly, then selects checkpoints with:
+The release trainer initializes EfficientNet-B0 with pretrained weights, trains the head and frequency branch for 6 epochs, then unfreezes the last 3 MBConv stages for 12 fine-tuning epochs. Checkpoints are selected only by the held-out validation metric below. The selected checkpoint must then pass every entry in `trainer/evaluation_sets/canary.json`; Canary results block known regressions but are not promotion statistics.
 
 `0.5 * screen_photo_f1 + 0.3 * accuracy + 0.2 * macro_f1`
 
@@ -264,9 +269,9 @@ flowchart LR
 # Audit content labels and materialize/verify the frozen evaluation manifest
 uv run python -m trainer audit
 
-# Reproducible release training (frozen split, deterministic seed, hard-example gate)
-uv run python -m trainer train
-uv run python -m trainer export
+# Reproducible candidate training (frozen split, deterministic seed, Canary gate).
+# This does not overwrite the current production checkpoint.
+uv run python -m trainer train --id <candidate-id>
 
 # Historical trainer retained only for baseline reproduction
 uv run python -m trainer train_legacy
@@ -287,7 +292,7 @@ The 2026-08-07 release uses the same loss, EMA, backbone, augmentation, and FFT+
 | Label smoothing | 0.05 | both 0 and 0.10 are worse |
 | EMA | decay=0.999 | disabling costs 2.4pp sp_f1 |
 | Unfrozen stages | 3 | current release candidate; earlier 15-config screen favored 1 stage |
-| Hard-example sampler weight | 2.0 | selected from 1×/2×/4× candidates on 2026-07-22 |
+| Canary sampler weight | 2.0 | the two known regressions may enter training; this is not generalization evidence |
 | Epochs | 6 + 12 | selected checkpoint is finetune epoch 12 for training seed 42 |
 | Backbone | efficientnet_b0 | B1 gives no measurable gain on a 6GB GPU |
 | Augmentation | moderate | strong aug costs ~5pp acc |
@@ -305,12 +310,12 @@ PYTHONUNBUFFERED=1 nohup uv run python -u experiment/cnn_fft_dwt_ablation/harnes
 uv run python experiment/cnn_fft_dwt_ablation/show.py
 
 # 3) Train controlled candidates with one frozen split and distinct training seeds.
-# Keep all outputs as candidates; compare validation/gate stability, not test rank.
-uv run python experiment/cnn_fft_dwt_ablation/run_candidate.py --validation-only --id clean_s42 --split-seed 42 --seed 42 --unfreeze 3 --focus-weight 2 --epochs-head 6 --epochs-finetune 12
-uv run python experiment/cnn_fft_dwt_ablation/run_candidate.py --validation-only --id clean_s2024 --split-seed 42 --seed 2024 --unfreeze 3 --focus-weight 2 --epochs-head 6 --epochs-finetune 12
-uv run python experiment/cnn_fft_dwt_ablation/run_candidate.py --validation-only --id clean_s7 --split-seed 42 --seed 7 --unfreeze 3 --focus-weight 2 --epochs-head 6 --epochs-finetune 12
+# Keep all outputs as candidates; rank by validation only, then apply the Canary gate.
+uv run python experiment/cnn_fft_dwt_ablation/run_candidate.py --validation-only --id clean_s42 --split-seed 42 --seed 42 --unfreeze 3 --canary-weight 2 --epochs-head 6 --epochs-finetune 12
+uv run python experiment/cnn_fft_dwt_ablation/run_candidate.py --validation-only --id clean_s2024 --split-seed 42 --seed 2024 --unfreeze 3 --canary-weight 2 --epochs-head 6 --epochs-finetune 12
+uv run python experiment/cnn_fft_dwt_ablation/run_candidate.py --validation-only --id clean_s7 --split-seed 42 --seed 7 --unfreeze 3 --canary-weight 2 --epochs-head 6 --epochs-finetune 12
 
-# 4) Select by hard-example gate + validation metric, then open test once for that ID.
+# 4) Select by validation metric, require Canary pass, then open the legacy test once for that ID.
 uv run python experiment/cnn_fft_dwt_ablation/run_candidate.py --evaluate-only --id clean_v4_s2024_final_20260730 --split-seed 42
 
 # 5) Export ONNX and verify PyTorch <-> ONNX numerical parity
@@ -396,8 +401,10 @@ opencv-screen-detector/
 │   └── batch_detect.py        # Recursive batch inference
 ├── trainer/                   # CNN+FFT+DWT training and export
 │   ├── release_train.py       # Canonical release-training wrapper
+│   ├── ingest_screen_photo.py # Stream only zip screen_photo members into data/input
 │   ├── model.py               # EfficientNet/frequency fusion models
-│   ├── hard_examples.txt      # Confirmed local regression manifest
+│   ├── evaluation_sets/       # Canary/challenge/rolling/OOD/group governance manifests
+│   ├── hard_examples.txt      # Deprecated compatibility pointer to the Canary manifest
 │   ├── dataset.py             # Legacy RGB/FFT/DWT datasets
 │   ├── train.py               # Historical trainer (train_legacy)
 │   └── ablation.py            # Optimization ablations
@@ -416,7 +423,7 @@ opencv-screen-detector/
 
 ## Experimental Results
 
-> Status: `release_20260807_unf3_focus2_6x12` is the current production release. Selection used the 2/2 hard-example gate and validation metrics; the 365-image test split was opened once after selection.
+> Status: `release_20260807_unf3_focus2_6x12` is the current production release. Its historical selection used the former 2/2 hard-example rule; those two images are now classified as Canaries. The 365-image test remains a legacy closed-set benchmark, while Frozen challenge and true-OOD promotion sets are `NOT_READY`.
 
 ### Current deployment (2026-08-07, `release_20260807_unf3_focus2_6x12`)
 
@@ -434,7 +441,7 @@ The promoted checkpoint uses dataset fingerprint `972fc082…`. `three_class_bes
 | Frozen test, PyTorch (argmax) | **0.9425** | **0.8966** | **0.9123** | **0.9043** | **0.9340** | **0.9217** |
 | Production ONNX (TTA + OOD + threshold) | 0.9233 | 0.9123 | 0.9123 | 0.9123 | 0.9296 | 0.9190 |
 
-The production row counts all 10 `unknown` results as errors, matching the API. The test-only screen-photo threshold search (0.500) is diagnostic and is not reported as a release score because tuning on test would be optimistic.
+The production row counts all 10 `unknown` results as errors, matching the API. Because every test item has a known class, these are known-class false rejections (10/365), not true-OOD detections. The test-only screen-photo threshold search (0.500) is diagnostic and is not reported as a release score because tuning on test would be optimistic.
 
 **Confirmed screenshot regressions** (production ONNX with TTA):
 
@@ -443,7 +450,7 @@ The production row counts all 10 `unknown` results as errors, matching the API. 
 | `4a6e…ae8f9.png` | **`screenshot`** | 0.5818 | 0.2641 |
 | `5cdc3…12a62.png` | **`screenshot`** | 0.5319 | 0.1690 |
 
-**Production distribution**: 93 accept, 148 review, 114 low-confidence, and 10 OOD; actions are 93 accept / 148 review / 124 ignore. The clean-test CPU TTA run measured mean 353.8 ms / p50 327.4 ms / p95 471.8 ms. Serial latency is environment-sensitive and was not used for candidate selection. The machine-readable result is `experiment/cnn_fft_dwt_ablation/deploy_eval_release_20260807.json`.
+**Production distribution**: 93 accept, 148 review, 114 low-confidence, and 10 known-class rejections; actions are 93 accept / 148 review / 124 ignore. The clean-test CPU TTA run measured mean 353.8 ms / p50 327.4 ms / p95 471.8 ms. Serial latency is environment-sensitive and was not used for candidate selection. The machine-readable result is `experiment/cnn_fft_dwt_ablation/deploy_eval_release_20260807.json`.
 
 The frozen evaluation identity is unchanged from the 2026-08-04 release. On the same 365-image production path, this release improves accuracy by 2.74 percentage points, screen-photo F1 by 6.04 points, macro F1 by 2.96 points, and the release metric by 4.43 points.
 
@@ -456,7 +463,38 @@ Two same-configuration candidates were trained on dataset fingerprint `b194d307�
 | `release_20260811_unf3_focus2_6x12` (seed 42) | finetune-7 | 0.9086 | 0.8762 | 0.9012 | 0.8909 | 2/2 | **0/2** | evaluated once after selection |
 | `release_20260811_s2024_unf3_focus2_6x12` (seed 2024) | finetune-11 | 0.9224 | 0.9000 | 0.9181 | 0.9104 | 2/2 | **1/2** | **sealed / not run** |
 
-The seed-42 exported candidate passed ONNX parity, but its real production path returned both curated screenshots as `unknown`. On the frozen test it recorded accuracy 0.8849 / SP F1 0.8364 / macro F1 0.8964 / metric 0.8629 with 24 OOD outputs. The seed-2024 export also passed parity, but one curated screenshot remained `unknown`; its test set was therefore not opened. Neither candidate replaced production. Machine-readable seed-42 evidence is `experiment/cnn_fft_dwt_ablation/deploy_eval_rejected_release_20260811_seed42.json`.
+The seed-42 exported candidate passed ONNX parity, but its real production path returned both curated screenshots as `unknown`. On the frozen test it recorded accuracy 0.8849 / SP F1 0.8364 / macro F1 0.8964 / metric 0.8629 with 24 known-class false rejections. The seed-2024 export also passed parity, but one curated screenshot remained `unknown`; its test set was therefore not opened. Neither candidate replaced production. Machine-readable seed-42 evidence is `experiment/cnn_fft_dwt_ablation/deploy_eval_rejected_release_20260811_seed42.json`.
+
+### 2026-09-06 candidate (not deployed)
+
+Five new unique `screen_photo` files were added as train-only (fingerprint `d8e5e203…`, train/val/test = 2,217/361/365). A from-scratch Remix Mixup run (`candidate_20260906_remix_sp5`) selected finetune-12, scored PyTorch test metric **0.9111**, and failed Canary **0/2**.
+
+The selected candidate is `candidate_20260906_lwf_sp5`: warm-start from the production checkpoint, skip Stage A, 8-epoch Stage B at `lr=3e-4`, LwF distillation (`α=1.0`, `T=2`), and 8× sampler weight on the five new files. Selected epoch is finetune-2. Production `three_class.onnx` (`c53b00d5…`) was not overwritten.
+
+| Path | Accuracy | SP precision | SP recall | SP F1 | Macro F1 | Metric | Canary |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Validation winner (argmax) | 0.9446 | 0.9815 | 0.9464 | 0.9636 | 0.9486 | **0.9549** | **2/2** |
+| Frozen test, PyTorch (argmax) | 0.9479 | 0.8833 | 0.9298 | 0.9060 | 0.9389 | **0.9252** | — |
+| Candidate ONNX (TTA + OOD + threshold) | 0.9288 | 0.9138 | 0.9298 | 0.9217 | 0.9369 | **0.9269** | **2/2** |
+
+The Predictor row counts 11 `unknown` results as errors (7 natural / 1 screenshot / 3 screen_photo). Both Canary screenshots remain `screenshot` (0.5700 / 0.2686 and 0.5205 / 0.1795). CPU TTA latency was mean 170.0 ms / p50 159.5 ms / p95 224.4 ms. Machine-readable result: `experiment/cnn_fft_dwt_ablation/deploy_eval_candidate_20260906_lwf_sp5.json`.
+
+| Compared with production 2026-08-07 | PyTorch test metric | Predictor metric | Canary |
+| --- | ---: | ---: | ---: |
+| Production `release_20260807_unf3_focus2_6x12` | 0.9217 | 0.9190 | 2/2 |
+| Candidate `candidate_20260906_lwf_sp5` | **0.9252** | **0.9269** | **2/2** |
+
+Recipe:
+
+```bash
+uv run python -m trainer ingest
+uv run python -m trainer audit
+uv run python -m trainer train --id candidate_20260906_lwf_sp5 \
+  --init-checkpoint trainer/checkpoints/three_class_best.pth \
+  --epochs-head 0 --epochs-finetune 8 --lr 3e-4 --remix-alpha 0 \
+  --boost-weight 8 --distill-alpha 1.0 --distill-temperature 2.0 \
+  --boost-path data/input/screen_photo/<new-sha>.jpg
+```
 
 ### Historical deployment context
 
@@ -524,7 +562,9 @@ The repository does contain a 22.2 MB `three_class.onnx` deployable artifact. It
 
 ## Performance Comparison
 
-The current release's one-time PyTorch test result is **acc 0.9425 / sp_f1 0.9043 / macro_f1 0.9340 / metric 0.9217**. The real production ONNX path, which adds TTA, OOD handling, and screen-photo thresholding, records **acc 0.9233 / sp_f1 0.9123 / macro_f1 0.9296 / metric 0.9190**; the 2/2 hard-example gate passed.
+The current production release's one-time PyTorch test result is **acc 0.9425 / sp_f1 0.9043 / macro_f1 0.9340 / metric 0.9217**. The real production ONNX path, which adds TTA, low-confidence rejection, and screen-photo thresholding, records **acc 0.9233 / sp_f1 0.9123 / macro_f1 0.9296 / metric 0.9190**; the 2/2 Canary passed, which is regression evidence only.
+
+The 2026-09-06 candidate `candidate_20260906_lwf_sp5` is **not promoted**. On the same frozen 365-image test it records PyTorch **acc 0.9479 / sp_f1 0.9060 / macro_f1 0.9389 / metric 0.9252** and Predictor **acc 0.9288 / sp_f1 0.9217 / macro_f1 0.9369 / metric 0.9269**, with Canary 2/2.
 
 The 2026-07-22 PyTorch argmax result (0.9429 / 0.9076 / 0.9361 / 0.9239) is numerically close, but it was measured on a different split. The small deltas are not evidence that one model generalizes better; the clean release is preferred because its data identities, labels, frozen evaluation split, candidate selection, and one-time test opening are auditable.
 
@@ -578,14 +618,15 @@ Runtime settings are defined in `inference/config.py`; release-training defaults
 | `LABEL_SMOOTHING` | 0.05 | Label smoothing (ablation showed 0.05 > 0 / 0.10) |
 | `EMA_DECAY` | 0.999 | Weight EMA decay |
 | `UNFREEZE_STAGES` | 3 | Number of MBConv stages unfrozen in release stage B |
-| `HARD_EXAMPLE_WEIGHT` | 2.0 | Release sampler multiplier for paths in `trainer/hard_examples.txt` |
+| Canary weight (`focus_weight` legacy field) | 2.0 | Sampler multiplier for `trainer/evaluation_sets/canary.json`; the old name remains for checkpoint compatibility |
 
 Keep preprocessing, model inputs, and thresholds aligned when substituting a model. The current service expects the three-input ONNX graph described in [Inference](#inference).
 
 ## Future Work
 
 - ~~Run repeated seeds and cross-validation for the research models.~~ (Done in `experiment/cnn_fft_dwt_ablation/finalist.py` with 3 seeds.)
-- ~~Create reproducible release artifacts with a fixed split and hard-example gate.~~ (Done by `trainer/release_train.py`.)
+- Populate and freeze 100-300 independent challenge samples; the manifest and gate exist but are currently `NOT_READY`.
+- Populate a labeled true-OOD set and review the 19 pHash cross-split candidate pairs plus capture-group metadata.
 - Calibrate decision thresholds on a dedicated validation/calibration set; keep the test-set threshold scan diagnostic-only.
 - Further grow and audit screen-photo boundary cases, document dataset provenance.
 - Add CI checks for training/export compatibility and API smoke tests.

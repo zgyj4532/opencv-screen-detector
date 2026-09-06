@@ -183,16 +183,20 @@ flowchart TD
 | `hard_negative/` | 按子目录推导 | 已确认边界案例保留真实类别；仅参与 train，不进入 val/test |
 | `screen_photo/` | `screen_photo` | 相机拍摄的显示设备照片 |
 
-**已审计的当前数据视图**（2026-08-11 更新）：
+**已审计的当前数据视图**（2026-09-06 更新）：
 
-- 原始路径 **3,070** 个，SHA-256 唯一内容 **2,938** 个，移除字节级重复路径 **132** 个。
+- 原始路径 **3,075** 个，SHA-256 唯一内容 **2,943** 个，移除字节级重复路径 **132** 个。
 - 审计发现 18 组标签冲突，已由 `trainer/content_label_overrides.json` 中 19 条人工复核决定全部解决；存在未解决冲突时训练会直接失败。
-- 冻结切分 seed=42：**train 2,212 / val 361 / test 365**；集合之间内容重合为 0，val/test 中 hard-negative 内容为 0。
-- 当前数据集指纹：`b194d30758f9512a077246ab2c309da9b5189d1441d2a3cfa6d7962738f7f53d`。
-- 评测集指纹：`da74a983a7af3b5c1f73d1c80ccd5a7ed84a290e6f72dfb615a5eb6f73390eff`。
+- 冻结切分 seed=42：**train 2,217 / val 361 / test 365**；集合之间内容重合为 0，val/test 中 hard-negative 内容为 0。
+- 当前数据集指纹：`d8e5e2030fb4cb29e6404abfc75f64ef5ce1a70bea7b0502814ff7325f192704`。
+- 评测集指纹：`da74a983a7af3b5c1f73d1c80ccd5a7ed84a290e6f72dfb615a5eb6f73390eff`（未变）。
 - 只要某个内容身份曾出现在 `hard_negative/`，它及其他目录中的字节级副本都只进入 train。新增内容只加入 train，不重排已冻结的 val/test。
+- 从 `data/input/daily-package-2026-09-02.zip` … `2026-09-05.zip` 用 `uv run python -m trainer ingest` 只抽出 5 张唯一 `screen_photo`，写入 `data/input/screen_photo`；zip 里的 `normal_photo` 等其它目录没有落盘。
+- 精确 SHA-256 跨 split 重合为 0；但 5 个内容/采集组字段目前均为 0/2,943，DCT pHash（汉明距离 ≤8）检出 19 个跨 split 候选对、17 个候选簇，尚待人工或 embedding/局部特征复核。因此组级隔离状态是 `NOT_READY`，不能写成“已无泄漏”。
 
-训练前先执行 `uv run python -m trainer audit`。完整机器可读报告位于 `trainer/data_audit.json`，可移植冻结清单位于 `experiment/cnn_fft_dwt_ablation/split.json`。生产模型使用 2026-08-07 数据快照（`972fc082…`，2,183/361/365）；新增的 29 个唯一内容仅进入 train，未进入已晋升权重。
+训练前先执行 `uv run python -m trainer ingest`，再执行 `uv run python -m trainer audit`。完整机器可读报告位于 `trainer/data_audit.json`，可移植冻结清单位于 `experiment/cnn_fft_dwt_ablation/split.json`。生产模型使用 2026-08-07 数据快照（`972fc082…`，2,183/361/365）；新增的 34 个唯一内容仅进入 train，未进入已晋升权重。
+
+评测治理清单位于 `trainer/evaluation_sets/`：两张已知回归是可进入训练的 Canary；Frozen challenge 与真 OOD 集永不进入训练或阈值调节，当前因无独立样本而为 `NOT_READY`；Rolling error pool 用于线上错误聚类和下一轮主动学习。现有 365 张 test 继续保留为历史闭集基准，不冒充 Frozen challenge 或真 OOD 集。
 
 数据集会变化；每个新模型都应同时报告其确切数据划分。
 
@@ -235,9 +239,11 @@ print(result["class"], result["confidence"])
 
 ```bash
 uv sync --group train
+uv run python -m trainer ingest
 uv run python -m trainer audit
-uv run python -m trainer train
-uv run python -m trainer export
+uv run python -m trainer train --id <candidate-id>
+uv run python experiment/cnn_fft_dwt_ablation/finalize_export.py experiment/cnn_fft_dwt_ablation/exp/<candidate-id>/best.pth experiment/cnn_fft_dwt_ablation/exp/<candidate-id>/candidate.onnx
+uv run python experiment/cnn_fft_dwt_ablation/deploy_eval.py --model experiment/cnn_fft_dwt_ablation/exp/<candidate-id>/candidate.onnx --output experiment/cnn_fft_dwt_ablation/exp/<candidate-id>/deploy_eval.json
 ```
 
 导出器会写入 `inference/models/three_class.onnx`，该路径正是服务端使用的路径。
@@ -246,7 +252,7 @@ uv run python -m trainer export
 
 ### 两阶段训练策略
 
-发布训练器以预训练 EfficientNet-B0 初始化，先训练分类头和频域分支 6 个 epoch，再解冻 backbone 最后 3 个 MBConv stage，微调 12 个 epoch。检查点先要求 `trainer/hard_examples.txt` 中所有可用图片分类正确，再按下式选优：
+发布训练器以预训练 EfficientNet-B0 初始化，先训练分类头和频域分支 6 个 epoch，再解冻 backbone 最后 3 个 MBConv stage，微调 12 个 epoch。checkpoint 只按下面的 validation 指标选优；选定后再要求 `trainer/evaluation_sets/canary.json` 全部通过。Canary 只阻止已知回归，不作为晋升统计。
 
 `0.5 * screen_photo_f1 + 0.3 * accuracy + 0.2 * macro_f1`
 
@@ -264,9 +270,9 @@ flowchart LR
 # 审计内容标签并生成/验证冻结评测清单
 uv run python -m trainer audit
 
-# 可复现发布训练（冻结切分、确定性训练种子、hard-example 门槛）
-uv run python -m trainer train
-uv run python -m trainer export
+# 可复现候选训练（冻结切分、确定性训练种子、Canary 门槛）。
+# 不会覆盖当前生产 checkpoint。
+uv run python -m trainer train --id <candidate-id>
 
 # 仅保留用于复现历史基线的旧训练器
 uv run python -m trainer train_legacy
@@ -287,7 +293,7 @@ uv run python -m trainer ablation --modules baseline,arcface,attention --epochs-
 | Label smoothing | 0.05 | 0 或 0.10 都更差 |
 | EMA | decay=0.999 | 关闭后 sp_f1 退步 2.4pp |
 | 解冻 stage 数 | 3 | 当前发布候选；早期 15 配置筛选中 1 stage 更优 |
-| hard-example 采样权重 | 2.0 | 2026-07-22 在 1×/2×/4× 候选中选中 |
+| Canary 采样权重 | 2.0 | 两个已知回归可进入训练，但不代表泛化能力 |
 | 训练轮数 | 6 + 12 | seed=42 的最佳 checkpoint 为 finetune 第 12 轮 |
 | Backbone | efficientnet_b0 | B1 在 6GB 显存下无明显收益 |
 | 增强 | 温和（关 MoireSimulation 等强增广） | 强增广退步 ~5pp acc |
@@ -305,12 +311,12 @@ PYTHONUNBUFFERED=1 nohup uv run python -u experiment/cnn_fft_dwt_ablation/harnes
 uv run python experiment/cnn_fft_dwt_ablation/show.py
 
 # 3) 固定同一切分，使用不同训练种子生成互不覆盖的候选。
-# 只按 validation 与 hard-example 门槛判断稳定性，不按 test 排名选模型。
-uv run python experiment/cnn_fft_dwt_ablation/run_candidate.py --validation-only --id clean_s42 --split-seed 42 --seed 42 --unfreeze 3 --focus-weight 2 --epochs-head 6 --epochs-finetune 12
-uv run python experiment/cnn_fft_dwt_ablation/run_candidate.py --validation-only --id clean_s2024 --split-seed 42 --seed 2024 --unfreeze 3 --focus-weight 2 --epochs-head 6 --epochs-finetune 12
-uv run python experiment/cnn_fft_dwt_ablation/run_candidate.py --validation-only --id clean_s7 --split-seed 42 --seed 7 --unfreeze 3 --focus-weight 2 --epochs-head 6 --epochs-finetune 12
+# 只按 validation 排名，选定后再应用 Canary 门禁，不按 test 排名选模型。
+uv run python experiment/cnn_fft_dwt_ablation/run_candidate.py --validation-only --id clean_s42 --split-seed 42 --seed 42 --unfreeze 3 --canary-weight 2 --epochs-head 6 --epochs-finetune 12
+uv run python experiment/cnn_fft_dwt_ablation/run_candidate.py --validation-only --id clean_s2024 --split-seed 42 --seed 2024 --unfreeze 3 --canary-weight 2 --epochs-head 6 --epochs-finetune 12
+uv run python experiment/cnn_fft_dwt_ablation/run_candidate.py --validation-only --id clean_s7 --split-seed 42 --seed 7 --unfreeze 3 --canary-weight 2 --epochs-head 6 --epochs-finetune 12
 
-# 4) 按 hard-example 门槛 + validation 指标选定候选，然后只为该 ID 打开一次 test。
+# 4) 按 validation 指标选定候选、通过 Canary 后，只为该 ID 打开一次历史闭集 test。
 uv run python experiment/cnn_fft_dwt_ablation/run_candidate.py --evaluate-only --id clean_v4_s2024_final_20260730 --split-seed 42
 
 # 5) 导出 ONNX 并验证 PyTorch↔ONNX 数值一致
@@ -396,8 +402,10 @@ opencv-screen-detector/
 │   └── batch_detect.py        # 递归批量推理
 ├── trainer/                   # CNN+FFT+DWT 训练与导出
 │   ├── release_train.py       # 当前发布训练封装
+│   ├── ingest_screen_photo.py # 只从 zip 抽出 screen_photo 写入 data/input
 │   ├── model.py               # EfficientNet/频域融合模型
-│   ├── hard_examples.txt      # 已确认本地回归清单
+│   ├── evaluation_sets/       # Canary/challenge/rolling/OOD/group 治理清单
+│   ├── hard_examples.txt      # 旧工具兼容指针
 │   ├── dataset.py             # 历史 RGB/FFT/DWT 数据集
 │   ├── train.py               # 历史训练器（train_legacy）
 │   └── ablation.py            # 优化消融实验
@@ -416,7 +424,7 @@ opencv-screen-detector/
 
 ## 实验结果
 
-> 状态说明：`release_20260807_unf3_focus2_6x12` 是当前生产版本。候选选择使用 2/2 hard-example 门槛和 validation 指标；选定后才一次性打开 365 张 test。
+> 状态说明：`release_20260807_unf3_focus2_6x12` 是当前生产版本。它历史上按 2/2 hard-example 与 validation 选出；这两张图现在只作为 Canary。365 张 test 是历史闭集基准，Frozen challenge 与真 OOD 集目前均为 `NOT_READY`。
 
 ### 当前部署模型（2026-08-07，`release_20260807_unf3_focus2_6x12`）
 
@@ -434,7 +442,7 @@ seed=42 的发布训练通过 2/2 门槛，选中的 checkpoint 为 finetune 第
 | 冻结 test，PyTorch（argmax） | **0.9425** | **0.8966** | **0.9123** | **0.9043** | **0.9340** | **0.9217** |
 | 生产 ONNX（TTA + OOD + 阈值） | 0.9233 | 0.9123 | 0.9123 | 0.9123 | 0.9296 | 0.9190 |
 
-生产 ONNX 行把 10 个 `unknown` 全部按错误计数，与 API 一致。test 上搜索到的 screen-photo 阈值 0.500 只作诊断，不作为发布成绩，因为直接在 test 调参会产生乐观偏差。
+生产 ONNX 行把 10 个 `unknown` 全部按错误计数，与 API 一致。由于这 365 张都有已知类标签，这 10 个是已知类误拒（10/365），不是“真 OOD 命中”。test 上搜索到的 screen-photo 阈值 0.500 只作诊断，不作为发布成绩，因为直接在 test 调参会产生乐观偏差。
 
 **已确认 screenshot 回归**（生产 ONNX + TTA）：
 
@@ -443,7 +451,7 @@ seed=42 的发布训练通过 2/2 门槛，选中的 checkpoint 为 finetune 第
 | `4a6e…ae8f9.png` | **`screenshot`** | 0.5818 | 0.2641 |
 | `5cdc3…12a62.png` | **`screenshot`** | 0.5319 | 0.1690 |
 
-**生产分布**：93 accept、148 review、114 low-confidence、10 OOD；动作分布为 93 accept / 148 review / 124 ignore。干净 test 的 CPU TTA 单跑为 mean 353.8 ms / p50 327.4 ms / p95 471.8 ms。串行延迟受环境影响，不参与候选选择。机器可读结果位于 `experiment/cnn_fft_dwt_ablation/deploy_eval_release_20260807.json`。
+**生产分布**：93 accept、148 review、114 low-confidence、10 个已知类误拒；动作分布为 93 accept / 148 review / 124 ignore。干净 test 的 CPU TTA 单跑为 mean 353.8 ms / p50 327.4 ms / p95 471.8 ms。串行延迟受环境影响，不参与候选选择。机器可读结果位于 `experiment/cnn_fft_dwt_ablation/deploy_eval_release_20260807.json`。
 
 冻结评测身份与 2026-08-04 发布保持一致。在同一条 365 张生产推理路径上，本次发布的 Accuracy 提升 2.74 个百分点、screen-photo F1 提升 6.04 个百分点、Macro F1 提升 2.96 个百分点、发布 Metric 提升 4.43 个百分点。
 
@@ -456,7 +464,26 @@ seed=42 的发布训练通过 2/2 门槛，选中的 checkpoint 为 finetune 第
 | `release_20260811_unf3_focus2_6x12`（seed 42） | finetune-7 | 0.9086 | 0.8762 | 0.9012 | 0.8909 | 2/2 | **0/2** | 选定后评估一次 |
 | `release_20260811_s2024_unf3_focus2_6x12`（seed 2024） | finetune-11 | 0.9224 | 0.9000 | 0.9181 | 0.9104 | 2/2 | **1/2** | **保持封存 / 未运行** |
 
-seed-42 候选通过 ONNX parity，但真实生产路径把两张确认截图都返回为 `unknown`；冻结 test 为 accuracy 0.8849 / SP F1 0.8364 / macro F1 0.8964 / metric 0.8629，并产生 24 个 OOD。seed-2024 导出同样通过 parity，但仍有一张确认截图为 `unknown`，因此没有打开 test。两个候选均未替换生产模型。seed-42 的机器可读证据位于 `experiment/cnn_fft_dwt_ablation/deploy_eval_rejected_release_20260811_seed42.json`。
+seed-42 候选通过 ONNX parity，但真实生产路径把两张确认截图都返回为 `unknown`；冻结 test 为 accuracy 0.8849 / SP F1 0.8364 / macro F1 0.8964 / metric 0.8629，并产生 24 个已知类误拒。seed-2024 导出同样通过 parity，但仍有一张确认截图为 `unknown`，因此没有打开 test。两个候选均未替换生产模型。seed-42 的机器可读证据位于 `experiment/cnn_fft_dwt_ablation/deploy_eval_rejected_release_20260811_seed42.json`。
+
+### 2026-09-06 候选（未部署）
+
+5 张新的唯一 `screen_photo` 只进入 train（指纹 `d8e5e203…`，train/val/test = 2,217/361/365）。从零训练的 Remix Mixup 候选 `candidate_20260906_remix_sp5` 选中 finetune-12，冻结 test 的 PyTorch metric 为 **0.9111**，Canary **0/2**。
+
+最终候选是 `candidate_20260906_lwf_sp5`：从生产 checkpoint 热启动，跳过 Stage A，Stage B 8 个 epoch、`lr=3e-4`，LwF 蒸馏（`α=1.0`，`T=2`），并对 5 张新图使用 8× sampler 权重。选中 epoch 为 finetune-2。生产 `three_class.onnx`（`c53b00d5…`）没有被覆盖。
+
+| 路径 | Accuracy | SP Precision | SP Recall | SP F1 | Macro F1 | Metric | Canary |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Validation 胜出指标（argmax） | 0.9446 | 0.9815 | 0.9464 | 0.9636 | 0.9486 | **0.9549** | **2/2** |
+| 冻结 test，PyTorch（argmax） | 0.9479 | 0.8833 | 0.9298 | 0.9060 | 0.9389 | **0.9252** | — |
+| 候选 ONNX（TTA + OOD + 阈值） | 0.9288 | 0.9138 | 0.9298 | 0.9217 | 0.9369 | **0.9269** | **2/2** |
+
+Predictor 行把 11 个 `unknown` 按错误计数（7 natural / 1 screenshot / 3 screen_photo）。两张 Canary 截图仍是 `screenshot`（0.5700 / 0.2686 与 0.5205 / 0.1795）。CPU TTA 延迟为 mean 170.0 ms / p50 159.5 ms / p95 224.4 ms。机器可读结果：`experiment/cnn_fft_dwt_ablation/deploy_eval_candidate_20260906_lwf_sp5.json`。
+
+| 对比 2026-08-07 生产 | PyTorch test metric | Predictor metric | Canary |
+| --- | ---: | ---: | ---: |
+| 生产 `release_20260807_unf3_focus2_6x12` | 0.9217 | 0.9190 | 2/2 |
+| 候选 `candidate_20260906_lwf_sp5` | **0.9252** | **0.9269** | **2/2** |
 
 ### 历史生产背景
 
@@ -524,7 +551,9 @@ seed-42 候选通过 ONNX parity，但真实生产路径把两张确认截图都
 
 ## 性能对比
 
-当前发布的一次性 PyTorch test 为 **acc 0.9425 / sp_f1 0.9043 / macro_f1 0.9340 / metric 0.9217**。加入 TTA、OOD 与 screen-photo 阈值后的真实生产 ONNX 为 **acc 0.9233 / sp_f1 0.9123 / macro_f1 0.9296 / metric 0.9190**，并通过 2/2 hard-example 门槛。
+当前生产发布的一次性 PyTorch test 为 **acc 0.9425 / sp_f1 0.9043 / macro_f1 0.9340 / metric 0.9217**。加入 TTA、低置信度拒绝与 screen-photo 阈值后的真实生产 ONNX 为 **acc 0.9233 / sp_f1 0.9123 / macro_f1 0.9296 / metric 0.9190**，并通过 2/2 Canary；该 Canary 结果不代表泛化能力。
+
+2026-09-06 候选 `candidate_20260906_lwf_sp5` **尚未晋升**。同一份冻结 365 张 test 上，PyTorch 为 **acc 0.9479 / sp_f1 0.9060 / macro_f1 0.9389 / metric 0.9252**，Predictor 为 **acc 0.9288 / sp_f1 0.9217 / macro_f1 0.9369 / metric 0.9269**，Canary 仍为 2/2。
 
 2026-07-22 PyTorch argmax（0.9429 / 0.9076 / 0.9361 / 0.9239）在数值上接近，但来自不同切分。细小差异不能证明哪一个模型泛化更好；当前版本的内容身份、标签、冻结评测集、候选选择和一次性 test 开启均可审计，因此作为正式发布。
 
@@ -578,14 +607,15 @@ Dockerfile 会复制 Git LFS 跟踪的 `inference/models/three_class.onnx`，但
 | `LABEL_SMOOTHING` | 0.05 | 标签平滑（消融验证 0.05 > 0 / 0.10） |
 | `EMA_DECAY` | 0.999 | 权重 EMA 衰减 |
 | `UNFREEZE_STAGES` | 3 | 发布 Stage B 解冻的 MBConv stage 数 |
-| `HARD_EXAMPLE_WEIGHT` | 2.0 | `trainer/hard_examples.txt` 中图片的发布 sampler 倍率 |
+| Canary weight（旧 checkpoint 字段为 `focus_weight`） | 2.0 | `trainer/evaluation_sets/canary.json` 的 sampler 倍率 |
 
 替换模型时必须保持预处理、模型输入和阈值一致。当前服务需要 [推理](#推理) 中所述的三输入 ONNX 图。
 
 ## 未来工作
 
 - ~~为研究模型执行多随机种子重复实验和交叉验证。~~（已在 `experiment/cnn_fft_dwt_ablation/finalist.py` 完成 3 种子决赛）
-- ~~建立固定切分与 hard-example 门槛的可复现发布工件。~~（已由 `trainer/release_train.py` 完成）
+- 补齐并冻结 100-300 个独立 challenge 样本；清单和门禁已实现，但数据仍为 `NOT_READY`。
+- 构建带标签的真 OOD 集，补齐采集组元数据，并复核 19 个跨 split pHash 候选对。
 - 在独立 validation/calibration 集上校准决策阈值；测试集阈值扫描仅保留为诊断信息。
 - 进一步扩充并审计屏幕照片边界案例，记录数据来源。
 - 添加训练/导出兼容性及 API 冒烟测试的 CI 检查。

@@ -1,7 +1,7 @@
 {
-  "schema_version": 1,
-  "raw_paths": 3070,
-  "unique_content": 2938,
+  "schema_version": 2,
+  "raw_paths": 3075,
+  "unique_content": 2943,
   "duplicate_content_groups": 123,
   "cross_source_duplicate_groups": 67,
   "duplicate_paths_removed": 132,
@@ -12,19 +12,21 @@
   "split": {
     "schema_version": 4,
     "seed": 42,
-    "dataset_fingerprint": "b194d30758f9512a077246ab2c309da9b5189d1441d2a3cfa6d7962738f7f53d",
+    "dataset_fingerprint": "d8e5e2030fb4cb29e6404abfc75f64ef5ce1a70bea7b0502814ff7325f192704",
     "evaluation_fingerprint": "da74a983a7af3b5c1f73d1c80ccd5a7ed84a290e6f72dfb615a5eb6f73390eff",
     "focus_fingerprint": "174d1d29220abcdb3ecf48eb04075a883e421a0b544c9a3598951bd09ab86a79",
-    "main_count": 2493,
+    "canary_fingerprint": "174d1d29220abcdb3ecf48eb04075a883e421a0b544c9a3598951bd09ab86a79",
+    "main_count": 2498,
     "hard_negative_count": 445,
     "focus_count": 2,
+    "canary_count": 2,
     "assignment_policy": "frozen_val_test_new_content_to_train_hard_content_train_only",
     "train": {
-      "total": 2212,
+      "total": 2217,
       "classes": {
         "natural": 646,
         "screenshot": 1221,
-        "screen_photo": 345
+        "screen_photo": 350
       }
     },
     "val": {
@@ -48,6 +50,589 @@
     "train_val": 0,
     "train_test": 0,
     "val_test": 0
+  },
+  "split_isolation": {
+    "status": "NOT_READY",
+    "samples": 2943,
+    "exact_content": {
+      "status": "READY",
+      "cross_role_overlap_count": 0,
+      "sha256": []
+    },
+    "group_metadata": {
+      "status": "NOT_READY",
+      "metadata_entries": 0,
+      "coverage": {
+        "source_content_id": {
+          "covered": 0,
+          "total": 2943,
+          "ratio": 0.0
+        },
+        "capture_session_id": {
+          "covered": 0,
+          "total": 2943,
+          "ratio": 0.0
+        },
+        "camera_device_id": {
+          "covered": 0,
+          "total": 2943,
+          "ratio": 0.0
+        },
+        "display_device_id": {
+          "covered": 0,
+          "total": 2943,
+          "ratio": 0.0
+        },
+        "transformation_lineage_id": {
+          "covered": 0,
+          "total": 2943,
+          "ratio": 0.0
+        }
+      },
+      "cross_role_overlaps": {
+        "source_content_id": [],
+        "capture_session_id": [],
+        "camera_device_id": [],
+        "display_device_id": [],
+        "transformation_lineage_id": []
+      }
+    },
+    "perceptual_similarity": {
+      "status": "REVIEW_REQUIRED",
+      "method": "DCT pHash",
+      "implementation_version": 1,
+      "hash_size_bits": 64,
+      "hamming_threshold": 8,
+      "cross_role_candidate_pairs": 19,
+      "cross_role_clusters": [
+        {
+          "roles": [
+            "test",
+            "train"
+          ],
+          "members": [
+            {
+              "path": "data/input/natural_photo/5587820b0d3d668ed2e185fc9d01d13d2ec659279ebc80c994ef829ad6ade698.jpg",
+              "role": "train",
+              "sha256": "5587820b0d3d668ed2e185fc9d01d13d2ec659279ebc80c994ef829ad6ade698"
+            },
+            {
+              "path": "data/input/natural_photo/87c63ea0ea765c200c4b7993c62eefc9972ee28b704f91c07bff1dad1ce37ff5.jpg",
+              "role": "test",
+              "sha256": "87c63ea0ea765c200c4b7993c62eefc9972ee28b704f91c07bff1dad1ce37ff5"
+            }
+          ]
+        },
+        {
+          "roles": [
+            "test",
+            "train"
+          ],
+          "members": [
+            {
+              "path": "data/input/natural_photo/portrait/portrait_17.jpg",
+              "role": "train",
+              "sha256": "d2de9750d137d57659b9834121fd6ca2e7863820fc75e3f9db5c7d47cc73a1cf"
+            },
+            {
+              "path": "data/input/natural_photo/portrait/portrait_07.jpg",
+              "role": "test",
+              "sha256": "024747d139658043afe6800443c23b6f9621aff092c4028eea0055324cf95e12"
+            }
+          ]
+        },
+        {
+          "roles": [
+            "train",
+            "val"
+          ],
+          "members": [
+            {
+              "path": "data/input/natural_photo/14b7ffba4e7360a25195345bc23ffd4e6f50ec76467f11809676a7a1351d805b.jpg",
+              "role": "train",
+              "sha256": "14b7ffba4e7360a25195345bc23ffd4e6f50ec76467f11809676a7a1351d805b"
+            },
+            {
+              "path": "data/input/natural_photo/1722563f7b5ba891d16e7f1dfc0bb63b3513e8a7d895bcae3a5048fc5e300da6.jpg",
+              "role": "train",
+              "sha256": "1722563f7b5ba891d16e7f1dfc0bb63b3513e8a7d895bcae3a5048fc5e300da6"
+            },
+            {
+              "path": "data/input/natural_photo/25aa72dfd730addbe699e469c9ef813de5058ac203593bdb533f65b094bb1965.jpg",
+              "role": "train",
+              "sha256": "25aa72dfd730addbe699e469c9ef813de5058ac203593bdb533f65b094bb1965"
+            },
+            {
+              "path": "data/input/natural_photo/a5c214951b5c1d202e7a9bf90604e1311a31221226a01e9750067e18c3e7548a.jpg",
+              "role": "val",
+              "sha256": "a5c214951b5c1d202e7a9bf90604e1311a31221226a01e9750067e18c3e7548a"
+            }
+          ]
+        },
+        {
+          "roles": [
+            "train",
+            "val"
+          ],
+          "members": [
+            {
+              "path": "data/input/natural_photo/street/street_24.jpg",
+              "role": "train",
+              "sha256": "c61cb18583c4e522e9bae509c711a9a7bc0e6f25fd15d9f28e7623844f82563f"
+            },
+            {
+              "path": "data/input/natural_photo/street/street_08.jpg",
+              "role": "val",
+              "sha256": "42aebf812d39706c790641b9c811fa670a805b1660f9ec7e693e0bf6b3802b2d"
+            }
+          ]
+        },
+        {
+          "roles": [
+            "test",
+            "train"
+          ],
+          "members": [
+            {
+              "path": "data/input/natural_photo/portrait/portrait_01.jpg",
+              "role": "train",
+              "sha256": "849faa91c502848d8b3569cc61d66614c7f20e26e803c3a0da27fa8110c82b81"
+            },
+            {
+              "path": "data/input/natural_photo/portrait/portrait_14.jpg",
+              "role": "test",
+              "sha256": "91d8c9ba583330a178841c5fa28735fc4a9de579ffba7ff8a073202ab1d23cc4"
+            }
+          ]
+        },
+        {
+          "roles": [
+            "train",
+            "val"
+          ],
+          "members": [
+            {
+              "path": "data/input/natural_photo/a62bee53804486225fe3f660efc05461f4afae98625ec8b73d2d82f2dc0ec8fc.jpg",
+              "role": "train",
+              "sha256": "a62bee53804486225fe3f660efc05461f4afae98625ec8b73d2d82f2dc0ec8fc"
+            },
+            {
+              "path": "data/input/natural_photo/b2a4141bacfa4750230877b11376d630.jpg",
+              "role": "val",
+              "sha256": "06e3e929faa9a4da5eb4a215374a759948728087c4202222c1c68f4be6660b4c"
+            }
+          ]
+        },
+        {
+          "roles": [
+            "test",
+            "train"
+          ],
+          "members": [
+            {
+              "path": "data/input/natural_photo/tree/tree_01.jpg",
+              "role": "train",
+              "sha256": "28d318ee424602e4f96979d4ba547296ac9cb36b996d3042db545ebc929a86c8"
+            },
+            {
+              "path": "data/input/natural_photo/tree/tree_11.jpg",
+              "role": "test",
+              "sha256": "16722a1c9e5430061b2dddef11892e0e98316189461eeafe019ff24461347234"
+            }
+          ]
+        },
+        {
+          "roles": [
+            "test",
+            "train"
+          ],
+          "members": [
+            {
+              "path": "data/input/natural_photo/portrait/portrait_16.jpg",
+              "role": "train",
+              "sha256": "8ee8a2609fd5d4745c2d25191a7db01b8e3996199aa7eab00cc514b81205b8e9"
+            },
+            {
+              "path": "data/input/natural_photo/portrait/portrait_08.jpg",
+              "role": "test",
+              "sha256": "db4d7da1a8bb5c91b8b246a3659a900837634087b3fa68b48096c8ac0a17decc"
+            }
+          ]
+        },
+        {
+          "roles": [
+            "test",
+            "train"
+          ],
+          "members": [
+            {
+              "path": "data/input/screenshot/37cd562f37f661ce69d07edf734ec7070e9656200d520adab04f69a1fa872f84.jpg",
+              "role": "train",
+              "sha256": "37cd562f37f661ce69d07edf734ec7070e9656200d520adab04f69a1fa872f84"
+            },
+            {
+              "path": "data/input/screenshot/77d90df7a5c3f96c77ff6c0ca97e7b7ef587c6505029072371f836adfbcef2ac.jpg",
+              "role": "test",
+              "sha256": "77d90df7a5c3f96c77ff6c0ca97e7b7ef587c6505029072371f836adfbcef2ac"
+            }
+          ]
+        },
+        {
+          "roles": [
+            "test",
+            "train"
+          ],
+          "members": [
+            {
+              "path": "data/input/screenshot/a1eec8d56d90bbe9609d6560e34110ab4939d9736635f8983c8f11bc0d5effdd.png",
+              "role": "train",
+              "sha256": "a1eec8d56d90bbe9609d6560e34110ab4939d9736635f8983c8f11bc0d5effdd"
+            },
+            {
+              "path": "data/input/screenshot/f6cc541fea50697d2cdd020e7f198a3f3473702ab80a9d0f04fa67b1114a919f.png",
+              "role": "test",
+              "sha256": "f6cc541fea50697d2cdd020e7f198a3f3473702ab80a9d0f04fa67b1114a919f"
+            }
+          ]
+        },
+        {
+          "roles": [
+            "test",
+            "train"
+          ],
+          "members": [
+            {
+              "path": "data/input/screenshot/7ff84151f5d2e099a3dbb4b7fff12fffc17c79064bd7e3f880a41137268ed1d2.jpg",
+              "role": "train",
+              "sha256": "7ff84151f5d2e099a3dbb4b7fff12fffc17c79064bd7e3f880a41137268ed1d2"
+            },
+            {
+              "path": "data/input/screenshot/e91e65cb0c55338052b3aba6873e200a28d7ee74fab4b04e8559c0a784a85114.jpg",
+              "role": "test",
+              "sha256": "e91e65cb0c55338052b3aba6873e200a28d7ee74fab4b04e8559c0a784a85114"
+            }
+          ]
+        },
+        {
+          "roles": [
+            "test",
+            "train"
+          ],
+          "members": [
+            {
+              "path": "data/input/screenshot/a116ed3c8e907d0b5df63704df5ea25ffa781fbbf4d209c77e27fbbef0e12695.png",
+              "role": "train",
+              "sha256": "a116ed3c8e907d0b5df63704df5ea25ffa781fbbf4d209c77e27fbbef0e12695"
+            },
+            {
+              "path": "data/input/screenshot/81c451d297d101e918edb574e5d5ead690fc9bdc7ddcc2849040aa534d7120f8.jpg",
+              "role": "train",
+              "sha256": "81c451d297d101e918edb574e5d5ead690fc9bdc7ddcc2849040aa534d7120f8"
+            },
+            {
+              "path": "data/input/screenshot/c77f043f333c7e9bbc4e4dc373b030fbbfcb9d0f109bef14f2533ed2ade8c8af.jpg",
+              "role": "test",
+              "sha256": "c77f043f333c7e9bbc4e4dc373b030fbbfcb9d0f109bef14f2533ed2ade8c8af"
+            }
+          ]
+        },
+        {
+          "roles": [
+            "train",
+            "val"
+          ],
+          "members": [
+            {
+              "path": "data/input/screenshot/38ab6988ed710dbdce9918563e746878590d9da090d5885332f875d6cc220abb.jpg",
+              "role": "train",
+              "sha256": "38ab6988ed710dbdce9918563e746878590d9da090d5885332f875d6cc220abb"
+            },
+            {
+              "path": "data/input/screenshot/d82a6c75cd5609328566b2d46d0257d3659bfbce25b96f1a3c52d011ad95fa15.jpg",
+              "role": "val",
+              "sha256": "d82a6c75cd5609328566b2d46d0257d3659bfbce25b96f1a3c52d011ad95fa15"
+            }
+          ]
+        },
+        {
+          "roles": [
+            "test",
+            "train"
+          ],
+          "members": [
+            {
+              "path": "data/input/screenshot/f792ebd5758db18b6c306ed5aadd1835228ec610199b072a5b89a0743a54edd1.jpg",
+              "role": "train",
+              "sha256": "f792ebd5758db18b6c306ed5aadd1835228ec610199b072a5b89a0743a54edd1"
+            },
+            {
+              "path": "data/input/screenshot/a96a74e614e4c1e7b1b27f9ad62b69457b34e07b47f407aad87cbc30c078f469.jpg",
+              "role": "test",
+              "sha256": "a96a74e614e4c1e7b1b27f9ad62b69457b34e07b47f407aad87cbc30c078f469"
+            }
+          ]
+        },
+        {
+          "roles": [
+            "test",
+            "train"
+          ],
+          "members": [
+            {
+              "path": "data/input/screen_photo/45404207e8dcaf4af501fd98ed89cec82fc246d6b9c102d0e82895459c5a4a1d.jpg",
+              "role": "train",
+              "sha256": "45404207e8dcaf4af501fd98ed89cec82fc246d6b9c102d0e82895459c5a4a1d"
+            },
+            {
+              "path": "data/input/screen_photo/d3ba8a0980da5607186f1eea80f7e885c6f273bbe575e55d5d57c387492245b9.jpg",
+              "role": "test",
+              "sha256": "d3ba8a0980da5607186f1eea80f7e885c6f273bbe575e55d5d57c387492245b9"
+            }
+          ]
+        },
+        {
+          "roles": [
+            "train",
+            "val"
+          ],
+          "members": [
+            {
+              "path": "data/input/screen_photo/d8447d0c277f82c443dc4dc026274807.jpg",
+              "role": "train",
+              "sha256": "2969b50fd1696a4a490a15395404b8033dd7495b4c197e625ec02c806cb2151e"
+            },
+            {
+              "path": "data/input/screen_photo/853116b31688b5d104e2b5a9f4fe34f44f0e809763d7b1c36e63afcd76590873.png",
+              "role": "val",
+              "sha256": "853116b31688b5d104e2b5a9f4fe34f44f0e809763d7b1c36e63afcd76590873"
+            }
+          ]
+        },
+        {
+          "roles": [
+            "test",
+            "train"
+          ],
+          "members": [
+            {
+              "path": "data/input/hard_negative/dark_mode/dark_mode_28.jpg",
+              "role": "train",
+              "sha256": "4d6996885c84bd47671662c4f441ee4a6cc5a3afe7a42fcab9b7cff50c0b9bb0"
+            },
+            {
+              "path": "data/input/screen_photo/ui_poster_08.jpg",
+              "role": "test",
+              "sha256": "c5c68c27ec444b8bb7e9f2c8ed3ad53c6aabdc2f91975e88fd543c1865269921"
+            }
+          ]
+        }
+      ],
+      "evidence_pairs": [
+        {
+          "left": "data/input/natural_photo/5587820b0d3d668ed2e185fc9d01d13d2ec659279ebc80c994ef829ad6ade698.jpg",
+          "left_role": "train",
+          "right": "data/input/natural_photo/87c63ea0ea765c200c4b7993c62eefc9972ee28b704f91c07bff1dad1ce37ff5.jpg",
+          "right_role": "test",
+          "hamming_distance": 8
+        },
+        {
+          "left": "data/input/natural_photo/portrait/portrait_17.jpg",
+          "left_role": "train",
+          "right": "data/input/natural_photo/portrait/portrait_07.jpg",
+          "right_role": "test",
+          "hamming_distance": 0
+        },
+        {
+          "left": "data/input/natural_photo/14b7ffba4e7360a25195345bc23ffd4e6f50ec76467f11809676a7a1351d805b.jpg",
+          "left_role": "train",
+          "right": "data/input/natural_photo/a5c214951b5c1d202e7a9bf90604e1311a31221226a01e9750067e18c3e7548a.jpg",
+          "right_role": "val",
+          "hamming_distance": 8
+        },
+        {
+          "left": "data/input/natural_photo/1722563f7b5ba891d16e7f1dfc0bb63b3513e8a7d895bcae3a5048fc5e300da6.jpg",
+          "left_role": "train",
+          "right": "data/input/natural_photo/a5c214951b5c1d202e7a9bf90604e1311a31221226a01e9750067e18c3e7548a.jpg",
+          "right_role": "val",
+          "hamming_distance": 2
+        },
+        {
+          "left": "data/input/natural_photo/street/street_24.jpg",
+          "left_role": "train",
+          "right": "data/input/natural_photo/street/street_08.jpg",
+          "right_role": "val",
+          "hamming_distance": 0
+        },
+        {
+          "left": "data/input/natural_photo/portrait/portrait_01.jpg",
+          "left_role": "train",
+          "right": "data/input/natural_photo/portrait/portrait_14.jpg",
+          "right_role": "test",
+          "hamming_distance": 0
+        },
+        {
+          "left": "data/input/natural_photo/a62bee53804486225fe3f660efc05461f4afae98625ec8b73d2d82f2dc0ec8fc.jpg",
+          "left_role": "train",
+          "right": "data/input/natural_photo/b2a4141bacfa4750230877b11376d630.jpg",
+          "right_role": "val",
+          "hamming_distance": 0
+        },
+        {
+          "left": "data/input/natural_photo/tree/tree_01.jpg",
+          "left_role": "train",
+          "right": "data/input/natural_photo/tree/tree_11.jpg",
+          "right_role": "test",
+          "hamming_distance": 0
+        },
+        {
+          "left": "data/input/natural_photo/portrait/portrait_16.jpg",
+          "left_role": "train",
+          "right": "data/input/natural_photo/portrait/portrait_08.jpg",
+          "right_role": "test",
+          "hamming_distance": 0
+        },
+        {
+          "left": "data/input/screenshot/37cd562f37f661ce69d07edf734ec7070e9656200d520adab04f69a1fa872f84.jpg",
+          "left_role": "train",
+          "right": "data/input/screenshot/77d90df7a5c3f96c77ff6c0ca97e7b7ef587c6505029072371f836adfbcef2ac.jpg",
+          "right_role": "test",
+          "hamming_distance": 0
+        },
+        {
+          "left": "data/input/screenshot/a1eec8d56d90bbe9609d6560e34110ab4939d9736635f8983c8f11bc0d5effdd.png",
+          "left_role": "train",
+          "right": "data/input/screenshot/f6cc541fea50697d2cdd020e7f198a3f3473702ab80a9d0f04fa67b1114a919f.png",
+          "right_role": "test",
+          "hamming_distance": 0
+        },
+        {
+          "left": "data/input/screenshot/7ff84151f5d2e099a3dbb4b7fff12fffc17c79064bd7e3f880a41137268ed1d2.jpg",
+          "left_role": "train",
+          "right": "data/input/screenshot/e91e65cb0c55338052b3aba6873e200a28d7ee74fab4b04e8559c0a784a85114.jpg",
+          "right_role": "test",
+          "hamming_distance": 0
+        },
+        {
+          "left": "data/input/screenshot/a116ed3c8e907d0b5df63704df5ea25ffa781fbbf4d209c77e27fbbef0e12695.png",
+          "left_role": "train",
+          "right": "data/input/screenshot/c77f043f333c7e9bbc4e4dc373b030fbbfcb9d0f109bef14f2533ed2ade8c8af.jpg",
+          "right_role": "test",
+          "hamming_distance": 0
+        },
+        {
+          "left": "data/input/screenshot/38ab6988ed710dbdce9918563e746878590d9da090d5885332f875d6cc220abb.jpg",
+          "left_role": "train",
+          "right": "data/input/screenshot/d82a6c75cd5609328566b2d46d0257d3659bfbce25b96f1a3c52d011ad95fa15.jpg",
+          "right_role": "val",
+          "hamming_distance": 0
+        },
+        {
+          "left": "data/input/screenshot/f792ebd5758db18b6c306ed5aadd1835228ec610199b072a5b89a0743a54edd1.jpg",
+          "left_role": "train",
+          "right": "data/input/screenshot/a96a74e614e4c1e7b1b27f9ad62b69457b34e07b47f407aad87cbc30c078f469.jpg",
+          "right_role": "test",
+          "hamming_distance": 0
+        },
+        {
+          "left": "data/input/screenshot/81c451d297d101e918edb574e5d5ead690fc9bdc7ddcc2849040aa534d7120f8.jpg",
+          "left_role": "train",
+          "right": "data/input/screenshot/c77f043f333c7e9bbc4e4dc373b030fbbfcb9d0f109bef14f2533ed2ade8c8af.jpg",
+          "right_role": "test",
+          "hamming_distance": 0
+        },
+        {
+          "left": "data/input/screen_photo/45404207e8dcaf4af501fd98ed89cec82fc246d6b9c102d0e82895459c5a4a1d.jpg",
+          "left_role": "train",
+          "right": "data/input/screen_photo/d3ba8a0980da5607186f1eea80f7e885c6f273bbe575e55d5d57c387492245b9.jpg",
+          "right_role": "test",
+          "hamming_distance": 0
+        },
+        {
+          "left": "data/input/screen_photo/d8447d0c277f82c443dc4dc026274807.jpg",
+          "left_role": "train",
+          "right": "data/input/screen_photo/853116b31688b5d104e2b5a9f4fe34f44f0e809763d7b1c36e63afcd76590873.png",
+          "right_role": "val",
+          "hamming_distance": 2
+        },
+        {
+          "left": "data/input/hard_negative/dark_mode/dark_mode_28.jpg",
+          "left_role": "train",
+          "right": "data/input/screen_photo/ui_poster_08.jpg",
+          "right_role": "test",
+          "hamming_distance": 0
+        }
+      ],
+      "decode_errors": [],
+      "interpretation": "pHash matches require human or embedding/local-feature review before being called leakage"
+    }
+  },
+  "evaluation_sets": {
+    "canary": {
+      "status": "READY",
+      "declared_status": "READY",
+      "entries": 2,
+      "policy": {
+        "training_eligible": true,
+        "threshold_tuning_eligible": false,
+        "promotion_statistics": false,
+        "all_must_pass": true
+      },
+      "reasons": [],
+      "missing_paths": [],
+      "hash_mismatches": [],
+      "cross_set_overlaps": {}
+    },
+    "frozen_challenge": {
+      "status": "NOT_READY",
+      "declared_status": "NOT_READY",
+      "entries": 0,
+      "policy": {
+        "training_eligible": false,
+        "threshold_tuning_eligible": false,
+        "promotion_statistics": true,
+        "frozen_after_review": true
+      },
+      "reasons": [
+        "requires at least 100 entries; found 0",
+        "manifest governance status is NOT_READY"
+      ],
+      "missing_paths": [],
+      "hash_mismatches": [],
+      "cross_set_overlaps": {}
+    },
+    "rolling_error_pool": {
+      "status": "READY",
+      "declared_status": "READY",
+      "entries": 0,
+      "policy": {
+        "training_eligible": "only_after_review_in_a_later_training_round",
+        "threshold_tuning_eligible": false,
+        "promotion_statistics": false,
+        "mutable": true
+      },
+      "reasons": [],
+      "missing_paths": [],
+      "hash_mismatches": [],
+      "cross_set_overlaps": {}
+    },
+    "ood": {
+      "status": "NOT_READY",
+      "declared_status": "NOT_READY",
+      "entries": 0,
+      "policy": {
+        "training_eligible": false,
+        "threshold_tuning_eligible": false,
+        "promotion_statistics": true,
+        "frozen_after_review": true
+      },
+      "reasons": [
+        "requires at least 1 entries; found 0",
+        "manifest governance status is NOT_READY"
+      ],
+      "missing_paths": [],
+      "hash_mismatches": [],
+      "cross_set_overlaps": {}
+    }
   },
   "hard_negative_content_in_eval": {
     "val": 0,

@@ -27,7 +27,7 @@ from experiment.cnn_fft_dwt_ablation.harness import (
     append_leaderboard,
     build_split,
     evaluate_checkpoint_on_test,
-    load_focus_paths,
+    load_canary_paths,
     precompute_cache,
     preload_ram,
     train_one,
@@ -44,7 +44,14 @@ def main() -> None:
     parser.add_argument("--split-seed", type=int, default=42)
     parser.add_argument("--backbone", default="efficientnet_b0")
     parser.add_argument("--unfreeze", type=int, default=3)
-    parser.add_argument("--focus-weight", type=float, default=2.0)
+    parser.add_argument(
+        "--canary-weight",
+        "--focus-weight",
+        dest="canary_weight",
+        type=float,
+        default=2.0,
+        help="Canary sampler weight; --focus-weight is a deprecated alias",
+    )
     parser.add_argument("--epochs-head", type=int, default=6)
     parser.add_argument("--epochs-finetune", type=int, default=12)
     parser.add_argument("--batch-size", type=int, default=16)
@@ -71,11 +78,11 @@ def main() -> None:
     if device == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("CUDA was requested but is not available")
 
-    focus_paths = load_focus_paths()
-    if args.focus_weight > 1.0 and not focus_paths:
-        raise RuntimeError("Focus weighting was requested but trainer/hard_examples.txt has no available images")
+    canary_paths = load_canary_paths()
+    if args.canary_weight > 1.0 and not canary_paths:
+        raise RuntimeError("Canary weighting was requested but trainer/evaluation_sets/canary.json has no images")
 
-    split = build_split(seed=args.split_seed, focus_paths=focus_paths)
+    split = build_split(seed=args.split_seed, canary_paths=canary_paths)
     summary_path = LOG_DIR / f"{args.id}.summary.json"
     evaluation_summary = None
     checkpoint_path = EXP_DIR / args.id / "best.pth"
@@ -98,7 +105,7 @@ def main() -> None:
         active_samples = [tuple(sample) for sample in split["train"] + split["val"] + split["test"]]
     print(
         f"Candidate split: train={len(split['train'])} val={len(split['val'])} "
-        f"test={len(split['test'])} focus={len(focus_paths)}",
+        f"test={len(split['test'])} canary={len(canary_paths)}",
         flush=True,
     )
     precompute_cache(active_samples)
@@ -131,7 +138,8 @@ def main() -> None:
         heavy_aug=args.heavy_aug,
         use_dwt=not args.no_dwt,
         seed=args.seed,
-        focus_weight=args.focus_weight,
+        # Historical checkpoint schema stores this under focus_weight.
+        focus_weight=args.canary_weight,
     )
 
     started_at = datetime.now().astimezone()
@@ -160,9 +168,15 @@ def main() -> None:
             "val": len(split["val"]),
             "test": len(split["test"]),
         },
-        "focus_examples": sorted(
-            Path(path).resolve().relative_to((ROOT / "data" / "input").resolve()).as_posix() for path in focus_paths
+        "canary_examples": sorted(
+            Path(path).resolve().relative_to((ROOT / "data" / "input").resolve()).as_posix() for path in canary_paths
         ),
+        "canary_gate": {
+            "status": "PASS" if result["selection"].get("canary_pass") else "FAIL",
+            "correct": result["selection"].get("canary_correct", 0),
+            "total": result["selection"].get("canary_total", len(canary_paths)),
+            "role": "known-regression blocker only; not promotion statistics",
+        },
         "selection": result["selection"],
         "training_status": result["status"],
         "progress": result.get("progress"),

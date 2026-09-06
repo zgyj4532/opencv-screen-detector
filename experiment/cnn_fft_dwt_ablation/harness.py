@@ -8,8 +8,8 @@ Clean, fast, reproducible training pipeline that fixes the audited bugs:
 - Fixed unfreeze (only real MBConv stages + conv_head + bn2)
 - Stage-A optimizer includes LayerNorm params
 - EMA, label smoothing, adaptive threshold on held-out TEST
-- Release selection first gates confirmed hard examples, then maximizes the VAL
-  metric: 0.5*sp_f1 + 0.3*acc + 0.2*macro_f1
+- Release checkpoint selection maximizes the VAL metric only. Confirmed canaries
+  remain a separate regression gate and do not count as generalization evidence.
 
 The release trainer imports this harness with the ablation-winning defaults;
 legacy trainer modules remain available separately for baseline reproduction.
@@ -48,6 +48,12 @@ from shared.fft_transform import (
     compute_dwt_features,
     compute_fft_spectrum,
 )
+from trainer.evaluation_sets import (
+    CANARY_MANIFEST,
+)
+from trainer.evaluation_sets import (
+    load_canary_paths as load_manifest_canary_paths,
+)
 from trainer.model import create_model
 
 DATA_DIR = ROOT / "data" / "input"
@@ -56,6 +62,7 @@ CACHE_DIR = ABLATION_DIR / "cache"
 EXP_DIR = ABLATION_DIR / "exp"
 SPLIT_PATH = ABLATION_DIR / "split.json"
 LEADERBOARD = ABLATION_DIR / "leaderboard.jsonl"
+# Deprecated text-manifest alias retained for historical scripts/checkpoints.
 FOCUS_MANIFEST = ROOT / "trainer" / "hard_examples.txt"
 LABEL_OVERRIDES_PATH = ROOT / "trainer" / "content_label_overrides.json"
 SPLIT_SCHEMA_VERSION = 4
@@ -217,11 +224,28 @@ def collect_samples(
     return main, hard
 
 
-def load_focus_paths(
-    data_dir: Path = DATA_DIR,
-    manifest_path: Path = FOCUS_MANIFEST,
-) -> set[str]:
-    """Load curated hard-example paths, ignoring comments and missing local files."""
+def load_canary_paths(data_dir: Path = DATA_DIR, manifest_path: Path = CANARY_MANIFEST) -> set[str]:
+    """Load the canonical Canary set used for regression checks and optional sampling."""
+    if data_dir.resolve() == DATA_DIR.resolve() and manifest_path.resolve() == CANARY_MANIFEST.resolve():
+        return load_manifest_canary_paths(manifest_path=manifest_path, repo_root=ROOT)
+
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    paths: set[str] = set()
+    for entry in payload.get("entries", []):
+        relative = Path(entry["path"])
+        parts = relative.parts
+        if len(parts) >= 3 and parts[:2] == ("data", "input"):
+            relative = Path(*parts[2:])
+        path = (data_dir / relative).resolve()
+        if path.exists() and path.suffix.lower() in IMAGE_EXTS:
+            paths.add(str(path))
+    return paths
+
+
+def load_focus_paths(data_dir: Path = DATA_DIR, manifest_path: Path = FOCUS_MANIFEST) -> set[str]:
+    """Deprecated adapter for historical text manifests; use load_canary_paths."""
+    if manifest_path.resolve() == FOCUS_MANIFEST.resolve():
+        return load_canary_paths(data_dir=data_dir)
     if not manifest_path.exists():
         return set()
 
@@ -252,9 +276,9 @@ def _evaluation_fingerprint(split: dict) -> str:
     return hashlib.sha256("\n".join(sorted(rows)).encode("utf-8")).hexdigest()
 
 
-def _focus_fingerprint(focus_paths: set[str]) -> str:
-    """Fingerprint focus examples by content so the split stays portable."""
-    hashes = sorted({content_sha256(path) for path in focus_paths})
+def _canary_fingerprint(canary_paths: set[str]) -> str:
+    """Fingerprint Canary examples by content so the split stays portable."""
+    hashes = sorted({content_sha256(path) for path in canary_paths})
     return hashlib.sha256("\n".join(hashes).encode("utf-8")).hexdigest()
 
 
@@ -313,18 +337,23 @@ def build_split(
     seed: int = 42,
     data_dir: Path = DATA_DIR,
     split_path: Path = SPLIT_PATH,
+    canary_paths: set[str] | None = None,
     focus_paths: set[str] | None = None,
 ) -> dict:
     """Build a content-clean split whose validation and test identities never reshuffle."""
-    focus = focus_paths if focus_paths is not None else load_focus_paths(data_dir)
-    main, hard = collect_samples(data_dir, preferred_paths=focus)
+    if canary_paths is not None and focus_paths is not None:
+        raise ValueError("Pass canary_paths or deprecated focus_paths, not both")
+    canaries = canary_paths if canary_paths is not None else focus_paths
+    if canaries is None:
+        canaries = load_canary_paths(data_dir)
+    main, hard = collect_samples(data_dir, preferred_paths=canaries)
     all_samples = main + hard
     fingerprint = _dataset_fingerprint(all_samples)
     collected_paths = {str(Path(path).resolve()) for path, _ in all_samples}
-    if missing_focus := focus - collected_paths:
-        missing = "\n".join(f"- {path}" for path in sorted(missing_focus))
-        raise RuntimeError(f"Focus examples are not part of the collected dataset:\n{missing}")
-    focus_fingerprint = _focus_fingerprint(focus)
+    if missing_canaries := canaries - collected_paths:
+        missing = "\n".join(f"- {path}" for path in sorted(missing_canaries))
+        raise RuntimeError(f"Canary examples are not part of the collected dataset:\n{missing}")
+    canary_fingerprint = _canary_fingerprint(canaries)
 
     sample_kind = {content_sha256(path): False for path, _label in main}
     sample_kind.update({content_sha256(path): True for path, _label in hard})
@@ -340,18 +369,20 @@ def build_split(
             raise RuntimeError(f"Frozen split uses seed {saved_seed}; refusing to replace it with seed {seed}")
         split = _load_frozen_split(saved, current)
         train_paths = {str(Path(path).resolve()) for path, _ in split["train"]}
-        if missing_train_focus := focus - train_paths:
-            missing = "\n".join(f"- {path}" for path in sorted(missing_train_focus))
-            raise RuntimeError(f"Frozen split places focus content outside train or cannot resolve it:\n{missing}")
+        if missing_train_canaries := canaries - train_paths:
+            missing = "\n".join(f"- {path}" for path in sorted(missing_train_canaries))
+            raise RuntimeError(f"Frozen split places Canary content outside train or cannot resolve it:\n{missing}")
         split["meta"] = {
             "schema_version": SPLIT_SCHEMA_VERSION,
             "seed": seed,
             "dataset_fingerprint": fingerprint,
             "evaluation_fingerprint": _evaluation_fingerprint(split),
-            "focus_fingerprint": focus_fingerprint,
+            "focus_fingerprint": canary_fingerprint,
+            "canary_fingerprint": canary_fingerprint,
             "main_count": len(main),
             "hard_negative_count": len(hard),
-            "focus_count": len(focus),
+            "focus_count": len(canaries),
+            "canary_count": len(canaries),
             "assignment_policy": SPLIT_ASSIGNMENT_POLICY,
         }
         serialized = _serialize_split(split, data_dir)
@@ -381,18 +412,18 @@ def build_split(
         # turning a confirmed regression example into evaluation leakage.
         for held_out in (label_val, label_test):
             for held_index, sample in enumerate(held_out):
-                if str(Path(sample[0]).resolve()) not in focus:
+                if str(Path(sample[0]).resolve()) not in canaries:
                     continue
                 replacement_index = next(
                     (
                         index
                         for index in range(len(label_train) - 1, -1, -1)
-                        if str(Path(label_train[index][0]).resolve()) not in focus
+                        if str(Path(label_train[index][0]).resolve()) not in canaries
                     ),
                     None,
                 )
                 if replacement_index is None:
-                    raise RuntimeError(f"No train sample available to swap with focus example: {sample[0]}")
+                    raise RuntimeError(f"No train sample available to swap with Canary example: {sample[0]}")
                 label_train[replacement_index], held_out[held_index] = (
                     held_out[held_index],
                     label_train[replacement_index],
@@ -409,10 +440,12 @@ def build_split(
             "seed": seed,
             "dataset_fingerprint": fingerprint,
             "evaluation_fingerprint": "",
-            "focus_fingerprint": focus_fingerprint,
+            "focus_fingerprint": canary_fingerprint,
+            "canary_fingerprint": canary_fingerprint,
             "main_count": len(main),
             "hard_negative_count": len(hard),
-            "focus_count": len(focus),
+            "focus_count": len(canaries),
+            "canary_count": len(canaries),
             "assignment_policy": SPLIT_ASSIGNMENT_POLICY,
         },
         "train": train,
@@ -552,20 +585,41 @@ def preload_ram(samples: list[tuple[str, int]]) -> None:
 def make_sampler(
     samples: list[tuple[str, int]],
     beta: float | None,
-    focus_paths: set[str] | None = None,
-    focus_weight: float = 1.0,
+    canary_paths: set[str] | None = None,
+    canary_weight: float = 1.0,
     seed: int | None = None,
+    *,
+    focus_paths: set[str] | None = None,
+    focus_weight: float | None = None,
+    boost_paths: set[str] | None = None,
+    boost_weight: float = 1.0,
 ) -> WeightedRandomSampler:
-    """Balance classes and optionally upweight curated regression examples."""
+    """Balance classes and optionally upweight Canary regression examples.
+
+    ``focus_*`` keyword arguments are deprecated compatibility aliases.
+    ``boost_paths`` upweights newly ingested train-only content (LwF rehearsal).
+    """
+    if canary_paths is not None and focus_paths is not None:
+        raise ValueError("Pass canary_paths or deprecated focus_paths, not both")
+    canaries = canary_paths if canary_paths is not None else (focus_paths or set())
+    if focus_weight is not None:
+        if canary_weight != 1.0:
+            raise ValueError("Pass canary_weight or deprecated focus_weight, not both")
+        canary_weight = focus_weight
+    boosts = {str(Path(path).resolve()) for path in (boost_paths or set())}
     labels = [s[1] for s in samples]
     counts = np.bincount(labels, minlength=3).astype(np.float64)
     if beta is None:  # inverse frequency
         cls_w = len(labels) / np.maximum(counts, 1)
     else:  # class-balanced (effective number)
         cls_w = (1 - beta) / (1 - np.power(beta, np.maximum(counts, 1)))
-    focus = focus_paths or set()
     w = np.array(
-        [cls_w[label] * (focus_weight if str(Path(path).resolve()) in focus else 1.0) for path, label in samples],
+        [
+            cls_w[label]
+            * (canary_weight if str(Path(path).resolve()) in canaries else 1.0)
+            * (boost_weight if str(Path(path).resolve()) in boosts else 1.0)
+            for path, label in samples
+        ],
         dtype=np.float64,
     )
     generator = None
@@ -643,7 +697,12 @@ class FocalLossLS(nn.Module):
         self.smoothing = smoothing
         self.register_buffer("alpha", torch.tensor(alpha) if alpha else None)
 
-    def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self,
+        logits: torch.Tensor,
+        targets: torch.Tensor,
+        reduction: str | None = None,
+    ) -> torch.Tensor:
         n = logits.size(1)
         logp = F.log_softmax(logits, dim=1)
         p = logp.exp()
@@ -658,7 +717,87 @@ class FocalLossLS(nn.Module):
         loss = (1 - pt) ** self.gamma * ce
         if self.alpha is not None:
             loss = self.alpha.to(logits.device)[targets] * loss
+        red = "mean" if reduction is None else reduction
+        if red == "none":
+            return loss
+        if red == "sum":
+            return loss.sum()
         return loss.mean()
+
+
+def remix_label_lambda(
+    labels_a: torch.Tensor,
+    labels_b: torch.Tensor,
+    lam: torch.Tensor,
+    class_counts: torch.Tensor,
+    kappa: float = 3.0,
+    tau: float = 0.5,
+) -> torch.Tensor:
+    """Return Remix λ_y given Mixup λ and class counts.
+
+    Chou et al., "Remix: Rebalanced Mixup", ECCV 2020 Workshops. Features stay
+    mixed with ``lam``; the label mix is biased toward the minority class when
+    the count ratio is at least ``kappa`` and ``lam`` is below ``tau``.
+    """
+    counts = class_counts.to(device=lam.device, dtype=lam.dtype)
+    n_a = counts[labels_a]
+    n_b = counts[labels_b]
+    ratio = n_a / n_b.clamp_min(1.0)
+    lam_y = lam.to(dtype=counts.dtype)
+    assign_b = (ratio >= kappa) & (lam_y < tau)
+    assign_a = (ratio <= (1.0 / kappa)) & ((1.0 - lam_y) < tau)
+    lam_y = torch.where(assign_b, torch.zeros_like(lam_y), lam_y)
+    return torch.where(assign_a, torch.ones_like(lam_y), lam_y)
+
+
+def mix_modal_batch(
+    rgb: torch.Tensor,
+    fft: torch.Tensor,
+    dwt: torch.Tensor,
+    index: torch.Tensor,
+    lam: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Linearly mix RGB, FFT, and DWT with the same Mixup λ (Zhang et al., ICLR 2018)."""
+    weight = lam.view(-1, *([1] * (rgb.ndim - 1))).to(dtype=rgb.dtype)
+    mixed_rgb = weight * rgb + (1.0 - weight) * rgb.index_select(0, index)
+    mixed_fft = weight * fft + (1.0 - weight) * fft.index_select(0, index)
+    mixed_dwt = weight * dwt + (1.0 - weight) * dwt.index_select(0, index)
+    return mixed_rgb, mixed_fft, mixed_dwt
+
+
+def mixed_focal_loss(
+    criterion: FocalLossLS,
+    logits: torch.Tensor,
+    labels_a: torch.Tensor,
+    labels_b: torch.Tensor,
+    lam_y: torch.Tensor,
+) -> torch.Tensor:
+    """Mean of per-sample Focal losses interpolated with Remix/Mixup λ_y."""
+    loss_a = criterion(logits, labels_a, reduction="none")
+    loss_b = criterion(logits, labels_b, reduction="none")
+    weights = lam_y.to(dtype=loss_a.dtype)
+    return (weights * loss_a + (1.0 - weights) * loss_b).mean()
+
+
+def distillation_kl(
+    student_logits: torch.Tensor,
+    teacher_logits: torch.Tensor,
+    temperature: float = 2.0,
+) -> torch.Tensor:
+    """Hinton et al. distillation KL, scaled by T^2; used by LwF (Li & Hoiem, ECCV 2016)."""
+    temp = teacher_logits.new_tensor(temperature)
+    log_p = F.log_softmax(student_logits / temp, dim=1)
+    q = F.softmax(teacher_logits / temp, dim=1)
+    return F.kl_div(log_p, q, reduction="batchmean") * (temp * temp)
+
+
+def load_init_checkpoint(model: nn.Module, path: str | Path) -> dict:
+    """Load a harness/release checkpoint's ``model_state_dict`` into ``model``."""
+    payload = torch.load(path, map_location="cpu", weights_only=False)
+    if not isinstance(payload, dict) or "model_state_dict" not in payload:
+        raise RuntimeError(f"Checkpoint is missing model_state_dict: {path}")
+    model.load_state_dict(payload["model_state_dict"])
+    return payload
 
 
 # --------------------------------------------------------------------------
@@ -737,7 +876,22 @@ class ExpConfig:
     heavy_aug: bool = False
     use_dwt: bool = True
     seed: int = 42
+    # Serialized name retained so historical last.pth checkpoints remain resumable.
     focus_weight: float = 1.0
+    # Remix (Chou et al., ECCV 2020 W) on Mixup λ (Zhang et al., ICLR 2018). 0 disables.
+    remix_alpha: float = 0.0
+    remix_kappa: float = 3.0
+    remix_tau: float = 0.5
+    init_checkpoint: str | None = None
+    boost_paths: list[str] = field(default_factory=list)
+    boost_weight: float = 1.0
+    distill_alpha: float = 0.0
+    distill_temperature: float = 2.0
+
+    @property
+    def canary_weight(self) -> float:
+        """Canonical runtime name for the deprecated serialized focus_weight field."""
+        return self.focus_weight
 
 
 # --------------------------------------------------------------------------
@@ -794,6 +948,15 @@ def sp_threshold_search(probs: np.ndarray, labels: np.ndarray) -> dict:
     return best
 
 
+def checkpoint_selection_key(metrics: dict) -> float:
+    """Select checkpoints only by held-out validation quality.
+
+    Canary outcomes are deliberately absent: they block promotion after a
+    checkpoint is selected but are not statistical evidence for epoch ranking.
+    """
+    return float(metrics["best_metric"])
+
+
 # --------------------------------------------------------------------------
 # Train
 # --------------------------------------------------------------------------
@@ -832,15 +995,17 @@ def train_one(
     val_ds = CachedDataset(val_s, eval_tf())
     test_ds = CachedDataset(test_s, eval_tf()) if evaluate_test else None
 
-    focus_paths = load_focus_paths()
-    focus_s = [sample for sample in train_s if str(Path(sample[0]).resolve()) in focus_paths]
-    focus_ds = CachedDataset(focus_s, eval_tf()) if focus_s else None
+    canary_paths = load_canary_paths()
+    canary_s = [sample for sample in train_s if str(Path(sample[0]).resolve()) in canary_paths]
+    canary_ds = CachedDataset(canary_s, eval_tf()) if canary_s else None
     sampler = make_sampler(
         train_s,
         cfg.sampler_beta,
-        focus_paths=focus_paths,
-        focus_weight=cfg.focus_weight,
+        canary_paths=canary_paths,
+        canary_weight=cfg.canary_weight,
         seed=cfg.seed,
+        boost_paths=set(cfg.boost_paths),
+        boost_weight=cfg.boost_weight,
     )
     nw = 0  # Windows shared-memory mapping fails with workers>0; FFT/DWT are cached so CPU is light
     train_loader = DataLoader(
@@ -856,40 +1021,55 @@ def train_one(
         if test_ds is not None
         else None
     )
-    focus_loader = (
-        DataLoader(focus_ds, batch_size=32, shuffle=False, num_workers=nw, pin_memory=True)
-        if focus_ds is not None
+    canary_loader = (
+        DataLoader(canary_ds, batch_size=32, shuffle=False, num_workers=nw, pin_memory=True)
+        if canary_ds is not None
         else None
     )
-    if focus_s:
+    if canary_s:
         print(
-            f"  Focus examples: {len(focus_s)} at {cfg.focus_weight:.1f}x sampler weight",
+            f"  Canary examples: {len(canary_s)} at {cfg.canary_weight:.1f}x sampler weight",
             flush=True,
         )
 
     model = create_model(
         model_name=cfg.backbone,
         num_classes=3,
-        pretrained=resume_state is None,
+        pretrained=resume_state is None and not cfg.init_checkpoint,
         freeze_backbone=True,
         use_dwt=cfg.use_dwt,
         use_arcface=cfg.use_arcface,
         use_fft_attention=cfg.use_attention,
         attention_type=cfg.attention_type,
     ).to(device)
+    if cfg.init_checkpoint and resume_state is None:
+        load_init_checkpoint(model, cfg.init_checkpoint)
+        print(f"  Loaded init checkpoint {cfg.init_checkpoint}", flush=True)
 
     criterion = FocalLossLS(cfg.gamma, cfg.alpha, cfg.smoothing).to(device)
     scaler = torch.amp.GradScaler("cuda", enabled=(device == "cuda"))
     ema = ModelEMA(model, cfg.ema_decay) if cfg.ema else None
+    teacher = None
+    if cfg.distill_alpha > 0:
+        if not cfg.init_checkpoint:
+            raise RuntimeError("distill_alpha > 0 requires init_checkpoint")
+        teacher = copy.deepcopy(model).eval()
+        for param in teacher.parameters():
+            param.requires_grad_(False)
+    train_counts = torch.tensor(
+        np.bincount([label for _path, label in train_s], minlength=3),
+        device=device,
+        dtype=torch.float32,
+    )
 
     history: list[dict] = []
     best = {
         "best_metric": -1,
-        "focus_pass": False,
-        "focus_correct": 0,
-        "focus_total": len(focus_s),
+        "canary_pass": False,
+        "canary_correct": 0,
+        "canary_total": len(canary_s),
     }
-    best_key = (-1, -1, -1.0)
+    best_key = -1.0
     best_state = None
     completed_head = 0
     completed_finetune = 0
@@ -903,7 +1083,16 @@ def train_one(
         scaler.load_state_dict(resume_state["scaler_state_dict"])
         history = resume_state["history"]
         best = resume_state["selection"]
-        best_key = tuple(resume_state["best_key"])
+        if "canary_pass" not in best and "focus_pass" in best:
+            best = {
+                **best,
+                "canary_pass": best["focus_pass"],
+                "canary_correct": best["focus_correct"],
+                "canary_total": best["focus_total"],
+                "canary_probabilities": best.get("focus_probabilities", []),
+            }
+        saved_best_key = resume_state["best_key"]
+        best_key = float(saved_best_key[-1] if isinstance(saved_best_key, (list, tuple)) else saved_best_key)
         best_state = resume_state["best_state_dict"]
         completed_head = resume_state["completed_head"]
         completed_finetune = resume_state["completed_finetune"]
@@ -922,10 +1111,43 @@ def train_one(
                 dwt.to(device),
                 labels.to(device),
             )
+            mix_index = None
+            lam_y = None
+            if cfg.remix_alpha > 0 and not cfg.use_arcface and rgb.size(0) > 1:
+                mix_index = torch.randperm(rgb.size(0), device=rgb.device)
+                lam = (
+                    torch.distributions.Beta(cfg.remix_alpha, cfg.remix_alpha)
+                    .sample((rgb.size(0),))
+                    .to(
+                        device=rgb.device,
+                        dtype=rgb.dtype,
+                    )
+                )
+                rgb, fft, dwt = mix_modal_batch(rgb, fft, dwt, mix_index, lam)
+                lam_y = remix_label_lambda(
+                    labels,
+                    labels[mix_index],
+                    lam,
+                    train_counts,
+                    kappa=cfg.remix_kappa,
+                    tau=cfg.remix_tau,
+                )
             with torch.amp.autocast("cuda", enabled=(device == "cuda")):
                 out = model(rgb, fft, dwt, labels) if cfg.use_arcface else model(rgb, fft, dwt)
                 logits = out[0] if isinstance(out, tuple) else out
-                loss = criterion(logits, labels)
+                if lam_y is not None and mix_index is not None:
+                    loss = mixed_focal_loss(criterion, logits, labels, labels[mix_index], lam_y)
+                else:
+                    loss = criterion(logits, labels)
+                if teacher is not None:
+                    with torch.no_grad():
+                        teacher_out = teacher(rgb, fft, dwt)
+                        teacher_logits = teacher_out[0] if isinstance(teacher_out, tuple) else teacher_out
+                    loss = loss + cfg.distill_alpha * distillation_kl(
+                        logits,
+                        teacher_logits,
+                        temperature=cfg.distill_temperature,
+                    )
             optimizer.zero_grad()
             scaler.scale(loss).backward()
             scaler.step(optimizer)
@@ -936,27 +1158,27 @@ def train_one(
     def maybe_save(tag_model, stage: str, epoch: int):
         nonlocal best, best_key, best_state
         m, _, _ = evaluate(tag_model, val_loader, device)
-        focus_correct = 0
-        focus_probabilities: list[list[float]] = []
-        if focus_loader is not None:
-            _, focus_probs, focus_labels = evaluate(tag_model, focus_loader, device)
-            focus_correct = int((focus_probs.argmax(1) == focus_labels).sum())
-            focus_probabilities = focus_probs.tolist()
-        focus_total = len(focus_s)
-        focus_pass = focus_correct == focus_total
-        candidate_key = (int(focus_pass), focus_correct, m["best_metric"])
+        canary_correct = 0
+        canary_probabilities: list[list[float]] = []
+        if canary_loader is not None:
+            _, canary_probs, canary_labels = evaluate(tag_model, canary_loader, device)
+            canary_correct = int((canary_probs.argmax(1) == canary_labels).sum())
+            canary_probabilities = canary_probs.tolist()
+        canary_total = len(canary_s)
+        canary_pass = canary_total > 0 and canary_correct == canary_total
+        candidate_key = checkpoint_selection_key(m)
         row = {
             "stage": stage,
             "epoch": epoch,
             **m,
-            "focus_correct": focus_correct,
-            "focus_total": focus_total,
-            "focus_pass": focus_pass,
+            "canary_correct": canary_correct,
+            "canary_total": canary_total,
+            "canary_pass": canary_pass,
         }
         history.append(row)
         if candidate_key > best_key:
             best_key = candidate_key
-            best = {**row, "focus_probabilities": focus_probabilities}
+            best = {**row, "canary_probabilities": canary_probabilities}
             best_state = copy.deepcopy(tag_model.state_dict())
             torch.save(
                 {
@@ -967,6 +1189,7 @@ def train_one(
                     "use_arcface": cfg.use_arcface,
                     "cfg": asdict(cfg),
                     "selection": best,
+                    "selection_policy": "validation_metric_only_then_canary_gate",
                 },
                 out_dir / "best.pth",
             )
@@ -978,7 +1201,8 @@ def train_one(
 
     def save_last(stage: str, optimizer, scheduler) -> None:
         payload = {
-            "schema_version": 1,
+            "schema_version": 2,
+            "selection_policy": "validation_metric_only_then_canary_gate",
             "cfg": asdict(cfg),
             "stage": stage,
             "completed_head": completed_head,
@@ -1020,34 +1244,43 @@ def train_one(
     # Stage A: head + freq_branch + norms
     from torch.optim.lr_scheduler import CosineAnnealingLR
 
-    params_a = (
-        list(model.classifier.parameters())
-        + list(model.freq_branch.parameters())
-        + list(model.spatial_norm.parameters())
-        + list(model.freq_norm.parameters())
-    )
-    opt_a = torch.optim.AdamW(params_a, lr=cfg.lr, weight_decay=cfg.weight_decay)
-    sch_a = CosineAnnealingLR(opt_a, T_max=cfg.epochs_head)
-    if resume_state is not None and resume_state["stage"] == "head" and completed_head < cfg.epochs_head:
-        opt_a.load_state_dict(resume_state["optimizer_state_dict"])
-        sch_a.load_state_dict(resume_state["scheduler_state_dict"])
-    for ep in range(completed_head, cfg.epochs_head):
-        t0 = time.time()
-        run_epoch(opt_a)
-        sch_a.step()
-        m = maybe_save(ema.ema if ema else model, "head", ep + 1)
-        completed_head = ep + 1
-        save_last("head", opt_a, sch_a)
-        focus_status = f" focus={history[-1]['focus_correct']}/{history[-1]['focus_total']}" if focus_s else ""
+    if cfg.epochs_head > 0:
+        params_a = (
+            list(model.classifier.parameters())
+            + list(model.freq_branch.parameters())
+            + list(model.spatial_norm.parameters())
+            + list(model.freq_norm.parameters())
+        )
+        opt_a = torch.optim.AdamW(params_a, lr=cfg.lr, weight_decay=cfg.weight_decay)
+        sch_a = CosineAnnealingLR(opt_a, T_max=cfg.epochs_head)
+        if resume_state is not None and resume_state["stage"] == "head" and completed_head < cfg.epochs_head:
+            opt_a.load_state_dict(resume_state["optimizer_state_dict"])
+            sch_a.load_state_dict(resume_state["scheduler_state_dict"])
+        for ep in range(completed_head, cfg.epochs_head):
+            t0 = time.time()
+            run_epoch(opt_a)
+            sch_a.step()
+            m = maybe_save(ema.ema if ema else model, "head", ep + 1)
+            completed_head = ep + 1
+            save_last("head", opt_a, sch_a)
+            canary_status = f" canary={history[-1]['canary_correct']}/{history[-1]['canary_total']}" if canary_s else ""
+            print(
+                f"  [A {ep + 1}/{cfg.epochs_head}] acc={m['accuracy']:.4f} spF1={m['sp_f1']:.4f} "
+                f"macroF1={m['macro_f1']:.4f} metric={m['best_metric']:.4f}{canary_status} "
+                f"({time.time() - t0:.0f}s)",
+                flush=True,
+            )
+            if should_pause():
+                print(f"  Paused safely after {completed_head + completed_finetune}/{total_epochs} epochs", flush=True)
+                return paused_result()
+    elif resume_state is None:
+        m = maybe_save(ema.ema if ema else model, "init", 0)
+        canary_status = f" canary={history[-1]['canary_correct']}/{history[-1]['canary_total']}" if canary_s else ""
         print(
-            f"  [A {ep + 1}/{cfg.epochs_head}] acc={m['accuracy']:.4f} spF1={m['sp_f1']:.4f} "
-            f"macroF1={m['macro_f1']:.4f} metric={m['best_metric']:.4f}{focus_status} "
-            f"({time.time() - t0:.0f}s)",
+            f"  [init] acc={m['accuracy']:.4f} spF1={m['sp_f1']:.4f} "
+            f"macroF1={m['macro_f1']:.4f} metric={m['best_metric']:.4f}{canary_status}",
             flush=True,
         )
-        if should_pause():
-            print(f"  Paused safely after {completed_head + completed_finetune}/{total_epochs} epochs", flush=True)
-            return paused_result()
 
     # Stage B: unfreeze
     unfreeze_stages(model, cfg.unfreeze)
@@ -1062,7 +1295,7 @@ def train_one(
         {"params": model.freq_norm.parameters(), "lr": cfg.lr},
     ]
     opt_b = torch.optim.AdamW(params_b, weight_decay=cfg.weight_decay)
-    sch_b = CosineAnnealingLR(opt_b, T_max=cfg.epochs_finetune)
+    sch_b = CosineAnnealingLR(opt_b, T_max=max(cfg.epochs_finetune, 1))
     if resume_state is not None and resume_state["stage"] == "finetune":
         opt_b.load_state_dict(resume_state["optimizer_state_dict"])
         sch_b.load_state_dict(resume_state["scheduler_state_dict"])
@@ -1073,10 +1306,10 @@ def train_one(
         m = maybe_save(ema.ema if ema else model, "finetune", ep + 1)
         completed_finetune = ep + 1
         save_last("finetune", opt_b, sch_b)
-        focus_status = f" focus={history[-1]['focus_correct']}/{history[-1]['focus_total']}" if focus_s else ""
+        canary_status = f" canary={history[-1]['canary_correct']}/{history[-1]['canary_total']}" if canary_s else ""
         print(
             f"  [B {ep + 1}/{cfg.epochs_finetune}] acc={m['accuracy']:.4f} spF1={m['sp_f1']:.4f} "
-            f"macroF1={m['macro_f1']:.4f} metric={m['best_metric']:.4f}{focus_status} "
+            f"macroF1={m['macro_f1']:.4f} metric={m['best_metric']:.4f}{canary_status} "
             f"({time.time() - t0:.0f}s)",
             flush=True,
         )

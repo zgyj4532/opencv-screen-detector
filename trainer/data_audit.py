@@ -15,8 +15,13 @@ from experiment.cnn_fft_dwt_ablation.harness import (
     _scan_sample_candidates,
     build_split,
     content_sha256,
-    load_focus_paths,
+    load_canary_paths,
     load_label_overrides,
+)
+from trainer.evaluation_sets import (
+    audit_split_isolation,
+    evaluation_set_readiness,
+    load_group_metadata,
 )
 
 DEFAULT_OUTPUT = ROOT / "trainer" / "data_audit.json"
@@ -66,7 +71,7 @@ def build_report(split_seed: int = 42) -> dict:
             f"Unresolved content-label conflicts: {', '.join(unresolved)}. Review {LABEL_OVERRIDES_PATH}."
         )
 
-    split = build_split(seed=split_seed, focus_paths=load_focus_paths())
+    split = build_split(seed=split_seed, canary_paths=load_canary_paths())
     role_hashes: dict[str, set[str]] = {}
     role_counts = {}
     for role in ("train", "val", "test"):
@@ -92,8 +97,10 @@ def build_report(split_seed: int = 42) -> dict:
         raise RuntimeError(f"Hard-negative content escaped into evaluation: {hard_content_in_eval}")
 
     used_hashes = set(groups)
+    isolation = audit_split_isolation(split, load_group_metadata())
+
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "raw_paths": len(candidates),
         "unique_content": len(groups),
         "duplicate_content_groups": sum(len(group) > 1 for group in groups.values()),
@@ -108,6 +115,8 @@ def build_report(split_seed: int = 42) -> dict:
         "unused_overrides": sorted(set(overrides) - used_hashes),
         "split": {**split["meta"], **role_counts},
         "cross_role_content_overlap": {name: len(hashes) for name, hashes in overlap.items()},
+        "split_isolation": isolation,
+        "evaluation_sets": evaluation_set_readiness(),
         "hard_negative_content_in_eval": {role: len(hashes) for role, hashes in hard_content_in_eval.items()},
         "reviewed_label_decisions": reviewed_decisions,
         "conflicts": conflicts,
