@@ -36,6 +36,8 @@ experiment/cnn_fft_dwt_ablation/split.json
 scripts/
 *.json
 !project_status.json
+!trainer/evaluation_sets/
+!trainer/evaluation_sets/*.json
 !experiment/cnn_fft_dwt_ablation/split.json
 !trainer/content_label_overrides.json
 !trainer/data_audit.json
@@ -44,6 +46,7 @@ scripts/
 !experiment/cnn_fft_dwt_ablation/deploy_eval_candidate_pg260727_cnv2_atto.json
 !experiment/cnn_fft_dwt_ablation/deploy_eval_existing_production.json
 !experiment/cnn_fft_dwt_ablation/deploy_eval_clean_v4_s2024_final_20260731.json
+!experiment/cnn_fft_dwt_ablation/deploy_eval_candidate_20260906_lwf_sp5.json
 !experiment/cnn_fft_dwt_ablation/random200_top3_eval.json
 
 # ppt (presentation files)

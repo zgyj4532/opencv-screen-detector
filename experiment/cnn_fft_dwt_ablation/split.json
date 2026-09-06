@@ -2,12 +2,14 @@
   "meta": {
     "schema_version": 4,
     "seed": 42,
-    "dataset_fingerprint": "b194d30758f9512a077246ab2c309da9b5189d1441d2a3cfa6d7962738f7f53d",
+    "dataset_fingerprint": "d8e5e2030fb4cb29e6404abfc75f64ef5ce1a70bea7b0502814ff7325f192704",
     "evaluation_fingerprint": "da74a983a7af3b5c1f73d1c80ccd5a7ed84a290e6f72dfb615a5eb6f73390eff",
     "focus_fingerprint": "174d1d29220abcdb3ecf48eb04075a883e421a0b544c9a3598951bd09ab86a79",
-    "main_count": 2493,
+    "canary_fingerprint": "174d1d29220abcdb3ecf48eb04075a883e421a0b544c9a3598951bd09ab86a79",
+    "main_count": 2498,
     "hard_negative_count": 445,
     "focus_count": 2,
+    "canary_count": 2,
     "assignment_policy": "frozen_val_test_new_content_to_train_hard_content_train_only"
   },
   "train": [
@@ -11070,6 +11072,31 @@
       "screen_photo/f7950eac41629266984d7f45d27958abf63401e49e7eae6bef7ad6b70c0e67e4.jpg",
       2,
       "f7950eac41629266984d7f45d27958abf63401e49e7eae6bef7ad6b70c0e67e4"
+    ],
+    [
+      "screen_photo/1d8ebae6ea50146f562c9c88be9f10d956ff971d3e3a0a8b92f09c0ae038432b.jpg",
+      2,
+      "1d8ebae6ea50146f562c9c88be9f10d956ff971d3e3a0a8b92f09c0ae038432b"
+    ],
+    [
+      "screen_photo/2ac0911b10b9e55e5fedca8edd93bec181a0aff4c2b0b0081a08274f2ce0d739.jpg",
+      2,
+      "2ac0911b10b9e55e5fedca8edd93bec181a0aff4c2b0b0081a08274f2ce0d739"
+    ],
+    [
+      "screen_photo/2f65f3891743774dc9dea7dd83539f19681ba2e4c259c8a63131b002931ef98b.jpg",
+      2,
+      "2f65f3891743774dc9dea7dd83539f19681ba2e4c259c8a63131b002931ef98b"
+    ],
+    [
+      "screen_photo/958f8bfff6422bd91485b40c896ed6311a95efe6c096ba4a0feba90592e6e841.jpg",
+      2,
+      "958f8bfff6422bd91485b40c896ed6311a95efe6c096ba4a0feba90592e6e841"
+    ],
+    [
+      "screen_photo/b7603bb8dda7fc40660fc5e1cfc1bb7371a85bbb58431b8ac0895342025d96f2.jpg",
+      2,
+      "b7603bb8dda7fc40660fc5e1cfc1bb7371a85bbb58431b8ac0895342025d96f2"
     ]
   ],
   "val": [

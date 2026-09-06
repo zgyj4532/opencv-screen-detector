@@ -1,0 +1,250 @@
+{
+  "schema_version": 2,
+  "label": "candidate_20260906_lwf_sp5",
+  "onnx_path": "experiment/cnn_fft_dwt_ablation/exp/candidate_20260906_lwf_sp5/three_class.onnx",
+  "onnx_sha256": "8a238cb31074d1eb25d7d0b026670999cfb7cf736970c50a0dde03b9e9c3cc83",
+  "size_mb": 22.18,
+  "n_test": 365,
+  "raw": {
+    "accuracy": 0.9287671232876712,
+    "sp_f1": 0.9217391304347825,
+    "sp_precision": 0.9137931034482759,
+    "sp_recall": 0.9298245614035088,
+    "macro_f1": 0.9368996325518065,
+    "metric": 0.9268796287140539
+  },
+  "hypothetical_ood_as_screen_photo": {
+    "accuracy": 0.936986301369863,
+    "sp_f1": 0.888888888888889,
+    "sp_precision": 0.8115942028985508,
+    "sp_recall": 0.9824561403508771,
+    "macro_f1": 0.9259495520365085,
+    "metric": 0.9107302452627051
+  },
+  "latency_ms": {
+    "mean": 169.96216251425548,
+    "p50": 159.49487686157227,
+    "p95": 224.3849277496338
+  },
+  "tiers": {
+    "low": 120,
+    "medium": 149,
+    "high": 85,
+    "ood": 11
+  },
+  "actions": {
+    "ignore": 131,
+    "review": 149,
+    "accept": 85
+  },
+  "evaluation_system": {
+    "legacy_closed_test": {
+      "status": "historical_benchmark_only",
+      "samples": 365,
+      "warning": "This set is not a true-OOD set or the independent Frozen challenge set"
+    },
+    "set_readiness": {
+      "canary": {
+        "status": "READY",
+        "declared_status": "READY",
+        "entries": 2,
+        "policy": {
+          "training_eligible": true,
+          "threshold_tuning_eligible": false,
+          "promotion_statistics": false,
+          "all_must_pass": true
+        },
+        "reasons": [],
+        "missing_paths": [],
+        "hash_mismatches": [],
+        "cross_set_overlaps": {}
+      },
+      "frozen_challenge": {
+        "status": "NOT_READY",
+        "declared_status": "NOT_READY",
+        "entries": 0,
+        "policy": {
+          "training_eligible": false,
+          "threshold_tuning_eligible": false,
+          "promotion_statistics": true,
+          "frozen_after_review": true
+        },
+        "reasons": [
+          "requires at least 100 entries; found 0",
+          "manifest governance status is NOT_READY"
+        ],
+        "missing_paths": [],
+        "hash_mismatches": [],
+        "cross_set_overlaps": {}
+      },
+      "rolling_error_pool": {
+        "status": "READY",
+        "declared_status": "READY",
+        "entries": 0,
+        "policy": {
+          "training_eligible": "only_after_review_in_a_later_training_round",
+          "threshold_tuning_eligible": false,
+          "promotion_statistics": false,
+          "mutable": true
+        },
+        "reasons": [],
+        "missing_paths": [],
+        "hash_mismatches": [],
+        "cross_set_overlaps": {}
+      },
+      "ood": {
+        "status": "NOT_READY",
+        "declared_status": "NOT_READY",
+        "entries": 0,
+        "policy": {
+          "training_eligible": false,
+          "threshold_tuning_eligible": false,
+          "promotion_statistics": true,
+          "frozen_after_review": true
+        },
+        "reasons": [
+          "requires at least 1 entries; found 0",
+          "manifest governance status is NOT_READY"
+        ],
+        "missing_paths": [],
+        "hash_mismatches": [],
+        "cross_set_overlaps": {}
+      }
+    },
+    "canary": {
+      "status": "PASS",
+      "correct": 2,
+      "total": 2,
+      "role": "known-regression blocker only; not generalization evidence",
+      "records": [
+        {
+          "id": "screenshot-4a6e-canary",
+          "path": "data/input/screenshot/4a6e9f5ce9dc3506cd4dd4484f0eb79b3b9a90551909f5363687a4438baae8f9.png",
+          "expected_label": "screenshot",
+          "category": null,
+          "probabilities": {
+            "natural": 0.1613357663154602,
+            "screenshot": 0.5700445771217346,
+            "screen_photo": 0.26861970126628876
+          },
+          "final_label": "screenshot",
+          "confidence_tier": "low",
+          "action": "ignore"
+        },
+        {
+          "id": "screenshot-5cdc-canary",
+          "path": "data/input/screenshot/5cdc3e8dca1eab9bbd5362b995e92c7c171621dbc827ca2af01bb7eaa4123a62.png",
+          "expected_label": "screenshot",
+          "category": null,
+          "probabilities": {
+            "natural": 0.3000193238258362,
+            "screenshot": 0.5204670131206512,
+            "screen_photo": 0.17951369285583496
+          },
+          "final_label": "screenshot",
+          "confidence_tier": "low",
+          "action": "ignore"
+        }
+      ]
+    },
+    "closed_set_classification": {
+      "status": "READY",
+      "samples": 365,
+      "accuracy": 0.9534246575342465,
+      "macro_f1": 0.9485639385820873,
+      "precision_per_class": {
+        "natural": 0.9921875,
+        "screenshot": 0.9382022471910112,
+        "screen_photo": 0.9152542372881356
+      },
+      "recall_per_class": {
+        "natural": 0.9202898550724637,
+        "screenshot": 0.9823529411764705,
+        "screen_photo": 0.9473684210526315
+      },
+      "f1_per_class": {
+        "natural": 0.9548872180451128,
+        "screenshot": 0.9597701149425287,
+        "screen_photo": 0.9310344827586207
+      }
+    },
+    "known_class_false_rejection": {
+      "status": "READY",
+      "threshold": 0.45,
+      "known_samples": 365,
+      "false_rejection_count": 11,
+      "false_rejection_rate": 0.030136986301369864
+    },
+    "true_ood_detection": {
+      "status": "NOT_READY",
+      "reason": "No labeled true-OOD samples are available; known-class rejections are not OOD evidence",
+      "known_false_positive_rate": 0.030136986301369864
+    },
+    "selective_risk_coverage": {
+      "status": "READY",
+      "points": [
+        {
+          "confidence_threshold": 0.0,
+          "coverage": 1.0,
+          "accepted": 365,
+          "errors": 17,
+          "selective_risk": 0.04657534246575343
+        },
+        {
+          "confidence_threshold": 0.45,
+          "coverage": 0.9698630136986301,
+          "accepted": 354,
+          "errors": 15,
+          "selective_risk": 0.0423728813559322
+        },
+        {
+          "confidence_threshold": 0.6,
+          "coverage": 0.8356164383561644,
+          "accepted": 305,
+          "errors": 4,
+          "selective_risk": 0.013114754098360656
+        },
+        {
+          "confidence_threshold": 0.75,
+          "coverage": 0.6410958904109589,
+          "accepted": 234,
+          "errors": 0,
+          "selective_risk": 0.0
+        },
+        {
+          "confidence_threshold": 0.92,
+          "coverage": 0.2328767123287671,
+          "accepted": 85,
+          "errors": 0,
+          "selective_risk": 0.0
+        }
+      ]
+    },
+    "frozen_challenge": {
+      "status": "NOT_READY",
+      "reasons": [
+        "requires at least 100 entries; found 0",
+        "manifest governance status is NOT_READY"
+      ]
+    },
+    "ood_records": [],
+    "split_isolation_status": "NOT_READY",
+    "promotion_readiness": {
+      "status": "NOT_READY",
+      "gates": {
+        "canary_regression": "READY",
+        "frozen_challenge_data": "NOT_READY",
+        "frozen_challenge_acceptance": "NOT_READY",
+        "true_ood_data": "NOT_READY",
+        "true_ood_acceptance": "NOT_READY",
+        "group_and_perceptual_isolation": "NOT_READY"
+      },
+      "rule": "Canary prevents known regressions; only independent frozen challenge and true-OOD sets provide promotion statistics"
+    }
+  },
+  "baseline_to_beat": {
+    "acc": 0.8946,
+    "macro_f1": 0.8668,
+    "sp_f1": 0.763
+  }
+}
