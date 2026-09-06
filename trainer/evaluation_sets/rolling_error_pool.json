@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "set_type": "rolling_error_pool",
+  "status": "READY",
+  "purpose": "Reviewed online errors for clustering and active learning; not a promotion benchmark.",
+  "policy": {
+    "training_eligible": "only_after_review_in_a_later_training_round",
+    "threshold_tuning_eligible": false,
+    "promotion_statistics": false,
+    "mutable": true
+  },
+  "readiness": {
+    "minimum_entries": 0
+  },
+  "entries": []
+}

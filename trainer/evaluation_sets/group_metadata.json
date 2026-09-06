@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "set_type": "group_metadata",
+  "status": "NOT_READY",
+  "purpose": "Content lineage and capture-device groups used to prevent cross-split leakage.",
+  "required_group_keys": [
+    "source_content_id",
+    "capture_session_id",
+    "camera_device_id",
+    "display_device_id",
+    "transformation_lineage_id"
+  ],
+  "entries": []
+}

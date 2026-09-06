@@ -1,4 +1,5 @@
-# Curated local-data regressions. Paths are relative to data/input.
-# These samples remain in train and receive extra sampler weight in release training.
+# Deprecated compatibility pointer.
+# The canonical regression set is trainer/evaluation_sets/canary.json.
+# Historical tooling may still read this file, but new release code must use the Canary manifest.
 screenshot/4a6e9f5ce9dc3506cd4dd4484f0eb79b3b9a90551909f5363687a4438baae8f9.png
 screenshot/5cdc3e8dca1eab9bbd5362b995e92c7c171621dbc827ca2af01bb7eaa4123a62.png

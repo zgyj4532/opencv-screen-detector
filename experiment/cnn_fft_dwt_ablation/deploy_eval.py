@@ -25,6 +25,13 @@ sys.path.insert(0, str(ROOT))
 
 from inference.config import configure
 from inference.predictor import ScreenDetectorPredictor
+from trainer.evaluation_sets import (
+    NOT_READY,
+    evaluate_known_and_ood,
+    evaluation_set_readiness,
+    promotion_readiness,
+    resolve_manifest_samples,
+)
 
 ONNX_PATH = ROOT / "inference" / "models" / "three_class.onnx"
 DEFAULT_OUTPUT_PATH = ROOT / "experiment" / "cnn_fft_dwt_ablation" / "deploy_eval.json"
@@ -38,6 +45,39 @@ def portable_path(path: Path) -> str:
         return path.relative_to(ROOT).as_posix()
     except ValueError:
         return str(path)
+
+
+def predict_manifest(pred: ScreenDetectorPredictor, set_name: str) -> dict:
+    """Run one governed evaluation set through the production Predictor."""
+    samples = resolve_manifest_samples(set_name)
+    probabilities = []
+    final_labels = []
+    expected_labels = []
+    records = []
+    for sample in samples:
+        result = pred.predict(sample.path)
+        probs = [result["probabilities"][name] for name in CLASSES]
+        probabilities.append(probs)
+        final_labels.append(result["class"])
+        expected_labels.append(sample.expected_label)
+        records.append(
+            {
+                "id": sample.sample_id,
+                "path": portable_path(sample.path),
+                "expected_label": sample.expected_label,
+                "category": sample.category,
+                "probabilities": result["probabilities"],
+                "final_label": result["class"],
+                "confidence_tier": result.get("confidence_tier"),
+                "action": result.get("action"),
+            }
+        )
+    return {
+        "probabilities": np.asarray(probabilities, dtype=np.float64),
+        "final_labels": final_labels,
+        "expected_labels": expected_labels,
+        "records": records,
+    }
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -79,6 +119,7 @@ def main(argv: list[str] | None = None) -> None:
     preds: list[int] = []
     tiers: list[str] = []
     actions: list[str] = []
+    known_probs: list[list[float]] = []
     elapsed_per = []
 
     for path, true_label in test:
@@ -91,6 +132,7 @@ def main(argv: list[str] | None = None) -> None:
         preds.append(pl)
         tiers.append(r.get("confidence_tier", "?"))
         actions.append(r.get("action", "?"))
+        known_probs.append([r["probabilities"][name] for name in CLASSES])
 
     elapsed = time.time() - t0
     labels_a = np.array(labels)
@@ -156,8 +198,56 @@ def main(argv: list[str] | None = None) -> None:
     print(f"  p95:  {np.percentile(elapsed_per, 95) * 1000:.1f} ms")
     print(f"  total: {elapsed:.1f}s")
 
-    # Save result
+    # Evaluate governed sets separately. Empty/unreviewed manifests stay NOT_READY.
+    set_readiness = evaluation_set_readiness()
+    canary_run = predict_manifest(pred, "canary") if set_readiness["canary"]["status"] == "READY" else None
+    canary_pass = bool(
+        canary_run
+        and all(
+            actual == expected
+            for actual, expected in zip(canary_run["final_labels"], canary_run["expected_labels"], strict=True)
+        )
+    )
+
+    challenge_report: dict = {
+        "status": NOT_READY,
+        "reasons": set_readiness["frozen_challenge"]["reasons"],
+    }
+    if set_readiness["frozen_challenge"]["status"] == "READY":
+        challenge_run = predict_manifest(pred, "frozen_challenge")
+        challenge_labels = np.asarray([C2I[label] for label in challenge_run["expected_labels"]], dtype=np.int64)
+        challenge_report = {
+            "status": "READY",
+            **evaluate_known_and_ood(challenge_run["probabilities"], challenge_labels),
+            "records": challenge_run["records"],
+        }
+
+    ood_probs = None
+    ood_records = []
+    if set_readiness["ood"]["status"] == "READY":
+        ood_run = predict_manifest(pred, "ood")
+        ood_probs = ood_run["probabilities"]
+        ood_records = ood_run["records"]
+    separated_metrics = evaluate_known_and_ood(
+        np.asarray(known_probs, dtype=np.float64),
+        labels_a,
+        ood_probs,
+        ood_threshold=0.45,
+    )
+
+    audit_path = ROOT / "trainer" / "data_audit.json"
+    isolation_status = NOT_READY
+    if audit_path.exists():
+        audit_payload = json.loads(audit_path.read_text(encoding="utf-8"))
+        if audit_payload.get("split", {}).get("dataset_fingerprint") == split.get("meta", {}).get(
+            "dataset_fingerprint"
+        ):
+            isolation_status = audit_payload.get("split_isolation", {}).get("status", NOT_READY)
+    promotion = promotion_readiness(set_readiness, isolation_status, canary_pass=canary_pass)
+
+    # Save result. Existing keys remain for historical consumers.
     out = {
+        "schema_version": 2,
         "label": args.label,
         "onnx_path": portable_path(model_path),
         "onnx_sha256": hashlib.sha256(model_path.read_bytes()).hexdigest(),
@@ -186,6 +276,35 @@ def main(argv: list[str] | None = None) -> None:
         },
         "tiers": dict(Counter(tiers)),
         "actions": dict(Counter(actions)),
+        "evaluation_system": {
+            "legacy_closed_test": {
+                "status": "historical_benchmark_only",
+                "samples": len(test),
+                "warning": "This set is not a true-OOD set or the independent Frozen challenge set",
+            },
+            "set_readiness": set_readiness,
+            "canary": {
+                "status": "PASS" if canary_pass else "FAIL",
+                "correct": (
+                    sum(
+                        actual == expected
+                        for actual, expected in zip(
+                            canary_run["final_labels"], canary_run["expected_labels"], strict=True
+                        )
+                    )
+                    if canary_run
+                    else 0
+                ),
+                "total": len(canary_run["records"]) if canary_run else 0,
+                "role": "known-regression blocker only; not generalization evidence",
+                "records": canary_run["records"] if canary_run else [],
+            },
+            **separated_metrics,
+            "frozen_challenge": challenge_report,
+            "ood_records": ood_records,
+            "split_isolation_status": isolation_status,
+            "promotion_readiness": promotion,
+        },
         "baseline_to_beat": {"acc": 0.8946, "macro_f1": 0.8668, "sp_f1": 0.7630},
     }
     out_path = args.output.resolve()

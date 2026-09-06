@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "set_type": "ood",
+  "status": "NOT_READY",
+  "purpose": "Labeled true out-of-distribution samples, separate from known-class false rejections.",
+  "policy": {
+    "training_eligible": false,
+    "threshold_tuning_eligible": false,
+    "promotion_statistics": true,
+    "frozen_after_review": true
+  },
+  "readiness": {
+    "minimum_entries": 1,
+    "target_categories": [
+      "scan_or_print",
+      "digital_art_comic_poster",
+      "partial_screen",
+      "video_collage_meme",
+      "extreme_processing",
+      "ai_generated",
+      "composite_nested_source"
+    ]
+  },
+  "entries": []
+}
