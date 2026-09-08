@@ -32,16 +32,21 @@ inference/models/*.torchscript
 experiment/cnn_fft_dwt_ablation/cache/
 experiment/cnn_fft_dwt_ablation/exp/
 experiment/cnn_fft_dwt_ablation/split.json
+
+# local evaluation state
+/project_status.json
+/experiment/cnn_fft_dwt_ablation/leaderboard.jsonl
+/experiment/cnn_fft_dwt_ablation/deploy_eval.json
+/experiment/cnn_fft_dwt_ablation/diagnose_train_predictor_diff.py
+
 # scripts (download tools)
 scripts/
 *.json
-!project_status.json
 !trainer/evaluation_sets/
 !trainer/evaluation_sets/*.json
 !experiment/cnn_fft_dwt_ablation/split.json
 !trainer/content_label_overrides.json
 !trainer/data_audit.json
-!experiment/cnn_fft_dwt_ablation/deploy_eval.json
 !experiment/cnn_fft_dwt_ablation/deploy_eval_previous.json
 !experiment/cnn_fft_dwt_ablation/deploy_eval_candidate_pg260727_cnv2_atto.json
 !experiment/cnn_fft_dwt_ablation/deploy_eval_existing_production.json
