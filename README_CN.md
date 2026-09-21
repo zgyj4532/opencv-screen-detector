@@ -10,6 +10,19 @@ OpenCV Screen Detector 用于识别图像来源，将每张图片分类为 **nat
 
 仓库包含可部署的 EfficientNet-B0 + FFT + DWT 模型、对应的 PyTorch 训练流程，以及可复现实验用的 CNN/DeiT 研究代码。这是图像分类器而非目标检测器：每张输入图片只输出一个类别。
 
+## 当前模型与文档入口
+
+| 内容 | 状态 / 入口 |
+| --- | --- |
+| API 使用的模型 | `inference/models/three_class.onnx`，生产版本 `release_20260807_unf3_focus2_6x12` |
+| 最新训练 | [9 月 22 日实验](experiment/daily_20260922/README.md)：新增 25 张拍屏，六次训练完成；验证选型候选供复核，生产保持不变 |
+| 运行服务 | [快速开始](#快速开始)、[推理与 API 手册](README-inference.md) |
+| 训练和评估 | [训练](#训练)、[训练手册](README-trainer.md) |
+| 理解模型 | [模型架构](#模型架构)、[实验结果](#实验结果) |
+
+最新实验在现有 CNN + FFT + DWT 结构上比较学习率和蒸馏参数。
+“最优”仅指本轮预先确定的对照范围，不代表全局最优或已满足生产晋升条件。
+
 ## 项目亮点
 
 - 三来源分类；ONNX 模型同时接收 RGB、FFT 与 DWT 输入。
@@ -183,18 +196,18 @@ flowchart TD
 | `hard_negative/` | 按子目录推导 | 已确认边界案例保留真实类别；仅参与 train，不进入 val/test |
 | `screen_photo/` | `screen_photo` | 相机拍摄的显示设备照片 |
 
-**已审计的当前数据视图**（2026-09-06 更新）：
+**已审计的当前数据视图**（2026-09-22 实验）：
 
-- 原始路径 **3,075** 个，SHA-256 唯一内容 **2,943** 个，移除字节级重复路径 **132** 个。
+- 原始路径 **3,105** 个，SHA-256 唯一内容 **2,973** 个，移除字节级重复路径 **132** 个。
 - 审计发现 18 组标签冲突，已由 `trainer/content_label_overrides.json` 中 19 条人工复核决定全部解决；存在未解决冲突时训练会直接失败。
-- 冻结切分 seed=42：**train 2,217 / val 361 / test 365**；集合之间内容重合为 0，val/test 中 hard-negative 内容为 0。
-- 当前数据集指纹：`d8e5e2030fb4cb29e6404abfc75f64ef5ce1a70bea7b0502814ff7325f192704`。
+- 冻结切分 seed=42：**train 2,247 / val 361 / test 365**；集合之间内容重合为 0，val/test 中 hard-negative 内容为 0。
+- 当前数据集指纹：`ec60352964610fb891013be4f39caa9cc846fd03439e51f4c43f37233d8e6c32`。
 - 评测集指纹：`da74a983a7af3b5c1f73d1c80ccd5a7ed84a290e6f72dfb615a5eb6f73390eff`（未变）。
 - 只要某个内容身份曾出现在 `hard_negative/`，它及其他目录中的字节级副本都只进入 train。新增内容只加入 train，不重排已冻结的 val/test。
-- 从 `data/input/daily-package-2026-09-02.zip` … `2026-09-05.zip` 用 `uv run python -m trainer ingest` 只抽出 5 张唯一 `screen_photo`，写入 `data/input/screen_photo`；zip 里的 `normal_photo` 等其它目录没有落盘。
-- 精确 SHA-256 跨 split 重合为 0；但 5 个内容/采集组字段目前均为 0/2,943，DCT pHash（汉明距离 ≤8）检出 19 个跨 split 候选对、17 个候选簇，尚待人工或 embedding/局部特征复核。因此组级隔离状态是 `NOT_READY`，不能写成“已无泄漏”。
+- 从指定的 `data/daily-package-2026-09-15.zip` … `2026-09-21.zip` 共 7 份 ZIP 导入 **25 张**唯一拍屏。原 ZIP 完整保留并核验哈希，其他类别不落盘。[来源记录](experiment/daily_20260922/data/ingest.json)。
+- 精确 SHA-256 跨 split 重合为 0；但 5 个内容/采集组字段目前均为 0/2,973，DCT pHash（汉明距离 ≤8）检出 19 个跨 split 候选对、17 个候选簇，仍待复核。因此组级隔离状态是 `NOT_READY`。
 
-训练前先执行 `uv run python -m trainer ingest`，再执行 `uv run python -m trainer audit`。完整机器可读报告位于 `trainer/data_audit.json`，可移植冻结清单位于 `experiment/cnn_fft_dwt_ablation/split.json`。生产模型使用 2026-08-07 数据快照（`972fc082…`，2,183/361/365）；新增的 34 个唯一内容仅进入 train，未进入已晋升权重。
+ZIP 放在 `data/` 时，使用 `uv run python -m trainer ingest --data-dir data --dest data/input/screen_photo`；默认命令搜索的是 `data/input/`。训练前需审计数据。本轮完整的[审计快照](experiment/daily_20260922/data/audit.json)和[冻结切分](experiment/daily_20260922/data/split.json)保存在实验目录，`trainer/data_audit.json` 保留此前本地快照。生产模型使用 2026-08-07 数据（`972fc082…`，2,183/361/365）；此后新增的 64 个唯一内容均为 train-only，未进入已晋升权重。
 
 评测治理清单位于 `trainer/evaluation_sets/`：两张已知回归是可进入训练的 Canary；Frozen challenge 与真 OOD 集永不进入训练或阈值调节，当前因无独立样本而为 `NOT_READY`；Rolling error pool 用于线上错误聚类和下一轮主动学习。现有 365 张 test 继续保留为历史闭集基准，不冒充 Frozen challenge 或真 OOD 集。
 
@@ -249,6 +262,8 @@ uv run python experiment/cnn_fft_dwt_ablation/deploy_eval.py --model experiment/
 导出器会写入 `inference/models/three_class.onnx`，该路径正是服务端使用的路径。
 
 ## 训练
+
+本次 9 月 15–21 日增量采用 [6GB 显存实验流程](experiment/daily_20260922/README.md#执行顺序)：batch=8、AMP、64 张图片缓存、串行执行。每次热启动微调 8 epoch，与下文的通用两阶段默认配置分开。先做 checkpoint 导出和数值一致性核验，再以两个 seed 的真实 Predictor validation 结果选型，冻结选择后才打开历史 test。
 
 ### 两阶段训练策略
 
@@ -423,6 +438,18 @@ opencv-screen-detector/
 ```
 
 ## 实验结果
+
+### 9 月 22 日增量实验
+
+本轮完成三组参数 × 两个 seed × 八个微调 epoch。低学习率组（`lr=1e-4`、batch=8、关闭蒸馏）的真实 Predictor validation 均值最高，为 **0.9390**；常规组 **0.9385**，蒸馏组 **0.9274**。读取 test 前已冻结选型，主种子预先固定为 42。
+
+| 历史 test，真实 Predictor | Accuracy | 拍屏 F1 | 综合指标 | Canary |
+| --- | ---: | ---: | ---: | --- |
+| 当前生产 | 0.9233 | 0.9123 | 0.9190 | 2/2 |
+| 低学习率主候选，42 | 0.9288 | 0.9217 | 0.9271 | 2/2 |
+| 低学习率复验，2024 | 0.9260 | 0.8908 | 0.9090 | 2/2 |
+
+**没有确认稳定提升，保留生产模型。** 两个种子相对生产的配对指标差区间均包含零。[主候选 ONNX](experiment/daily_20260922/models/daily20260922_low_lr_s42_b8.onnx)通过 Git LFS 提交供复核；[完整实验](experiment/daily_20260922/README.md)和[结果记录](experiment/daily_20260922/reports/results.json)包含同数据常规对照及逐图预测。独立 challenge、真 OOD 和采集组门槛仍为 `NOT_READY`。本地 57 项测试、Ruff 和格式检查通过。
 
 > 状态说明：`release_20260807_unf3_focus2_6x12` 是当前生产版本。它历史上按 2/2 hard-example 与 validation 选出；这两张图现在只作为 Canary。365 张 test 是历史闭集基准，Frozen challenge 与真 OOD 集目前均为 `NOT_READY`。
 

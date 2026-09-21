@@ -1,0 +1,100 @@
+{
+  "frozen_at": "2026-09-21T19:07:22.798900+00:00",
+  "protocol_sha256": "7b2aab449125a552259223d820ea92848086709216000f7dde321cb1bfcc7a15",
+  "ranking": [
+    {
+      "variant": "low_lr",
+      "eligible": true,
+      "mean_metric": 0.9389745661034884,
+      "metrics_by_seed": {
+        "42": {
+          "accuracy": 0.9279778393351801,
+          "sp_precision": 0.9454545454545454,
+          "sp_recall": 0.9285714285714286,
+          "sp_f1": 0.9369369369369369,
+          "macro_f1": 0.937914238476036,
+          "metric": 0.9344446679642298,
+          "unknown": 8
+        },
+        "2024": {
+          "accuracy": 0.9362880886426593,
+          "sp_precision": 0.9464285714285714,
+          "sp_recall": 0.9464285714285714,
+          "sp_f1": 0.9464285714285714,
+          "macro_f1": 0.9470187596783175,
+          "metric": 0.943504464242747,
+          "unknown": 8
+        }
+      }
+    },
+    {
+      "variant": "baseline",
+      "eligible": true,
+      "mean_metric": 0.9385228329442652,
+      "metrics_by_seed": {
+        "42": {
+          "accuracy": 0.9279778393351801,
+          "sp_precision": 0.9454545454545454,
+          "sp_recall": 0.9285714285714286,
+          "sp_f1": 0.9369369369369369,
+          "macro_f1": 0.9390875838244259,
+          "metric": 0.9346793370339077,
+          "unknown": 9
+        },
+        "2024": {
+          "accuracy": 0.9335180055401662,
+          "sp_precision": 0.9464285714285714,
+          "sp_recall": 0.9464285714285714,
+          "sp_f1": 0.9464285714285714,
+          "macro_f1": 0.945483207391435,
+          "metric": 0.9423663288546226,
+          "unknown": 9
+        }
+      }
+    },
+    {
+      "variant": "lwf",
+      "eligible": true,
+      "mean_metric": 0.9274193816556542,
+      "metrics_by_seed": {
+        "42": {
+          "accuracy": 0.9085872576177285,
+          "sp_precision": 0.9444444444444444,
+          "sp_recall": 0.9107142857142857,
+          "sp_f1": 0.9272727272727272,
+          "macro_f1": 0.9320162043815978,
+          "metric": 0.9226157817980017,
+          "unknown": 19
+        },
+        "2024": {
+          "accuracy": 0.9224376731301939,
+          "sp_precision": 0.9622641509433962,
+          "sp_recall": 0.9107142857142857,
+          "sp_f1": 0.9357798165137615,
+          "macro_f1": 0.9380088565868383,
+          "metric": 0.9322229815133065,
+          "unknown": 13
+        }
+      }
+    }
+  ],
+  "selected_variant": "low_lr",
+  "primary_seed": 42,
+  "validation_report_sha256": {
+    "daily20260922_baseline_s42_b8": "32f315fe51e5d872343f912fce7ae5ac239edf7eafa390562e7c0fec458b29c1",
+    "daily20260922_baseline_s2024_b8": "3db1dbe355123b047b6eccdd43c44dc3fd0db8ed11ad07b7f415b99ca21c9682",
+    "daily20260922_low_lr_s42_b8": "d8ffc03250ea7d2123e9680883b6d451e5214fceaf9fb95de2e12c9ca0f96fe4",
+    "daily20260922_low_lr_s2024_b8": "3bcbf6a4acfe12c8ea4e1dec17b7fb79fddd6f5a29b19b208272b49fd1f6109b",
+    "daily20260922_lwf_s42_b8": "cc3f89d3d9000bb190c0d67ff917dc8d2ee027679251e053ed094a332c0330b4",
+    "daily20260922_lwf_s2024_b8": "085d06e8d274dea6a6821fd4b1b16431344927710330f646fc8ca32a9ec79d64"
+  },
+  "test_allowed_ids": [
+    "production",
+    "daily20260922_baseline_s2024_b8",
+    "daily20260922_baseline_s42_b8",
+    "daily20260922_low_lr_s2024_b8",
+    "daily20260922_low_lr_s42_b8"
+  ],
+  "selection_basis": "mean Predictor validation metric across two seeds, then all-Canary pass eligibility",
+  "promotion": "candidate only; independent challenge/OOD and group isolation evidence still required"
+}

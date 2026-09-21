@@ -1042,7 +1042,9 @@ def train_one(
         use_fft_attention=cfg.use_attention,
         attention_type=cfg.attention_type,
     ).to(device)
-    if cfg.init_checkpoint and resume_state is None:
+    # Build the fixed distillation teacher from the original checkpoint on resume too.
+    # The student's saved state is restored below, after the teacher has been copied.
+    if cfg.init_checkpoint:
         load_init_checkpoint(model, cfg.init_checkpoint)
         print(f"  Loaded init checkpoint {cfg.init_checkpoint}", flush=True)
 
