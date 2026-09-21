@@ -1,0 +1,53 @@
+{
+  "variants": {
+    "baseline": {
+      "lr": 0.0003,
+      "distill_alpha": 0.0
+    },
+    "low_lr": {
+      "lr": 0.0001,
+      "distill_alpha": 0.0
+    },
+    "lwf": {
+      "lr": 0.0003,
+      "distill_alpha": 1.0
+    }
+  },
+  "seeds": [
+    42,
+    2024
+  ],
+  "epochs_finetune": 8,
+  "batch_size": 8,
+  "cuda_memory_fraction": 0.7,
+  "cache_images": 64,
+  "unfreeze": 3,
+  "canary_weight": 2.0,
+  "new_content_weight": 8.0,
+  "init_checkpoint_sha256": "cfd5c75c9524d03eff2db05fbd327e8f166d578e98073af62cabcb8618ac75cd",
+  "production_onnx_sha256": "c53b00d5511f0deb358df387f5e21202fc348f2b3f6fbbb8f39e676a03a7b390",
+  "split": {
+    "schema_version": 4,
+    "seed": 42,
+    "dataset_fingerprint": "ec60352964610fb891013be4f39caa9cc846fd03439e51f4c43f37233d8e6c32",
+    "evaluation_fingerprint": "da74a983a7af3b5c1f73d1c80ccd5a7ed84a290e6f72dfb615a5eb6f73390eff",
+    "focus_fingerprint": "174d1d29220abcdb3ecf48eb04075a883e421a0b544c9a3598951bd09ab86a79",
+    "canary_fingerprint": "174d1d29220abcdb3ecf48eb04075a883e421a0b544c9a3598951bd09ab86a79",
+    "main_count": 2528,
+    "hard_negative_count": 445,
+    "focus_count": 2,
+    "canary_count": 2,
+    "assignment_policy": "frozen_val_test_new_content_to_train_hard_content_train_only"
+  },
+  "thresholds": {
+    "ood_threshold": 0.45,
+    "screen_photo_threshold": 0.6,
+    "confidence_high": 0.92,
+    "confidence_medium": 0.75
+  },
+  "checkpoint_selection": "validation metric only, then Canary gate",
+  "variant_selection": "mean actual Predictor validation metric across both seeds; both Canary gates must pass",
+  "primary_seed": 42,
+  "test_policy": "freeze selection before evaluating winner and same-data baseline (both seeds), plus production once",
+  "promotion": "candidate only; independent challenge/OOD and collection-group evidence required"
+}
