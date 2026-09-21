@@ -1,0 +1,38 @@
+{
+  "archives_verified": 7,
+  "imported_images_verified": 25,
+  "frozen_evaluation_unchanged": true,
+  "canonical_artifacts_unchanged": true,
+  "dataset_fingerprint": "ec60352964610fb891013be4f39caa9cc846fd03439e51f4c43f37233d8e6c32",
+  "evaluation_fingerprint": "da74a983a7af3b5c1f73d1c80ccd5a7ed84a290e6f72dfb615a5eb6f73390eff",
+  "complete_training_runs": 6,
+  "test_records": [
+    "daily20260922_baseline_s2024_b8",
+    "daily20260922_baseline_s42_b8",
+    "daily20260922_low_lr_s2024_b8",
+    "daily20260922_low_lr_s42_b8",
+    "production"
+  ],
+  "validation_only_selection_verified": true,
+  "python": "3.12.7 (main, Oct  7 2024, 23:35:34) [MSC v.1929 64 bit (AMD64)]",
+  "packages": {
+    "torch": "2.6.0+cu124",
+    "torchvision": "0.21.0+cu124",
+    "numpy": "2.4.4",
+    "onnx": "1.21.0",
+    "onnxruntime": "1.26.0",
+    "timm": "1.0.27",
+    "albumentations": "2.0.8"
+  },
+  "source_sha256": {
+    "experiment/daily_20260922/src/compare.py": "6863561ade4fe011a53f962b9c0f8dc99bb4715898efd07dfbc5dfe824cc37a5",
+    "experiment/daily_20260922/src/evaluate.py": "338c4a85d025884ccca2ec16da023bd348bd36324561b4bbe93baee8b7841acd",
+    "experiment/daily_20260922/src/prepare.py": "03631453c2be2e324958166e86d703d10a5bf94a90b49e968fe380e67fa8106d",
+    "experiment/daily_20260922/src/protocol.py": "caa51336abf4b8089ca8e37d9f7130d0234b8d070666fccfe9261be3f5297d74",
+    "experiment/daily_20260922/src/queue.py": "229048af0e4eb7b5b9219592fbdf9a6dac586928fb0d4736ba09cd20cad36566",
+    "experiment/daily_20260922/src/select.py": "89642efb3e003b74dd4ee561dd692ec8ee11ef8468c9d21e275129228123901a",
+    "experiment/daily_20260922/src/train.py": "bd236e017c2296a635d458f6335c2d663f75b543d0b7a1bfcefa208ab540856a",
+    "experiment/daily_20260922/src/verify.py": "cfd76bf0ac02fa313f16d5f12962f0252f9216959b0dca38bb751dc45de0eecb",
+    "experiment/cnn_fft_dwt_ablation/harness.py": "654ae8ee173da2e57a7483c8f5c34924f56e3ea81fa4ac53ce4d85e04d325971"
+  }
+}

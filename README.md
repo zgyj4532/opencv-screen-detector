@@ -10,6 +10,19 @@ OpenCV Screen Detector classifies an image source as **natural**, **screenshot**
 
 The repository contains the deployable EfficientNet-B0 + FFT + DWT model, its PyTorch training pipeline, and reproducible CNN/DeiT research experiments. It is a classifier, not an object detector: it predicts one label for each input image.
 
+## Current model and documentation
+
+| Item | Status / entry point |
+| --- | --- |
+| API model | `inference/models/three_class.onnx`; production release `release_20260807_unf3_focus2_6x12` |
+| Latest training | [September 22 experiment](experiment/daily_20260922/README.md): +25 screen photos, six completed runs; validation-selected candidate retained for review, production unchanged |
+| Run the service | [Quick Start](#quick-start), [inference and API reference](README-inference.md) |
+| Train and evaluate | [Training](#training), [trainer reference](README-trainer.md) |
+| Understand the model | [Model Architecture](#model-architecture), [evaluation evidence](#experimental-results) |
+
+The latest experiment tunes learning rate and distillation with the same CNN + FFT + DWT architecture.
+“Best” refers to the predeclared comparison on this dataset, not a global optimum or a production promotion.
+
 ## Project Highlights
 
 - Three-source classification with an ONNX model that accepts RGB, FFT, and DWT inputs.
@@ -183,17 +196,17 @@ flowchart TD
 | `hard_negative/` | Derived from subdirectory | Confirmed boundary cases keep their true class; train only, never in val/test |
 | `screen_photo/` | `screen_photo` | Camera photographs of displays |
 
-**Audited current data view** (updated 2026-09-06):
+**Audited current data view** (2026-09-22 experiment):
 
-- Raw paths: **3,075**; unique SHA-256 content identities: **2,943**; byte-duplicate paths removed: **132**.
+- Raw paths: **3,105**; unique SHA-256 content identities: **2,973**; byte-duplicate paths removed: **132**.
 - The audit found 18 conflicting-label groups. All are resolved by 19 reviewed decisions in `trainer/content_label_overrides.json`; unresolved conflicts are rejected.
-- Frozen split seed 42: **train 2,217 / val 361 / test 365**. Cross-role content overlap and hard-negative content in val/test are both zero.
-- Current dataset fingerprint: `d8e5e2030fb4cb29e6404abfc75f64ef5ce1a70bea7b0502814ff7325f192704`.
+- Frozen split seed 42: **train 2,247 / val 361 / test 365**. Cross-role content overlap and hard-negative content in val/test are both zero.
+- Current dataset fingerprint: `ec60352964610fb891013be4f39caa9cc846fd03439e51f4c43f37233d8e6c32`.
 - Evaluation fingerprint: `da74a983a7af3b5c1f73d1c80ccd5a7ed84a290e6f72dfb615a5eb6f73390eff` (unchanged).
 - Any content identity represented under `hard_negative/` stays train-only, including its byte-identical copies elsewhere. New content is added to train without reshuffling frozen val/test identities.
-- Five unique `screen_photo` images from `data/input/daily-package-2026-09-02.zip` … `2026-09-05.zip` were streamed into `data/input/screen_photo` with `uv run python -m trainer ingest`. Other zip folders, including `normal_photo`, were not written.
+- The seven requested `data/daily-package-2026-09-15.zip` … `2026-09-21.zip` archives added **25** unique screen photos to `data/input/screen_photo`. All source ZIPs were retained and their hashes verified. Other classes were not extracted. [Ingestion ledger](experiment/daily_20260922/data/ingest.json).
 
-Run `uv run python -m trainer ingest` then `uv run python -m trainer audit` before training. The full machine-readable report is `trainer/data_audit.json`; the portable frozen manifest is `experiment/cnn_fft_dwt_ablation/split.json`. Exact SHA-256 overlap is currently zero, but group metadata is still 0/2,943 and a DCT-pHash scan found 19 cross-split candidate pairs in 17 clusters that require review. Therefore content/capture-group isolation is `NOT_READY`, not proven clean. The production model was trained on the 2026-08-07 snapshot (`972fc082…`, 2,183/361/365); the 34 newer unique contents are train-only and are not represented in the promoted weights.
+For archives under `data/`, use `uv run python -m trainer ingest --data-dir data --dest data/input/screen_photo` (the default search directory is `data/input/`). Audit before training. This experiment's immutable [audit](experiment/daily_20260922/data/audit.json) and [split](experiment/daily_20260922/data/split.json) preserve its exact inputs; the generic `trainer/data_audit.json` is an older local snapshot. Exact SHA-256 overlap is zero, but group metadata is still 0/2,973 and a DCT-pHash scan found 19 cross-split candidate pairs in 17 clusters requiring review. Group isolation remains `NOT_READY`. Production was trained on the 2026-08-07 snapshot (`972fc082…`, 2,183/361/365); the 64 newer unique contents are train-only and are not represented in the promoted weights.
 
 Evaluation governance lives in `trainer/evaluation_sets/`: two known regressions are Canaries and may enter training; the independent Frozen challenge and true-OOD manifests are train/tuning-ineligible and currently `NOT_READY`; the Rolling error pool is an intake queue for reviewed future training rounds. The existing 365-image test remains a historical closed-set benchmark and is not the Frozen challenge or a true-OOD set.
 
@@ -248,6 +261,8 @@ uv run python experiment/cnn_fft_dwt_ablation/deploy_eval.py --model experiment/
 The exporter writes `inference/models/three_class.onnx`, which is the path used by the service.
 
 ## Training
+
+For the September 15–21 increment and a 6GB GPU, use the [bounded-memory experiment workflow](experiment/daily_20260922/README.md), with batch 8, AMP, a 64-image cache and serial runs. Its eight-epoch warm starts are distinct from the generic two-stage defaults below. The workflow exports each selected checkpoint, checks parity, ranks actual Predictor validation results across two seeds, and freezes selection before opening the historical test.
 
 ### Two-stage training strategy
 
@@ -409,6 +424,7 @@ opencv-screen-detector/
 │   ├── train.py               # Historical trainer (train_legacy)
 │   └── ablation.py            # Optimization ablations
 ├── experiment/                # Multi-model experiment runner
+│   ├── daily_20260922/        # +25 photos; src/data/reports/models/logs
 │   └── cnn_fft_dwt_ablation/  # Ablation and release harness
 │       ├── harness.py         # Training loop + ExpConfig + versioned cache
 │       ├── finalist.py        # Historical multi-seed finalist training
@@ -422,6 +438,18 @@ opencv-screen-detector/
 ```
 
 ## Experimental Results
+
+### September 22 incremental experiment
+
+The [September 22 experiment](experiment/daily_20260922/README.md) completed three parameter settings × two seeds × eight fine-tuning epochs. Lower learning rate (`1e-4`, batch 8, no distillation) had the highest mean Predictor validation metric, **0.9390**, versus baseline **0.9385** and LwF **0.9274**. Selection was frozen before testing; primary seed 42 was fixed in advance.
+
+| Historical test, actual Predictor | Accuracy | Screen-photo F1 | Metric | Canary |
+| --- | ---: | ---: | ---: | --- |
+| Current production | 0.9233 | 0.9123 | 0.9190 | 2/2 |
+| Selected low-LR candidate, seed 42 | 0.9288 | 0.9217 | 0.9271 | 2/2 |
+| Low-LR replication, seed 2024 | 0.9260 | 0.8908 | 0.9090 | 2/2 |
+
+The improvement did **not** reproduce consistently. Both paired metric-difference intervals include zero; production remains unchanged. The primary [candidate ONNX](experiment/daily_20260922/models/daily20260922_low_lr_s42_b8.onnx) is included through Git LFS for review. [Full comparison](experiment/daily_20260922/reports/results.json) includes the same-data baselines and individual predictions. Independent challenge/OOD and collection-group gates remain `NOT_READY`. Local validation: 57 tests, Ruff and formatting passed.
 
 > Status: `release_20260807_unf3_focus2_6x12` is the current production release. Its historical selection used the former 2/2 hard-example rule; those two images are now classified as Canaries. The 365-image test remains a legacy closed-set benchmark, while Frozen challenge and true-OOD promotion sets are `NOT_READY`.
 

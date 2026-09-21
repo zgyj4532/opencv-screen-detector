@@ -2,6 +2,18 @@
 
 CNN + FFT + DWT Branch 三分类训练系统。
 
+## 最新增量训练入口
+
+[2026-09-22 实验](experiment/daily_20260922/README.md)已导入 9 月 15–21 日七份 ZIP 的 25 张拍屏。
+数据为 train/val/test = 2,247/361/365；所有新增内容只参与 train，验证和测试身份保持不变。
+三组参数（常规、低学习率、蒸馏）各两个 seed，batch=8、AMP、64 张缓存，适用于本机 6GB 显卡。
+以真实 Predictor validation 均值选型，冻结选择后再读取历史 test；候选不自动覆盖生产工件。
+本轮[审计](experiment/daily_20260922/data/audit.json)、[切分](experiment/daily_20260922/data/split.json)和[来源清单](experiment/daily_20260922/data/ingest.json)位于独立实验目录。
+
+六次训练已完成。验证均值选中 `lr=1e-4`、关闭蒸馏：主种子 42 的历史 test 指标 0.9271，
+复验 2024 为 0.9090（生产为 0.9190）。提升未稳定复现，候选供复核，生产保持不变。
+完整对照、配对区间及模型下载见[实验结果](experiment/daily_20260922/README.md#结果)。
+
 ## 功能
 
 - 三分类训练 (natural / screenshot / screen_photo)
@@ -96,7 +108,7 @@ hard_negative/  →  按子目录名称恢复真实标签（仅 train，不入 v
 
 Frozen challenge 目标为 100-300 个独立内容/采集组，永不进入训练或阈值调节；Rolling error pool 只在审核后进入下一轮训练；真 OOD 集与三类闭集分开评测。三者清单框架已建立，但 challenge/OOD 当前没有样本，晋升状态为 `NOT_READY`。
 
-**已审计当前数据视图**（2026-09-06）：
+**历史审计快照**（2026-09-06；当前数据见上面的 2026-09-22 实验）：
 
 - 原始路径 3,075 个；唯一内容 2,943 个；按内容去除重复路径 132 个。
 - 18 组原始标签冲突均已解决；19 条复核决定，无未使用决定。
@@ -123,7 +135,9 @@ Input Image (224x224)
                     ↓
         Concat RGB 1280 + Frequency 256 = 1536
                     ↓
-        Dropout→Linear(1536,3)
+        Dropout(0.3)→Linear(1536,512)→ReLU
+                    ↓
+        Dropout(0.2)→Linear(512,3)
                     ↓
         natural / screenshot / screen_photo
 ```
@@ -202,7 +216,14 @@ BEST_METRIC_MACRO_F1_WEIGHT = 0.2
 
 ## 输出
 
-训练完成后生成:
+当前发布候选和增量实验按独立 ID 保存；不会写入 canonical checkpoint：
+
+- `experiment/cnn_fft_dwt_ablation/exp/<candidate-id>/best.pth`：验证集选择的权重。
+- 同目录 `last.pth`：包含优化器、EMA、调度器、AMP 和 RNG 的续训状态。
+- 同目录 `history.json`：逐 epoch validation 与 Canary 记录。
+- 本次增量的训练、ONNX 评估和选型证据：`experiment/daily_20260922/reports/`。
+
+下列 canonical 和旧训练器输出仅在相应历史/发布流程中更新，不能当作刚训练候选的输出：
 
 **Checkpoints** (`trainer/checkpoints/`):
 - `three_class_best.pth` - 最佳模型权重

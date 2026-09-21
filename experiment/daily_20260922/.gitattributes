@@ -3,3 +3,5 @@
 *.py text eol=lf
 *.md text eol=lf
 .gitignore text eol=lf
+data/*.json linguist-generated=true
+reports/*.json linguist-generated=true

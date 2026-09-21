@@ -1,0 +1,5628 @@
+{
+  "id": "daily20260922_low_lr_s2024_b8",
+  "role": "test",
+  "samples": 365,
+  "split": {
+    "schema_version": 4,
+    "seed": 42,
+    "dataset_fingerprint": "ec60352964610fb891013be4f39caa9cc846fd03439e51f4c43f37233d8e6c32",
+    "evaluation_fingerprint": "da74a983a7af3b5c1f73d1c80ccd5a7ed84a290e6f72dfb615a5eb6f73390eff",
+    "focus_fingerprint": "174d1d29220abcdb3ecf48eb04075a883e421a0b544c9a3598951bd09ab86a79",
+    "canary_fingerprint": "174d1d29220abcdb3ecf48eb04075a883e421a0b544c9a3598951bd09ab86a79",
+    "main_count": 2528,
+    "hard_negative_count": 445,
+    "focus_count": 2,
+    "canary_count": 2,
+    "assignment_policy": "frozen_val_test_new_content_to_train_hard_content_train_only"
+  },
+  "protocol_sha256": "7b2aab449125a552259223d820ea92848086709216000f7dde321cb1bfcc7a15",
+  "model_sha256": "e7d71afeb6907037214e763e3d56b04df6d15bcb161ab9c90c5643d0a6388ff0",
+  "checkpoint_sha256": "44cce2fca24359d5da1ee5b7e9a37ad43177bb008ac4edd452accb788afb9d62",
+  "parity": {
+    "status": "PASS",
+    "real_samples": 3,
+    "max_absolute_logit_error": 6.198883056640625e-06
+  },
+  "thresholds": {
+    "ood_threshold": 0.45,
+    "screen_photo_threshold": 0.6,
+    "confidence_high": 0.92,
+    "confidence_medium": 0.75
+  },
+  "metrics": {
+    "accuracy": 0.9260273972602739,
+    "sp_precision": 0.8548387096774194,
+    "sp_recall": 0.9298245614035088,
+    "sp_f1": 0.8907563025210085,
+    "macro_f1": 0.9288907785411143,
+    "metric": 0.9089645261468092,
+    "unknown": 10
+  },
+  "latency_ms": {
+    "mean": 328.6978780823817,
+    "p50": 310.2833000011742,
+    "p95": 408.63634000415914
+  },
+  "canary": {
+    "correct": 2,
+    "total": 2,
+    "records": [
+      {
+        "id": "screenshot-4a6e-canary",
+        "expected": "screenshot",
+        "result": {
+          "class": "screenshot",
+          "confidence": 0.5365935564041138,
+          "probabilities": {
+            "natural": 0.19710936397314072,
+            "screenshot": 0.5365935564041138,
+            "screen_photo": 0.2662970796227455
+          },
+          "confidence_tier": "low",
+          "action": "ignore"
+        }
+      },
+      {
+        "id": "screenshot-5cdc-canary",
+        "expected": "screenshot",
+        "result": {
+          "class": "screenshot",
+          "confidence": 0.5095268040895462,
+          "probabilities": {
+            "natural": 0.31776632368564606,
+            "screenshot": 0.5095268040895462,
+            "screen_photo": 0.17270687222480774
+          },
+          "confidence_tier": "low",
+          "action": "ignore"
+        }
+      }
+    ]
+  },
+  "readiness": {
+    "canary": {
+      "status": "READY",
+      "declared_status": "READY",
+      "entries": 2,
+      "policy": {
+        "training_eligible": true,
+        "threshold_tuning_eligible": false,
+        "promotion_statistics": false,
+        "all_must_pass": true
+      },
+      "reasons": [],
+      "missing_paths": [],
+      "hash_mismatches": [],
+      "cross_set_overlaps": {}
+    },
+    "frozen_challenge": {
+      "status": "NOT_READY",
+      "declared_status": "NOT_READY",
+      "entries": 0,
+      "policy": {
+        "training_eligible": false,
+        "threshold_tuning_eligible": false,
+        "promotion_statistics": true,
+        "frozen_after_review": true
+      },
+      "reasons": [
+        "requires at least 100 entries; found 0",
+        "manifest governance status is NOT_READY"
+      ],
+      "missing_paths": [],
+      "hash_mismatches": [],
+      "cross_set_overlaps": {}
+    },
+    "rolling_error_pool": {
+      "status": "READY",
+      "declared_status": "READY",
+      "entries": 0,
+      "policy": {
+        "training_eligible": "only_after_review_in_a_later_training_round",
+        "threshold_tuning_eligible": false,
+        "promotion_statistics": false,
+        "mutable": true
+      },
+      "reasons": [],
+      "missing_paths": [],
+      "hash_mismatches": [],
+      "cross_set_overlaps": {}
+    },
+    "ood": {
+      "status": "NOT_READY",
+      "declared_status": "NOT_READY",
+      "entries": 0,
+      "policy": {
+        "training_eligible": false,
+        "threshold_tuning_eligible": false,
+        "promotion_statistics": true,
+        "frozen_after_review": true
+      },
+      "reasons": [
+        "requires at least 1 entries; found 0",
+        "manifest governance status is NOT_READY"
+      ],
+      "missing_paths": [],
+      "hash_mismatches": [],
+      "cross_set_overlaps": {}
+    }
+  },
+  "production_replaced": false,
+  "records": [
+    {
+      "path": "data/input/natural_photo/b890a9304297d9f1ffce60144c9087a405a560f111f4c17686d6e28dd4744b65.jpg",
+      "label": 0,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.5614253282546997,
+        "probabilities": {
+          "natural": 0.11727049574255943,
+          "screenshot": 0.32130420207977295,
+          "screen_photo": 0.5614253282546997
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/indoor/indoor_81.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9521991610527039,
+        "probabilities": {
+          "natural": 0.9521991610527039,
+          "screenshot": 0.03807504661381245,
+          "screen_photo": 0.009725767420604825
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/portrait/portrait_04.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9642099440097809,
+        "probabilities": {
+          "natural": 0.9642099440097809,
+          "screenshot": 0.02544143609702587,
+          "screen_photo": 0.010348652955144644
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/bbe45f9c7acb84658140f906ec3de48d8654edcdef1036c365165edf2f21bafc.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.7151646316051483,
+        "probabilities": {
+          "natural": 0.7151646316051483,
+          "screenshot": 0.23967409878969193,
+          "screen_photo": 0.04516131058335304
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/animal/animal_07.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.5635395050048828,
+        "probabilities": {
+          "natural": 0.5635395050048828,
+          "screenshot": 0.31017927825450897,
+          "screen_photo": 0.12628121674060822
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/street/street_10.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9609194993972778,
+        "probabilities": {
+          "natural": 0.9609194993972778,
+          "screenshot": 0.03657834418118,
+          "screen_photo": 0.0025021820329129696
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/landscape/landscape_63.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.987808883190155,
+        "probabilities": {
+          "natural": 0.987808883190155,
+          "screenshot": 0.008264216594398022,
+          "screen_photo": 0.003926842473447323
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/0aac01fa4df4b8304c4bdfbf73ea61f0_0.jpg",
+      "label": 0,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.47359415888786316,
+        "probabilities": {
+          "natural": 0.4220297485589981,
+          "screenshot": 0.47359415888786316,
+          "screen_photo": 0.10437605157494545
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/portrait/portrait_77.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.916064590215683,
+        "probabilities": {
+          "natural": 0.916064590215683,
+          "screenshot": 0.05879220739006996,
+          "screen_photo": 0.02514324150979519
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/sky/sky_77.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.944229394197464,
+        "probabilities": {
+          "natural": 0.944229394197464,
+          "screenshot": 0.008610325399786234,
+          "screen_photo": 0.0471603088080883
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/tree/tree_62.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9166956543922424,
+        "probabilities": {
+          "natural": 0.9166956543922424,
+          "screenshot": 0.017506124451756477,
+          "screen_photo": 0.06579821556806564
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/landscape/landscape_22.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.6837144196033478,
+        "probabilities": {
+          "natural": 0.6837144196033478,
+          "screenshot": 0.17917779088020325,
+          "screen_photo": 0.13710779696702957
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/street/street_96.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.8738680183887482,
+        "probabilities": {
+          "natural": 0.8738680183887482,
+          "screenshot": 0.07968094199895859,
+          "screen_photo": 0.046451007947325706
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/indoor/indoor_63.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.8253283798694611,
+        "probabilities": {
+          "natural": 0.8253283798694611,
+          "screenshot": 0.14636972546577454,
+          "screen_photo": 0.028301872313022614
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/indoor/indoor_10.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.8344694375991821,
+        "probabilities": {
+          "natural": 0.8344694375991821,
+          "screenshot": 0.11365913599729538,
+          "screen_photo": 0.05187138915061951
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/street/street_73.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9644815921783447,
+        "probabilities": {
+          "natural": 0.9644815921783447,
+          "screenshot": 0.016923760529607534,
+          "screen_photo": 0.018594649620354176
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/indoor/indoor_37.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.7558804452419281,
+        "probabilities": {
+          "natural": 0.7558804452419281,
+          "screenshot": 0.10234557837247849,
+          "screen_photo": 0.141773983836174
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/portrait/portrait_70.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.7777099609375,
+        "probabilities": {
+          "natural": 0.7777099609375,
+          "screenshot": 0.18967987596988678,
+          "screen_photo": 0.03261016495525837
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/landscape/landscape_84.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9981241524219513,
+        "probabilities": {
+          "natural": 0.9981241524219513,
+          "screenshot": 0.0014322582283057272,
+          "screen_photo": 0.0004435485607245937
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/tree/tree_71.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.8306271135807037,
+        "probabilities": {
+          "natural": 0.8306271135807037,
+          "screenshot": 0.10516229644417763,
+          "screen_photo": 0.06421055644750595
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/indoor/indoor_53.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9441260397434235,
+        "probabilities": {
+          "natural": 0.9441260397434235,
+          "screenshot": 0.04755949787795544,
+          "screen_photo": 0.008314460283145308
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/animal/animal_33.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.6422505676746368,
+        "probabilities": {
+          "natural": 0.6422505676746368,
+          "screenshot": 0.26962724328041077,
+          "screen_photo": 0.08812214806675911
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/animal/animal_89.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9467369318008423,
+        "probabilities": {
+          "natural": 0.9467369318008423,
+          "screenshot": 0.019951227121055126,
+          "screen_photo": 0.033311821054667234
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/animal/animal_42.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.5223304331302643,
+        "probabilities": {
+          "natural": 0.5223304331302643,
+          "screenshot": 0.2525661587715149,
+          "screen_photo": 0.22510339319705963
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/food/food_80.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.7585405707359314,
+        "probabilities": {
+          "natural": 0.7585405707359314,
+          "screenshot": 0.19385620951652527,
+          "screen_photo": 0.04760321229696274
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/portrait/portrait_95.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.5491416156291962,
+        "probabilities": {
+          "natural": 0.5491416156291962,
+          "screenshot": 0.25828347355127335,
+          "screen_photo": 0.19257492572069168
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/portrait/portrait_82.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.8139308094978333,
+        "probabilities": {
+          "natural": 0.8139308094978333,
+          "screenshot": 0.1843687817454338,
+          "screen_photo": 0.0017004086403176188
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/sky/sky_89.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.7724661231040955,
+        "probabilities": {
+          "natural": 0.7724661231040955,
+          "screenshot": 0.0971166267991066,
+          "screen_photo": 0.13041728734970093
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/street/street_69.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9204135835170746,
+        "probabilities": {
+          "natural": 0.9204135835170746,
+          "screenshot": 0.053041160106658936,
+          "screen_photo": 0.026545275002717972
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/tree/tree_28.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.881697952747345,
+        "probabilities": {
+          "natural": 0.881697952747345,
+          "screenshot": 0.060090674087405205,
+          "screen_photo": 0.05821140296757221
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/landscape/landscape_88.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9194521009922028,
+        "probabilities": {
+          "natural": 0.9194521009922028,
+          "screenshot": 0.024695375934243202,
+          "screen_photo": 0.055852510035037994
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/sky/sky_96.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9930506646633148,
+        "probabilities": {
+          "natural": 0.9930506646633148,
+          "screenshot": 0.003755456185899675,
+          "screen_photo": 0.0031938189640641212
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/portrait/portrait_79.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9163733720779419,
+        "probabilities": {
+          "natural": 0.9163733720779419,
+          "screenshot": 0.05538018047809601,
+          "screen_photo": 0.02824645396322012
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/f6f84ff8b9267cdfad3a2ddd7226a2b14074e1e78476de74bc9b94d6cc32f05d.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.8518544733524323,
+        "probabilities": {
+          "natural": 0.8518544733524323,
+          "screenshot": 0.09249362722039223,
+          "screen_photo": 0.05565187707543373
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/sky/sky_32.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.793950229883194,
+        "probabilities": {
+          "natural": 0.793950229883194,
+          "screenshot": 0.08847808465361595,
+          "screen_photo": 0.11757169291377068
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/animal/animal_30.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.6393267214298248,
+        "probabilities": {
+          "natural": 0.6393267214298248,
+          "screenshot": 0.1727437749505043,
+          "screen_photo": 0.18792954087257385
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/landscape/landscape_55.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9875242412090302,
+        "probabilities": {
+          "natural": 0.9875242412090302,
+          "screenshot": 0.010576019063591957,
+          "screen_photo": 0.0018997742445208132
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/landscape/landscape_64.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9904084801673889,
+        "probabilities": {
+          "natural": 0.9904084801673889,
+          "screenshot": 0.008548428304493427,
+          "screen_photo": 0.0010431060218252242
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/indoor/indoor_07.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9076285064220428,
+        "probabilities": {
+          "natural": 0.9076285064220428,
+          "screenshot": 0.06252413243055344,
+          "screen_photo": 0.029847387224435806
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/food/food_58.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9352196455001831,
+        "probabilities": {
+          "natural": 0.9352196455001831,
+          "screenshot": 0.0363181047141552,
+          "screen_photo": 0.028462340123951435
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/food/food_56.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.780761331319809,
+        "probabilities": {
+          "natural": 0.780761331319809,
+          "screenshot": 0.11907129362225533,
+          "screen_photo": 0.1001674048602581
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/indoor/indoor_26.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.8566009700298309,
+        "probabilities": {
+          "natural": 0.8566009700298309,
+          "screenshot": 0.13323893398046494,
+          "screen_photo": 0.010160073172301054
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/tree/tree_65.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9837331473827362,
+        "probabilities": {
+          "natural": 0.9837331473827362,
+          "screenshot": 0.010934362653642893,
+          "screen_photo": 0.005332497879862785
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/b8142eb95f014b0478bb2544d53d331133be75815dad64ed64029e21c6aeba83.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.8778459131717682,
+        "probabilities": {
+          "natural": 0.8778459131717682,
+          "screenshot": 0.11891112849116325,
+          "screen_photo": 0.003242990584112704
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/899f434386c8fac90cfb8b5b192d6537.png",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.45478855073451996,
+        "probabilities": {
+          "natural": 0.45478855073451996,
+          "screenshot": 0.41896967589855194,
+          "screen_photo": 0.1262417659163475
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/tree/tree_81.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9265276491641998,
+        "probabilities": {
+          "natural": 0.9265276491641998,
+          "screenshot": 0.03655976988375187,
+          "screen_photo": 0.036912606097757816
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/portrait/portrait_91.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.8560957908630371,
+        "probabilities": {
+          "natural": 0.8560957908630371,
+          "screenshot": 0.13656305521726608,
+          "screen_photo": 0.007341141114011407
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/portrait/portrait_63.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.88728266954422,
+        "probabilities": {
+          "natural": 0.88728266954422,
+          "screenshot": 0.10029779002070427,
+          "screen_photo": 0.012419495265930891
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/tree/tree_58.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9939771294593811,
+        "probabilities": {
+          "natural": 0.9939771294593811,
+          "screenshot": 0.003288616193458438,
+          "screen_photo": 0.002734268782660365
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/914535bef347a06d2e6b6932f925946e.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.47092515230178833,
+        "probabilities": {
+          "natural": 0.47092515230178833,
+          "screenshot": 0.4574964791536331,
+          "screen_photo": 0.07157837599515915
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/indoor/indoor_88.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9332569241523743,
+        "probabilities": {
+          "natural": 0.9332569241523743,
+          "screenshot": 0.028551620431244373,
+          "screen_photo": 0.038191426545381546
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/sky/sky_67.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9829089343547821,
+        "probabilities": {
+          "natural": 0.9829089343547821,
+          "screenshot": 0.00826675770804286,
+          "screen_photo": 0.00882422598078847
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/sky/sky_15.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9749495983123779,
+        "probabilities": {
+          "natural": 0.9749495983123779,
+          "screenshot": 0.011109887156635523,
+          "screen_photo": 0.013940530829131603
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/animal/animal_96.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9586645662784576,
+        "probabilities": {
+          "natural": 0.9586645662784576,
+          "screenshot": 0.030083930119872093,
+          "screen_photo": 0.011251476826146245
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/street/street_13.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.5052396506071091,
+        "probabilities": {
+          "natural": 0.5052396506071091,
+          "screenshot": 0.35878342390060425,
+          "screen_photo": 0.13597693294286728
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/tree/tree_89.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9256795346736908,
+        "probabilities": {
+          "natural": 0.9256795346736908,
+          "screenshot": 0.03248217701911926,
+          "screen_photo": 0.041838204488158226
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/animal/animal_36.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9596717357635498,
+        "probabilities": {
+          "natural": 0.9596717357635498,
+          "screenshot": 0.029503226280212402,
+          "screen_photo": 0.010824994184076786
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/portrait/portrait_66.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9207600355148315,
+        "probabilities": {
+          "natural": 0.9207600355148315,
+          "screenshot": 0.0704640094190836,
+          "screen_photo": 0.008775917929597199
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/indoor/indoor_50.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.8460616171360016,
+        "probabilities": {
+          "natural": 0.8460616171360016,
+          "screenshot": 0.12501943483948708,
+          "screen_photo": 0.028918986208736897
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/1d12c83fc830b0e39f914c61252b3053c5a73eca14ac248417abb53bd773efda.jpg",
+      "label": 0,
+      "result": {
+        "class": "unknown",
+        "confidence": 0.431771457195282,
+        "probabilities": {
+          "natural": 0.431771457195282,
+          "screenshot": 0.27911698818206787,
+          "screen_photo": 0.28911154717206955
+        },
+        "confidence_tier": "ood",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/sky/sky_07.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9242014288902283,
+        "probabilities": {
+          "natural": 0.9242014288902283,
+          "screenshot": 0.017859413288533688,
+          "screen_photo": 0.05793912895023823
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/tree/tree_38.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9942805767059326,
+        "probabilities": {
+          "natural": 0.9942805767059326,
+          "screenshot": 0.0039968714118003845,
+          "screen_photo": 0.0017225464689545333
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/sky/sky_47.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.7622662782669067,
+        "probabilities": {
+          "natural": 0.7622662782669067,
+          "screenshot": 0.07614347711205482,
+          "screen_photo": 0.16159025579690933
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/87c63ea0ea765c200c4b7993c62eefc9972ee28b704f91c07bff1dad1ce37ff5.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.5629751682281494,
+        "probabilities": {
+          "natural": 0.5629751682281494,
+          "screenshot": 0.16479133814573288,
+          "screen_photo": 0.27223344147205353
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/street/street_12.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9170728921890259,
+        "probabilities": {
+          "natural": 0.9170728921890259,
+          "screenshot": 0.062154630199074745,
+          "screen_photo": 0.020772461779415607
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/landscape/landscape_80.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9762820303440094,
+        "probabilities": {
+          "natural": 0.9762820303440094,
+          "screenshot": 0.02115269936621189,
+          "screen_photo": 0.002565230242908001
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/02777c220833cf7016f79ef4130ae8bf.png",
+      "label": 0,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.4623510092496872,
+        "probabilities": {
+          "natural": 0.4464605301618576,
+          "screenshot": 0.091188445687294,
+          "screen_photo": 0.4623510092496872
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/57e4ece68e515eb7165d843cd09265be.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9428289234638214,
+        "probabilities": {
+          "natural": 0.9428289234638214,
+          "screenshot": 0.001835474744439125,
+          "screen_photo": 0.055335644632577896
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/sky/sky_12.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9724861979484558,
+        "probabilities": {
+          "natural": 0.9724861979484558,
+          "screenshot": 0.008763673715293407,
+          "screen_photo": 0.018750094808638096
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/portrait/portrait_08.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.8791073262691498,
+        "probabilities": {
+          "natural": 0.8791073262691498,
+          "screenshot": 0.11944475769996643,
+          "screen_photo": 0.0014479202218353748
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/animal/animal_86.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.8459987044334412,
+        "probabilities": {
+          "natural": 0.8459987044334412,
+          "screenshot": 0.10237200930714607,
+          "screen_photo": 0.05162931978702545
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/street/street_92.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9716918468475342,
+        "probabilities": {
+          "natural": 0.9716918468475342,
+          "screenshot": 0.014175915159285069,
+          "screen_photo": 0.01413223473355174
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/tree/tree_05.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9642274081707001,
+        "probabilities": {
+          "natural": 0.9642274081707001,
+          "screenshot": 0.02709859423339367,
+          "screen_photo": 0.008673952659592032
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/a533dba5683cea2a0abacb63446e87d0cfdc6a0804a0d2d52e2e8fe72b5e68ce.jpg",
+      "label": 0,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.4867418110370636,
+        "probabilities": {
+          "natural": 0.2885555028915405,
+          "screenshot": 0.4867418110370636,
+          "screen_photo": 0.22470272332429886
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/food/food_92.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.6911064684391022,
+        "probabilities": {
+          "natural": 0.6911064684391022,
+          "screenshot": 0.3011421710252762,
+          "screen_photo": 0.007751333760097623
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/food/food_75.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.7227469384670258,
+        "probabilities": {
+          "natural": 0.7227469384670258,
+          "screenshot": 0.11755827441811562,
+          "screen_photo": 0.1596948280930519
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/landscape/landscape_82.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9923910200595856,
+        "probabilities": {
+          "natural": 0.9923910200595856,
+          "screenshot": 0.0046580161433666945,
+          "screen_photo": 0.0029509580926969647
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/landscape/landscape_70.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.99428591132164,
+        "probabilities": {
+          "natural": 0.99428591132164,
+          "screenshot": 0.004663843661546707,
+          "screen_photo": 0.0010503317753318697
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/sky/sky_98.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.902662843465805,
+        "probabilities": {
+          "natural": 0.902662843465805,
+          "screenshot": 0.03635673224925995,
+          "screen_photo": 0.0609804131090641
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/tree/tree_27.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.5276470929384232,
+        "probabilities": {
+          "natural": 0.5276470929384232,
+          "screenshot": 0.12285605445504189,
+          "screen_photo": 0.34949691593647003
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/portrait/portrait_23.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.8906864523887634,
+        "probabilities": {
+          "natural": 0.8906864523887634,
+          "screenshot": 0.10575241595506668,
+          "screen_photo": 0.003561108431313187
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/sky/sky_19.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9419890940189362,
+        "probabilities": {
+          "natural": 0.9419890940189362,
+          "screenshot": 0.027026342228055,
+          "screen_photo": 0.030984575860202312
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/tree/tree_50.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9570684432983398,
+        "probabilities": {
+          "natural": 0.9570684432983398,
+          "screenshot": 0.01996035035699606,
+          "screen_photo": 0.02297123335301876
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/portrait/portrait_97.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.852298766374588,
+        "probabilities": {
+          "natural": 0.852298766374588,
+          "screenshot": 0.12192509695887566,
+          "screen_photo": 0.025776103604584932
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/food/food_69.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.8871351778507233,
+        "probabilities": {
+          "natural": 0.8871351778507233,
+          "screenshot": 0.04624308459460735,
+          "screen_photo": 0.06662172079086304
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/street/street_62.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.8842004239559174,
+        "probabilities": {
+          "natural": 0.8842004239559174,
+          "screenshot": 0.08012085035443306,
+          "screen_photo": 0.03567878156900406
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/e669bdc40939792b3f0ef5105e1bf6be.jpg",
+      "label": 0,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.7451335787773132,
+        "probabilities": {
+          "natural": 0.04615039937198162,
+          "screenshot": 0.2087160125374794,
+          "screen_photo": 0.7451335787773132
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/portrait/portrait_35.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.6831310093402863,
+        "probabilities": {
+          "natural": 0.6831310093402863,
+          "screenshot": 0.29121604561805725,
+          "screen_photo": 0.02565292175859213
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/tree/tree_75.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.98940309882164,
+        "probabilities": {
+          "natural": 0.98940309882164,
+          "screenshot": 0.006175610236823559,
+          "screen_photo": 0.004421337973326445
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/sky/sky_50.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9857600629329681,
+        "probabilities": {
+          "natural": 0.9857600629329681,
+          "screenshot": 0.00878360797651112,
+          "screen_photo": 0.005456345388665795
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/food/food_96.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.5786325037479401,
+        "probabilities": {
+          "natural": 0.5786325037479401,
+          "screenshot": 0.2282136157155037,
+          "screen_photo": 0.19315388053655624
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/829e3094286fa4898b116a626156b709662e012ad80562379ed9ac84498ff233.jpg",
+      "label": 0,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.5140661299228668,
+        "probabilities": {
+          "natural": 0.3447249233722687,
+          "screenshot": 0.5140661299228668,
+          "screen_photo": 0.1412089243531227
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/street/street_74.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9346438646316528,
+        "probabilities": {
+          "natural": 0.9346438646316528,
+          "screenshot": 0.06224456988275051,
+          "screen_photo": 0.003111506812274456
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/portrait/portrait_14.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.7036851048469543,
+        "probabilities": {
+          "natural": 0.7036851048469543,
+          "screenshot": 0.24016617238521576,
+          "screen_photo": 0.056148702278733253
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/food/food_51.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9434373676776886,
+        "probabilities": {
+          "natural": 0.9434373676776886,
+          "screenshot": 0.03503398597240448,
+          "screen_photo": 0.02152860350906849
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/277354db41a8638938393c7933a6c3fd.png",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9636414349079132,
+        "probabilities": {
+          "natural": 0.9636414349079132,
+          "screenshot": 0.02088579162955284,
+          "screen_photo": 0.01547279767692089
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/landscape/landscape_100.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.713454008102417,
+        "probabilities": {
+          "natural": 0.713454008102417,
+          "screenshot": 0.26043641567230225,
+          "screen_photo": 0.026109603233635426
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/landscape/landscape_83.jpg",
+      "label": 0,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.6615153253078461,
+        "probabilities": {
+          "natural": 0.24219205230474472,
+          "screenshot": 0.09629263915121555,
+          "screen_photo": 0.6615153253078461
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/tree/tree_11.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9620802402496338,
+        "probabilities": {
+          "natural": 0.9620802402496338,
+          "screenshot": 0.036134117282927036,
+          "screen_photo": 0.0017856155172921717
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/sky.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.6905341446399689,
+        "probabilities": {
+          "natural": 0.6905341446399689,
+          "screenshot": 0.2027096375823021,
+          "screen_photo": 0.10675620660185814
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/animal/animal_56.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.794642984867096,
+        "probabilities": {
+          "natural": 0.794642984867096,
+          "screenshot": 0.11341419443488121,
+          "screen_photo": 0.09194286167621613
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/sky/sky_80.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.8748842477798462,
+        "probabilities": {
+          "natural": 0.8748842477798462,
+          "screenshot": 0.06398656591773033,
+          "screen_photo": 0.061129165813326836
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/food/food_66.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.8627985119819641,
+        "probabilities": {
+          "natural": 0.8627985119819641,
+          "screenshot": 0.06141712889075279,
+          "screen_photo": 0.07578437030315399
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/landscape/landscape_31.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9966268837451935,
+        "probabilities": {
+          "natural": 0.9966268837451935,
+          "screenshot": 0.0028768006013706326,
+          "screen_photo": 0.0004963281535310671
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/portrait/portrait_07.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.91768479347229,
+        "probabilities": {
+          "natural": 0.91768479347229,
+          "screenshot": 0.07460178807377815,
+          "screen_photo": 0.007713426603004336
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/food/food_79.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.873957097530365,
+        "probabilities": {
+          "natural": 0.873957097530365,
+          "screenshot": 0.044670410454273224,
+          "screen_photo": 0.0813724659383297
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/street/street_35.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9842018783092499,
+        "probabilities": {
+          "natural": 0.9842018783092499,
+          "screenshot": 0.01330720866099,
+          "screen_photo": 0.0024909127969294786
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/sky/sky_01.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9956804513931274,
+        "probabilities": {
+          "natural": 0.9956804513931274,
+          "screenshot": 0.002009584626648575,
+          "screen_photo": 0.0023099423851817846
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/c93115d225ce51629e51b907a0bdce7f.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.46357476711273193,
+        "probabilities": {
+          "natural": 0.46357476711273193,
+          "screenshot": 0.3963620066642761,
+          "screen_photo": 0.14006321132183075
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/4cac4639a871de13ab61c21e357d047d.jpg",
+      "label": 0,
+      "result": {
+        "class": "unknown",
+        "confidence": 0.3773356080055237,
+        "probabilities": {
+          "natural": 0.3525947630405426,
+          "screenshot": 0.27006959915161133,
+          "screen_photo": 0.3773356080055237
+        },
+        "confidence_tier": "ood",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/food/food_65.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.8947804868221283,
+        "probabilities": {
+          "natural": 0.8947804868221283,
+          "screenshot": 0.0769595317542553,
+          "screen_photo": 0.0282600037753582
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/food/food_93.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9057545959949493,
+        "probabilities": {
+          "natural": 0.9057545959949493,
+          "screenshot": 0.019279134459793568,
+          "screen_photo": 0.07496634125709534
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/portrait/portrait_27.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9009045958518982,
+        "probabilities": {
+          "natural": 0.9009045958518982,
+          "screenshot": 0.07634644582867622,
+          "screen_photo": 0.02274894528090954
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/indoor/indoor_100.jpg",
+      "label": 0,
+      "result": {
+        "class": "unknown",
+        "confidence": 0.43090109527111053,
+        "probabilities": {
+          "natural": 0.28760452568531036,
+          "screenshot": 0.43090109527111053,
+          "screen_photo": 0.2814944237470627
+        },
+        "confidence_tier": "ood",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/b2db4b742e84df597361b7999900dd251a57abe4e568ac748070e19243b2f511.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.5292503535747528,
+        "probabilities": {
+          "natural": 0.5292503535747528,
+          "screenshot": 0.250789538025856,
+          "screen_photo": 0.2199600785970688
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/6ec800050d14554a6c5be5900a5c0b60.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.769944041967392,
+        "probabilities": {
+          "natural": 0.769944041967392,
+          "screenshot": 0.0439729169011116,
+          "screen_photo": 0.18608307093381882
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/landscape/landscape_98.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9882890582084656,
+        "probabilities": {
+          "natural": 0.9882890582084656,
+          "screenshot": 0.002468466409482062,
+          "screen_photo": 0.00924248993396759
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/animal/animal_21.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.6870400011539459,
+        "probabilities": {
+          "natural": 0.6870400011539459,
+          "screenshot": 0.23110119253396988,
+          "screen_photo": 0.08185882493853569
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/sky/sky_65.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.8331652283668518,
+        "probabilities": {
+          "natural": 0.8331652283668518,
+          "screenshot": 0.047660717740654945,
+          "screen_photo": 0.1191740445792675
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/sky/sky_29.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9621655642986298,
+        "probabilities": {
+          "natural": 0.9621655642986298,
+          "screenshot": 0.010523449629545212,
+          "screen_photo": 0.027310974895954132
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/5689d21f454a5c802286e3ace062d5ffb923ac2e4faaf60b79f31bd2deb32e0c.jpg",
+      "label": 0,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.604335755109787,
+        "probabilities": {
+          "natural": 0.34412743151187897,
+          "screenshot": 0.604335755109787,
+          "screen_photo": 0.05153682269155979
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/portrait/portrait_33.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.6675534844398499,
+        "probabilities": {
+          "natural": 0.6675534844398499,
+          "screenshot": 0.30314624309539795,
+          "screen_photo": 0.029300261288881302
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/indoor/indoor_44.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9338463246822357,
+        "probabilities": {
+          "natural": 0.9338463246822357,
+          "screenshot": 0.05156739614903927,
+          "screen_photo": 0.014586299657821655
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/portrait/portrait_12.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.6721992492675781,
+        "probabilities": {
+          "natural": 0.6721992492675781,
+          "screenshot": 0.22784338891506195,
+          "screen_photo": 0.09995738044381142
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/food/food_54.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9574732482433319,
+        "probabilities": {
+          "natural": 0.9574732482433319,
+          "screenshot": 0.03596307337284088,
+          "screen_photo": 0.006563666393049061
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/sky/sky_53.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9400580823421478,
+        "probabilities": {
+          "natural": 0.9400580823421478,
+          "screenshot": 0.007514273282140493,
+          "screen_photo": 0.05242757312953472
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/tree/tree_19.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9568698704242706,
+        "probabilities": {
+          "natural": 0.9568698704242706,
+          "screenshot": 0.01573138451203704,
+          "screen_photo": 0.027398789301514626
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/food/food_82.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.7993658483028412,
+        "probabilities": {
+          "natural": 0.7993658483028412,
+          "screenshot": 0.1507265754044056,
+          "screen_photo": 0.04990762006491423
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/animal/animal_32.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.817200630903244,
+        "probabilities": {
+          "natural": 0.817200630903244,
+          "screenshot": 0.14249122142791748,
+          "screen_photo": 0.040308160707354546
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/street/street_32.jpg",
+      "label": 0,
+      "result": {
+        "class": "unknown",
+        "confidence": 0.43022121489048004,
+        "probabilities": {
+          "natural": 0.43022121489048004,
+          "screenshot": 0.31024591624736786,
+          "screen_photo": 0.2595328539609909
+        },
+        "confidence_tier": "ood",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/landscape/landscape_17.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9886479079723358,
+        "probabilities": {
+          "natural": 0.9886479079723358,
+          "screenshot": 0.007722485577687621,
+          "screen_photo": 0.003629560233093798
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/landscape/landscape_71.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9173548519611359,
+        "probabilities": {
+          "natural": 0.9173548519611359,
+          "screenshot": 0.025058437138795853,
+          "screen_photo": 0.05758671648800373
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/portrait/portrait_05.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9562141001224518,
+        "probabilities": {
+          "natural": 0.9562141001224518,
+          "screenshot": 0.03955196402966976,
+          "screen_photo": 0.004233924439176917
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/animal/animal_60.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9025106430053711,
+        "probabilities": {
+          "natural": 0.9025106430053711,
+          "screenshot": 0.04477240331470966,
+          "screen_photo": 0.052716946229338646
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/sky/sky_84.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9317350387573242,
+        "probabilities": {
+          "natural": 0.9317350387573242,
+          "screenshot": 0.03466662298887968,
+          "screen_photo": 0.0335982795804739
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/portrait/portrait_28.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9594080448150635,
+        "probabilities": {
+          "natural": 0.9594080448150635,
+          "screenshot": 0.033280957490205765,
+          "screen_photo": 0.007311036577448249
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/portrait/portrait_89.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.8950985074043274,
+        "probabilities": {
+          "natural": 0.8950985074043274,
+          "screenshot": 0.09157613292336464,
+          "screen_photo": 0.013325367122888565
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/natural_photo/sky/sky_26.jpg",
+      "label": 0,
+      "result": {
+        "class": "natural",
+        "confidence": 0.9379658997058868,
+        "probabilities": {
+          "natural": 0.9379658997058868,
+          "screenshot": 0.035281455144286156,
+          "screen_photo": 0.026752670295536518
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/e451850fff8082b6f8a5fb8a5417758909090f18529522983446ec495a9f3af8.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9362816512584686,
+        "probabilities": {
+          "natural": 0.05642245151102543,
+          "screenshot": 0.9362816512584686,
+          "screen_photo": 0.007295914925634861
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/0aba8c81919a4c5550242266ad57d94c_0.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9214708209037781,
+        "probabilities": {
+          "natural": 0.033213275484740734,
+          "screenshot": 0.9214708209037781,
+          "screen_photo": 0.04531589150428772
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/f898799d793d3e5f6b9e2decb7941782c01b912e419940f2ed9dc21c03696fe0.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9472338557243347,
+        "probabilities": {
+          "natural": 0.0004189821338513866,
+          "screenshot": 0.9472338557243347,
+          "screen_photo": 0.052347131073474884
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/8edc094a351cba1fd5ad05efd182c6c75823c65a1ee08b4963288adf03efd4ad.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8300830125808716,
+        "probabilities": {
+          "natural": 0.10500660166144371,
+          "screenshot": 0.8300830125808716,
+          "screen_photo": 0.0649104081094265
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/ddd8fb3753ff9991b010ed786eb00359d0401c335badfa40de21e28e7f87c7ab.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.6192900538444519,
+        "probabilities": {
+          "natural": 0.01638634828850627,
+          "screenshot": 0.6192900538444519,
+          "screen_photo": 0.36432360112667084
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/7a7804869790a59efead3053bdb1cc8f154f27bf2886d08ae1689cb1c20e62ce.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.5369866490364075,
+        "probabilities": {
+          "natural": 0.3565167188644409,
+          "screenshot": 0.5369866490364075,
+          "screen_photo": 0.10649658739566803
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/ae6b510f7860d8035b9c7925a906acf8b6bfd61b92d51d34da741ded11f2512f.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7606143355369568,
+        "probabilities": {
+          "natural": 0.10891475155949593,
+          "screenshot": 0.7606143355369568,
+          "screen_photo": 0.13047095388174057
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/fbeae3f156a1b54cfd31074fe8b2a8bf18501a862dd533b43e197a2e852b89c7.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.6394446194171906,
+        "probabilities": {
+          "natural": 0.3354939818382263,
+          "screenshot": 0.6394446194171906,
+          "screen_photo": 0.025061428546905518
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/15c8f2c0435af050d97883526e873e451fc1cc239ee3ab96a25bea22ffaf4364.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8772874772548676,
+        "probabilities": {
+          "natural": 0.0029801654163748026,
+          "screenshot": 0.8772874772548676,
+          "screen_photo": 0.11973238363862038
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/4d19cf74a60c67ce7aa69cc65a4ddd0ce5d0944db1fa541c9f6c6fd89805c17f.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.824905663728714,
+        "probabilities": {
+          "natural": 0.0011475886858534068,
+          "screenshot": 0.824905663728714,
+          "screen_photo": 0.17394669353961945
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/a4866edbcf2081d3e7951aff090ae8ef99f2ead8e7ee214d8a88ef4184441497.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9817672669887543,
+        "probabilities": {
+          "natural": 0.009854281321167946,
+          "screenshot": 0.9817672669887543,
+          "screen_photo": 0.008378494763746858
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/bd0ca17ddfd19ae8fead79f8206dc1a7daa3e7361f4d93f58869c4c86a9eafbf.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7625769674777985,
+        "probabilities": {
+          "natural": 0.011002122657373548,
+          "screenshot": 0.7625769674777985,
+          "screen_photo": 0.22642089426517487
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/051b44a9394bf87da16f3e6074e3b6b6.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9795938432216644,
+        "probabilities": {
+          "natural": 0.01548959780484438,
+          "screenshot": 0.9795938432216644,
+          "screen_photo": 0.004916577832773328
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/f91c2ee2e998c7bfda9f993539f6410efc9794a418cf2a76973d513cc2e01fb0.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.6475166976451874,
+        "probabilities": {
+          "natural": 0.30270621180534363,
+          "screenshot": 0.6475166976451874,
+          "screen_photo": 0.049777084961533546
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/db980bbd7c61b935c12154a5a3a82b4624eb551d263ada04b663be09473568a9.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9571003615856171,
+        "probabilities": {
+          "natural": 0.036226537078619,
+          "screenshot": 0.9571003615856171,
+          "screen_photo": 0.0066731146071106195
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/07bf78e14b9ce9fe1aa4b3a3e1b60684d7c47b59357d3d6bd0100b21ffe357d4.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9094238579273224,
+        "probabilities": {
+          "natural": 0.07587428763508797,
+          "screenshot": 0.9094238579273224,
+          "screen_photo": 0.014701887033879757
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/fa88cccfeea27eccb9270b91158b76698304d2759589a446de0c0d7dd530ab5e.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8738856017589569,
+        "probabilities": {
+          "natural": 0.07671951316297054,
+          "screenshot": 0.8738856017589569,
+          "screen_photo": 0.0493948757648468
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/f0f1615eb78976811f4f4a94b67a9fb1ec16c9d59a8c9cfd114c87d21364401c.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.772064596414566,
+        "probabilities": {
+          "natural": 0.018381432630121708,
+          "screenshot": 0.772064596414566,
+          "screen_photo": 0.20955396443605423
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/6dd1285796e77f1c47c4ed2b0beed668.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.6644377112388611,
+        "probabilities": {
+          "natural": 0.00622533867135644,
+          "screenshot": 0.6644377112388611,
+          "screen_photo": 0.329336941242218
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/acdb80e4ef26bb5d1acc1cea70224fda76da17f9cb5f60e32da8105fa92bf8c7.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8422845304012299,
+        "probabilities": {
+          "natural": 0.05011310614645481,
+          "screenshot": 0.8422845304012299,
+          "screen_photo": 0.10760235041379929
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/70a29e7fecb278849bd2fcddc3c92387b598963f5e6b6e086e3a89987c433e7a.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.5728752911090851,
+        "probabilities": {
+          "natural": 0.09603456221520901,
+          "screenshot": 0.5728752911090851,
+          "screen_photo": 0.33109018206596375
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/be3f6648c160f54460a0c5cd18991b27f87a6beb304355c40e38ca2523094c0f.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.5468513369560242,
+        "probabilities": {
+          "natural": 0.26040926575660706,
+          "screenshot": 0.5468513369560242,
+          "screen_photo": 0.19273944944143295
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/d6a3b0360e758b76f1d2dca2bbe5defffaaf84aec772f2320737251993f080ce.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8243130743503571,
+        "probabilities": {
+          "natural": 0.10913421586155891,
+          "screenshot": 0.8243130743503571,
+          "screen_photo": 0.06655269861221313
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/5013f8fc8da97e32f0992985ce802d33ee06f6d693941e61463c8815f8530187.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8095618486404419,
+        "probabilities": {
+          "natural": 0.16202445328235626,
+          "screenshot": 0.8095618486404419,
+          "screen_photo": 0.02841373346745968
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/6d366d5ad455d42d7bb8e4105a656142.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8180645108222961,
+        "probabilities": {
+          "natural": 0.0034141456708312035,
+          "screenshot": 0.8180645108222961,
+          "screen_photo": 0.17852134257555008
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/dedae0fbc4e3b6635311ba4e3faeba80946f05f9ded1e38463002aaa02e87bdf.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7890709638595581,
+        "probabilities": {
+          "natural": 0.16497555375099182,
+          "screenshot": 0.7890709638595581,
+          "screen_photo": 0.045953480526804924
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/1ddf95677eeca74b383615593c40e4ced4de52c1828f33438abf16b71156f790.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.931897759437561,
+        "probabilities": {
+          "natural": 0.035912501625716686,
+          "screenshot": 0.931897759437561,
+          "screen_photo": 0.03218972869217396
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/33e30fc13fee96901c0e6743f63570c8590cd241db0d7e360baf0ac9a4ae59b8.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8379618227481842,
+        "probabilities": {
+          "natural": 0.1208374947309494,
+          "screenshot": 0.8379618227481842,
+          "screen_photo": 0.04120069369673729
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/00b504f9a239ca07183fc71017ff4252_0.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.6436385810375214,
+        "probabilities": {
+          "natural": 0.21286366879940033,
+          "screenshot": 0.6436385810375214,
+          "screen_photo": 0.1434977799654007
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/e3ed131234c6b2be7860931b0a63cd7a3d92ae70f14971d1322b27d49bd71a3a.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7584587931632996,
+        "probabilities": {
+          "natural": 0.03357376717031002,
+          "screenshot": 0.7584587931632996,
+          "screen_photo": 0.2079673931002617
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/9ae02646acd282c4337df46e218621d890156d731a033b738f7c0368eb099dfa.jpg",
+      "label": 1,
+      "result": {
+        "class": "unknown",
+        "confidence": 0.39282114803791046,
+        "probabilities": {
+          "natural": 0.3442508578300476,
+          "screenshot": 0.39282114803791046,
+          "screen_photo": 0.2629280313849449
+        },
+        "confidence_tier": "ood",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/36c863e0aeab5fbc10f277a119e5d57d41d638e1a959c573c5e9eafbb327700f.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.6728591322898865,
+        "probabilities": {
+          "natural": 0.052118608728051186,
+          "screenshot": 0.6728591322898865,
+          "screen_photo": 0.2750222086906433
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/61b7a857940ba8f1d740f6682cf6b64964c25d890adcb749cd0ae2198359e290.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.5411066114902496,
+        "probabilities": {
+          "natural": 0.140107624232769,
+          "screenshot": 0.5411066114902496,
+          "screen_photo": 0.31878580152988434
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/dc2b29fdc952b75ea1ad7765f280fcb35b9112a5f57c1de1095dac33345ecccb.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7119857668876648,
+        "probabilities": {
+          "natural": 0.28187672793865204,
+          "screenshot": 0.7119857668876648,
+          "screen_photo": 0.006137513555586338
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/be5d349d36f6d8aaee11bc1c9e9ffa9feca08a4aa67563aa8c9e10e06624c9ef.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.6793071329593658,
+        "probabilities": {
+          "natural": 0.27537010610103607,
+          "screenshot": 0.6793071329593658,
+          "screen_photo": 0.04532273951917887
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/6b5b9f4b91833839a66059d95d79321d.jpg",
+      "label": 1,
+      "result": {
+        "class": "natural",
+        "confidence": 0.5279576182365417,
+        "probabilities": {
+          "natural": 0.5279576182365417,
+          "screenshot": 0.41907745599746704,
+          "screen_photo": 0.052964914590120316
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/e37b04f8b1afe4113169d138bc6a410f.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7318550050258636,
+        "probabilities": {
+          "natural": 0.003551666042767465,
+          "screenshot": 0.7318550050258636,
+          "screen_photo": 0.26459333300590515
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/f0bb21fba90c8e33bab60b90d9802e7c418cc168e14262b6e95f08bb27c70267.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8468312323093414,
+        "probabilities": {
+          "natural": 0.149771548807621,
+          "screenshot": 0.8468312323093414,
+          "screen_photo": 0.0033972280798479915
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/e1edf15ab1b347565e9767458db06affc1f6de5ae3bb268f3b182fd07191c956.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9518988728523254,
+        "probabilities": {
+          "natural": 0.04131265915930271,
+          "screenshot": 0.9518988728523254,
+          "screen_photo": 0.006788494996726513
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/4886aae792b9c4559a52499d09f205d21eed0b1439acedbce4c29be1c0504204.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9172814786434174,
+        "probabilities": {
+          "natural": 0.06772800907492638,
+          "screenshot": 0.9172814786434174,
+          "screen_photo": 0.014990569092333317
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/0b792660e05daf9c5b9f4cee3058a9cd_0.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7157911360263824,
+        "probabilities": {
+          "natural": 0.00040316343074664474,
+          "screenshot": 0.7157911360263824,
+          "screen_photo": 0.283805713057518
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/zmd2.png",
+      "label": 1,
+      "result": {
+        "class": "unknown",
+        "confidence": 0.3901890218257904,
+        "probabilities": {
+          "natural": 0.32040274143218994,
+          "screenshot": 0.3901890218257904,
+          "screen_photo": 0.28940823674201965
+        },
+        "confidence_tier": "ood",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/82a3bebadc58bd3a8ca918354afa2f0c6638337951ac596ccda0bf69cea2559f.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.5850457847118378,
+        "probabilities": {
+          "natural": 0.3979416787624359,
+          "screenshot": 0.5850457847118378,
+          "screen_photo": 0.017012549564242363
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/fcb07da3ca98f326137d8022102fee2b0be2ae8a17c1c1f7e718e3c43052b536.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.6733043491840363,
+        "probabilities": {
+          "natural": 0.26441740244627,
+          "screenshot": 0.6733043491840363,
+          "screen_photo": 0.062278250232338905
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/97792461300167a88fb532eb6ec72e7f64db4abc1e764edaece9f1e045d0a7af.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8722398281097412,
+        "probabilities": {
+          "natural": 0.12138264998793602,
+          "screenshot": 0.8722398281097412,
+          "screen_photo": 0.006377490004524589
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/15a937b12c859d58ed746733defe732a9d6620af35d09f840e9248d19fb95bfc.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.6764727830886841,
+        "probabilities": {
+          "natural": 0.30791473388671875,
+          "screenshot": 0.6764727830886841,
+          "screen_photo": 0.015612458810210228
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/22c4e5076b47a2ed65076d216ba297d8e0086def4c5fd79decbb023cc0e54241.jpg",
+      "label": 1,
+      "result": {
+        "class": "unknown",
+        "confidence": 0.4397747218608856,
+        "probabilities": {
+          "natural": 0.2709353566169739,
+          "screenshot": 0.4397747218608856,
+          "screen_photo": 0.2892899215221405
+        },
+        "confidence_tier": "ood",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/6aab6980a4187835fdf1321225ba875f8b1a8375b1293a80a5c1f114fb4d7c25.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.941490650177002,
+        "probabilities": {
+          "natural": 0.029528386890888214,
+          "screenshot": 0.941490650177002,
+          "screen_photo": 0.028980950824916363
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/2e9fc5defd342f57204f4743b529cdd48b1d90c38b6c0533766c4be31ffa2137.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.848316103219986,
+        "probabilities": {
+          "natural": 0.14339495077729225,
+          "screenshot": 0.848316103219986,
+          "screen_photo": 0.008288983255624771
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/cc07ded107f8d1483c471099d83c227f6f4fdb2f1afd028b44e5ca5c5ad9ba05.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9086435735225677,
+        "probabilities": {
+          "natural": 0.0036424349527806044,
+          "screenshot": 0.9086435735225677,
+          "screen_photo": 0.08771399408578873
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/523ccfa2290cf8c38bce3e1e59fcd847fdc293c2fd10f672ecc7026faf97fb47.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8180906772613525,
+        "probabilities": {
+          "natural": 0.01396664371713996,
+          "screenshot": 0.8180906772613525,
+          "screen_photo": 0.16794271022081375
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/6d921a813929179b48eea0cc98a16129.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.5243216454982758,
+        "probabilities": {
+          "natural": 0.3077925592660904,
+          "screenshot": 0.5243216454982758,
+          "screen_photo": 0.16788578033447266
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/ca884bc490ed6722fe2c27d1af487cba.jpg",
+      "label": 1,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.5047965943813324,
+        "probabilities": {
+          "natural": 0.02484945673495531,
+          "screenshot": 0.47035394608974457,
+          "screen_photo": 0.5047965943813324
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/c77f043f333c7e9bbc4e4dc373b030fbbfcb9d0f109bef14f2533ed2ade8c8af.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9556304812431335,
+        "probabilities": {
+          "natural": 0.035448952578008175,
+          "screenshot": 0.9556304812431335,
+          "screen_photo": 0.008920562919229269
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/codecut.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7649854123592377,
+        "probabilities": {
+          "natural": 0.02612941712141037,
+          "screenshot": 0.7649854123592377,
+          "screen_photo": 0.20888517796993256
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/c32b283e7e013721009e6baa3b314a78435175a741b94eb251d86f4628dd8bce.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9570354223251343,
+        "probabilities": {
+          "natural": 0.04209726303815842,
+          "screenshot": 0.9570354223251343,
+          "screen_photo": 0.0008673206029925495
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/f59c63086730e5723b955022f945a74c1d376e1531c2eb530828c1b1c5dc5acb.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8269754350185394,
+        "probabilities": {
+          "natural": 0.022300079464912415,
+          "screenshot": 0.8269754350185394,
+          "screen_photo": 0.15072451531887054
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/72e7551bc6f6e6dcc19bee2df27f66aa9c2083aacf5b2f7bd4c1c73b33962984.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.6325773894786835,
+        "probabilities": {
+          "natural": 0.03369504678994417,
+          "screenshot": 0.6325773894786835,
+          "screen_photo": 0.33372756838798523
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/6efdfeeb0cd5572548816213e6f8be06fd8dc76b6a63ed4ce03679906005b3c3.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8758232593536377,
+        "probabilities": {
+          "natural": 0.00838390295393765,
+          "screenshot": 0.8758232593536377,
+          "screen_photo": 0.11579287797212601
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/451af7d65ce0481260cf8d0cca258adb211fd575577b8c9b510719839bb4b070.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9620599448680878,
+        "probabilities": {
+          "natural": 0.03174162749201059,
+          "screenshot": 0.9620599448680878,
+          "screen_photo": 0.006198457209393382
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/65f8c48e1945077482adefaa388e4c4f7671392eb9356a89529a78f7dacd5a7c.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7963809669017792,
+        "probabilities": {
+          "natural": 0.1398887299001217,
+          "screenshot": 0.7963809669017792,
+          "screen_photo": 0.06373035348951817
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/240d3a8c7e6b4ec8a8bfeec100feb698daf4aab2f786f3a7b32b7958d89cecbd.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9155503213405609,
+        "probabilities": {
+          "natural": 0.05635763518512249,
+          "screenshot": 0.9155503213405609,
+          "screen_photo": 0.028092059306800365
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/490d42dfee28ff225f8638ecd2f37a0f.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9499518573284149,
+        "probabilities": {
+          "natural": 0.044445937499403954,
+          "screenshot": 0.9499518573284149,
+          "screen_photo": 0.0056021446362137794
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/d09b02001d3c8c1af08e619e41a85ade7bf0789c42aa2ba19bc7111981f1cca1.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.6481877565383911,
+        "probabilities": {
+          "natural": 0.02614560816437006,
+          "screenshot": 0.6481877565383911,
+          "screen_photo": 0.3256665915250778
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/eefd080cc7d50c255a1eae5fb3a620fe40275bee448ca65910376cd742e7dc1d.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.5103817582130432,
+        "probabilities": {
+          "natural": 0.062146829441189766,
+          "screenshot": 0.5103817582130432,
+          "screen_photo": 0.42747141420841217
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/108d02d609c133c50082354ca20aa08f.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.6107172071933746,
+        "probabilities": {
+          "natural": 0.045227114111185074,
+          "screenshot": 0.6107172071933746,
+          "screen_photo": 0.3440556675195694
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/a96a74e614e4c1e7b1b27f9ad62b69457b34e07b47f407aad87cbc30c078f469.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7934474349021912,
+        "probabilities": {
+          "natural": 0.18103133887052536,
+          "screenshot": 0.7934474349021912,
+          "screen_photo": 0.025521207600831985
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/3538a0bdd47c396b7c24529ce00c270ae86d514e4305dd5b5b7040d86008fdbc.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9115252792835236,
+        "probabilities": {
+          "natural": 0.026770122349262238,
+          "screenshot": 0.9115252792835236,
+          "screen_photo": 0.061704566702246666
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/3aef6b31b490ce1e2b0d6e57990036c8.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8153793215751648,
+        "probabilities": {
+          "natural": 0.039202963933348656,
+          "screenshot": 0.8153793215751648,
+          "screen_photo": 0.1454177424311638
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/b15016ea013fbf6bd274308a573da745f2bb0554d75e4bc79a54dbac14fe78dc.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9721933007240295,
+        "probabilities": {
+          "natural": 0.02710390742868185,
+          "screenshot": 0.9721933007240295,
+          "screen_photo": 0.000702752557117492
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/53488b287a36de3768f7a15f20e0e4172854c35dcae03a8a3a80e759e2168eeb.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8272127211093903,
+        "probabilities": {
+          "natural": 0.10695867985486984,
+          "screenshot": 0.8272127211093903,
+          "screen_photo": 0.06582855805754662
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/81f43f05735c58caced7783ec0407927fab6bf4d5e91d3ef51cab47ad8a22502.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7376063466072083,
+        "probabilities": {
+          "natural": 0.25807853788137436,
+          "screenshot": 0.7376063466072083,
+          "screen_photo": 0.004315156606025994
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/4f4cb6c9ce3ed3859890a9c8753e7c38.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7944682836532593,
+        "probabilities": {
+          "natural": 0.05618375539779663,
+          "screenshot": 0.7944682836532593,
+          "screen_photo": 0.14934800937771797
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/fc7f5ead463c9deb0fad644cdc7b02b3ea7453fcdae8bfe8fd2088ef16b26007.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8405629694461823,
+        "probabilities": {
+          "natural": 0.10030277818441391,
+          "screenshot": 0.8405629694461823,
+          "screen_photo": 0.05913425050675869
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/c507a515200c91c557e849b729da7768c0c33a3efab64fe1d67668b61c566116.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.602812796831131,
+        "probabilities": {
+          "natural": 0.38625292479991913,
+          "screenshot": 0.602812796831131,
+          "screen_photo": 0.010934293968603015
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/232b0b423f7c3714493021e0ff716bed38b0c00d7b7ffd28c1a20408d39fdbb1.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9302709996700287,
+        "probabilities": {
+          "natural": 0.06356839463114738,
+          "screenshot": 0.9302709996700287,
+          "screen_photo": 0.006160564953461289
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/2a548f4b0ca8f5e607010ffa5047d0edf468ed8b0c86e91c4232989f8fa42a3f.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9673603773117065,
+        "probabilities": {
+          "natural": 0.021047594025731087,
+          "screenshot": 0.9673603773117065,
+          "screen_photo": 0.011591977439820766
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/7c2216900b2aac1f19a0bd6fda5dcd77d23a7bac8de62c91495f13d32b0b7082.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.6581086218357086,
+        "probabilities": {
+          "natural": 0.06685562059283257,
+          "screenshot": 0.6581086218357086,
+          "screen_photo": 0.2750357761979103
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/43bb1e7ed5335fa5f810b2114626519214a3c5d6508c53ea17231f5d076d0613.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9467636346817017,
+        "probabilities": {
+          "natural": 0.005041758879087865,
+          "screenshot": 0.9467636346817017,
+          "screen_photo": 0.04819462075829506
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/149be8934d281c11b47e416bd4e124b6b8f8060db87a53ebcf8bc1fcaea23062.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.6582159996032715,
+        "probabilities": {
+          "natural": 0.014777202159166336,
+          "screenshot": 0.6582159996032715,
+          "screen_photo": 0.3270067870616913
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/33f7213fab42ad85e87082bb78cfbebe6cec9c94c85fa9388973ad4bc2bc15c3.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7711486518383026,
+        "probabilities": {
+          "natural": 0.004984246217645705,
+          "screenshot": 0.7711486518383026,
+          "screen_photo": 0.22386711835861206
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/365a75b3644849e133bba6cb0a4f5dbd00e45ad03696430316ab1b5d071f5c96.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7688561081886292,
+        "probabilities": {
+          "natural": 0.048698791302740574,
+          "screenshot": 0.7688561081886292,
+          "screen_photo": 0.18244507908821106
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/1d42155330d8f7637309b629f472c105e178a75edbb91182f1849383295bb4b6.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8567619621753693,
+        "probabilities": {
+          "natural": 0.1363436058163643,
+          "screenshot": 0.8567619621753693,
+          "screen_photo": 0.00689437217079103
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/adfd34a8864cb3f38d6e47eb1000bf60ba95d0f17b69166724396ff54c4d7f88.jpg",
+      "label": 1,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.5123890936374664,
+        "probabilities": {
+          "natural": 0.006575170671567321,
+          "screenshot": 0.4810357391834259,
+          "screen_photo": 0.5123890936374664
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/9d8c2681c982c12f97601dcba7dae44eb1540947ae3556bb0e0435e815b07ecf.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9731117188930511,
+        "probabilities": {
+          "natural": 0.025871272198855877,
+          "screenshot": 0.9731117188930511,
+          "screen_photo": 0.0010169899614993483
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/e5b7c01cc3f23b913f38f3d203f2c887bb03380696b3496e90f37f92b298e60d.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.6163411140441895,
+        "probabilities": {
+          "natural": 0.35445645451545715,
+          "screenshot": 0.6163411140441895,
+          "screen_photo": 0.029202387668192387
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/9420f7fe30dd66fce79791483517d63566f3795d363c2278cdce8b8611c42fa6.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9526974856853485,
+        "probabilities": {
+          "natural": 0.007275946554727852,
+          "screenshot": 0.9526974856853485,
+          "screen_photo": 0.0400265920907259
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/6adc245c6b7c6eaee0905460e47996401d8889ce3ce360d8fb4a362295c15465.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9405916929244995,
+        "probabilities": {
+          "natural": 0.051180558279156685,
+          "screenshot": 0.9405916929244995,
+          "screen_photo": 0.008227704092860222
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/6dca6d25b09861d7fb173488de8e198a.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.6212719082832336,
+        "probabilities": {
+          "natural": 0.32131312787532806,
+          "screenshot": 0.6212719082832336,
+          "screen_photo": 0.05741496756672859
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/d8a2997e6d5d4e99526603e46c0a0881ce3005ab8bf8f7f4ae869ac872b75d10.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9197085797786713,
+        "probabilities": {
+          "natural": 0.04477035440504551,
+          "screenshot": 0.9197085797786713,
+          "screen_photo": 0.035521065816283226
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/4dfd474e766e013d1dd0ae1d3e32c3fc.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.6791505813598633,
+        "probabilities": {
+          "natural": 0.012835402507334948,
+          "screenshot": 0.6791505813598633,
+          "screen_photo": 0.30801402032375336
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/0f9c441b97e13ac3677e85585baab994bf857768dc505a329f67a6433e02a96e.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7195154130458832,
+        "probabilities": {
+          "natural": 0.0022979893255978823,
+          "screenshot": 0.7195154130458832,
+          "screen_photo": 0.2781865820288658
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/17a75e0304e7c9816775594f369db324.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8747563064098358,
+        "probabilities": {
+          "natural": 0.02749049849808216,
+          "screenshot": 0.8747563064098358,
+          "screen_photo": 0.09775323420763016
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/8694c33ba0da3f008d5509828a67ac7f5434e5d36216189964a870210f5d7aa9.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7870512306690216,
+        "probabilities": {
+          "natural": 0.012192473281174898,
+          "screenshot": 0.7870512306690216,
+          "screen_photo": 0.20075629651546478
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/370df40d9b889c9f9a9457424ca2236686cdcfdbd16b0dbb2846bea8099770ef.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7975504696369171,
+        "probabilities": {
+          "natural": 0.013630925677716732,
+          "screenshot": 0.7975504696369171,
+          "screen_photo": 0.18881864100694656
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/0ba52fc07aa6850e5f85cb10e31c5c4e.jpeg",
+      "label": 1,
+      "result": {
+        "class": "natural",
+        "confidence": 0.581193745136261,
+        "probabilities": {
+          "natural": 0.581193745136261,
+          "screenshot": 0.35817067325115204,
+          "screen_photo": 0.0606356468051672
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/ps7.png",
+      "label": 1,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.5273275971412659,
+        "probabilities": {
+          "natural": 0.030070940032601357,
+          "screenshot": 0.44260141253471375,
+          "screen_photo": 0.5273275971412659
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/13da13b57f76367e26eecf6b427e435aa1bc23d2a526f3d77cb57a1a024b5d38.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9670780897140503,
+        "probabilities": {
+          "natural": 0.013005908112972975,
+          "screenshot": 0.9670780897140503,
+          "screen_photo": 0.019916005432605743
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/31b0785f4f91d8fe9d33823f01ff130b.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9381501376628876,
+        "probabilities": {
+          "natural": 0.03729879762977362,
+          "screenshot": 0.9381501376628876,
+          "screen_photo": 0.02455108519643545
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/a9209448690dd94175ca71ea6d30bd7e.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.6601462066173553,
+        "probabilities": {
+          "natural": 0.05035487003624439,
+          "screenshot": 0.6601462066173553,
+          "screen_photo": 0.289498895406723
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/8ad285bfae87ff1777c371633696080a8558e9d8fe791e3b92618c604b50849d.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7965956628322601,
+        "probabilities": {
+          "natural": 0.1487448513507843,
+          "screenshot": 0.7965956628322601,
+          "screen_photo": 0.05465948209166527
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/e2831ce16af04ef0dff3ae557d717849.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9110139012336731,
+        "probabilities": {
+          "natural": 0.06980692222714424,
+          "screenshot": 0.9110139012336731,
+          "screen_photo": 0.019179221242666245
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/8c870ea5260f73cfe3b76bb68ed0d53c3f067fb4a707c48d938e16962098df12.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9762167930603027,
+        "probabilities": {
+          "natural": 0.022827778942883015,
+          "screenshot": 0.9762167930603027,
+          "screen_photo": 0.0009554225252941251
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/4f261190c3236909eb4884599bdca1784964833ee89a87cd10f1900dac08fa6a.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9364375174045563,
+        "probabilities": {
+          "natural": 0.03775632940232754,
+          "screenshot": 0.9364375174045563,
+          "screen_photo": 0.025806138291954994
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/74db92b0675ae588b532017d4ba5310b380a69bcb700d2a6c76bbff7117b28dc.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.48049207031726837,
+        "probabilities": {
+          "natural": 0.08076445013284683,
+          "screenshot": 0.48049207031726837,
+          "screen_photo": 0.438743457198143
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/a12f924a837841245328ac1c9c044a7a7d4ca7438e74d51593dd61711dc109c9.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.5996668934822083,
+        "probabilities": {
+          "natural": 0.3840011656284332,
+          "screenshot": 0.5996668934822083,
+          "screen_photo": 0.016331938561052084
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/pig.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8106009066104889,
+        "probabilities": {
+          "natural": 0.08926887065172195,
+          "screenshot": 0.8106009066104889,
+          "screen_photo": 0.10013023018836975
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/ee65523159db2d8802f0994f7f07681f7a695ac736587e6587129c1ea61df455.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9024568200111389,
+        "probabilities": {
+          "natural": 0.08319451659917831,
+          "screenshot": 0.9024568200111389,
+          "screen_photo": 0.0143486512824893
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/4f7ddc6673377baaa3b10e22a49d6bb7635cde201f0b7da46afdc1a4c11ce872.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9505409300327301,
+        "probabilities": {
+          "natural": 0.03756062127649784,
+          "screenshot": 0.9505409300327301,
+          "screen_photo": 0.011898480355739594
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/25218cf50e2d8a5c431fe63273d113f9488bd364cc759a8fa5352655fd2949d8.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7835180163383484,
+        "probabilities": {
+          "natural": 0.015666997525840998,
+          "screenshot": 0.7835180163383484,
+          "screen_photo": 0.20081498473882675
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/ff0e6097c1cb3234d759a2bd0e5f31bed64d0bd38fabb01401c088ce6ac4d46e.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8006165623664856,
+        "probabilities": {
+          "natural": 0.14136195182800293,
+          "screenshot": 0.8006165623664856,
+          "screen_photo": 0.0580214224755764
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/b576d0e2d4e54fbbdaecbca70d54df74.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8721120953559875,
+        "probabilities": {
+          "natural": 0.12641576677560806,
+          "screenshot": 0.8721120953559875,
+          "screen_photo": 0.0014720861800014973
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/e0430213544a53a9b3ef9dccba56db9469509275bc9d8d34622b583ca18e8483.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7807484865188599,
+        "probabilities": {
+          "natural": 0.000970676017459482,
+          "screenshot": 0.7807484865188599,
+          "screen_photo": 0.2182808443903923
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/afc1029f3061c59d2219479abf13ce0b9a30e68bda05b0e13ab9874f791edafd.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8966219425201416,
+        "probabilities": {
+          "natural": 0.04072459042072296,
+          "screenshot": 0.8966219425201416,
+          "screen_photo": 0.06265349686145782
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/ps8.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.5490662753582001,
+        "probabilities": {
+          "natural": 0.03403454553335905,
+          "screenshot": 0.5490662753582001,
+          "screen_photo": 0.4168991893529892
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/478e222be220428687489a5d3e2895203b0a8d7d8c28f853219a4b660561fe8e.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7640018463134766,
+        "probabilities": {
+          "natural": 0.04571913927793503,
+          "screenshot": 0.7640018463134766,
+          "screen_photo": 0.190279021859169
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/eb25e0e6be694eb774d90c056eb1aeb759e8f95e1e17d6e8e9a03683fbcafae5.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9274434149265289,
+        "probabilities": {
+          "natural": 0.005852952832356095,
+          "screenshot": 0.9274434149265289,
+          "screen_photo": 0.06670362316071987
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/e37311776715a2da0858a08c7f86f58eacba44cc33f80cc713eab5f8c6017a98.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.837063729763031,
+        "probabilities": {
+          "natural": 0.0003575078517314978,
+          "screenshot": 0.837063729763031,
+          "screen_photo": 0.1625787690281868
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/3f9101e05a29c34b8cb022a3d8c7dc3f2ba1bd0f6c87dafdcb241cc277b85f60.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9254220128059387,
+        "probabilities": {
+          "natural": 0.057331277057528496,
+          "screenshot": 0.9254220128059387,
+          "screen_photo": 0.01724670873954892
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/e3dfc3b096b27fe854de3499f34ad2f6f52f0e6fc50133da2da7c359c74d8898.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9756852984428406,
+        "probabilities": {
+          "natural": 0.018431887961924076,
+          "screenshot": 0.9756852984428406,
+          "screen_photo": 0.005882780067622662
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/958363721f1a2de2df574bb42179ae1cba1493cfff8115654f998e100dc552cb.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9393162727355957,
+        "probabilities": {
+          "natural": 0.05012301728129387,
+          "screenshot": 0.9393162727355957,
+          "screen_photo": 0.010560683440417051
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/b32ba2d1df6d67fe4e6f5f81e7a078e53e6a7419498a8aeec0662ad525dfa667.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7577168345451355,
+        "probabilities": {
+          "natural": 0.15809152275323868,
+          "screenshot": 0.7577168345451355,
+          "screen_photo": 0.08419157564640045
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/4ed6d2e89e45e70160dab2a5f7fada9da52f9c2fb5fb62814ff89aa6a92488a9.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.6558369398117065,
+        "probabilities": {
+          "natural": 0.07503453269600868,
+          "screenshot": 0.6558369398117065,
+          "screen_photo": 0.2691284939646721
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/31a8fd64a8d60f31deaae61eb6f6a40b51b7473ed64f7d9c645ae5fcf91f667f.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8806078732013702,
+        "probabilities": {
+          "natural": 0.008240632247179747,
+          "screenshot": 0.8806078732013702,
+          "screen_photo": 0.11115152388811111
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/76a1ec37af2af8303d764c8014bacec7e9b9b55b462451b7312e75935d26ff6e.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.6204822063446045,
+        "probabilities": {
+          "natural": 0.2746444195508957,
+          "screenshot": 0.6204822063446045,
+          "screen_photo": 0.10487337782979012
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/4e6bfe121f32e507f981574f90d83cdd6e6b2ca04d6b03891e23130b57a9e573.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9073429703712463,
+        "probabilities": {
+          "natural": 0.0906127281486988,
+          "screenshot": 0.9073429703712463,
+          "screen_photo": 0.0020442542154341936
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/9c5a2839a69d396ee4c2d9da6032edbf66b4edf8590a8d4a7bf5fb8d911ea803.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9150103032588959,
+        "probabilities": {
+          "natural": 0.04043041542172432,
+          "screenshot": 0.9150103032588959,
+          "screen_photo": 0.04455927014350891
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/9ea2317c9423797e11a785e407fb6b2bbc14a7da75b3069d6ed23da2f22ff9f3.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7404018938541412,
+        "probabilities": {
+          "natural": 0.00372413347940892,
+          "screenshot": 0.7404018938541412,
+          "screen_photo": 0.2558739632368088
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/494fabb90b13b1f70f97b23d0be5ad26.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.575353354215622,
+        "probabilities": {
+          "natural": 0.1415458470582962,
+          "screenshot": 0.575353354215622,
+          "screen_photo": 0.28310079872608185
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/7de3e1d496acd6c8fd2f9f69ac4f2cd56560f4a1738275c3a8a6aa3203024600.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7095658481121063,
+        "probabilities": {
+          "natural": 0.03143060393631458,
+          "screenshot": 0.7095658481121063,
+          "screen_photo": 0.2590035945177078
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/03cb98d68452f3fb8fcdd9ab0de7d973.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7752699553966522,
+        "probabilities": {
+          "natural": 0.18466001749038696,
+          "screenshot": 0.7752699553966522,
+          "screen_photo": 0.04007003176957369
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/6eef2bb910eaa790fb4f31ea17085fe295375de5baf3bc73d5b3fa2b75cfe705.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7266533374786377,
+        "probabilities": {
+          "natural": 0.02926274761557579,
+          "screenshot": 0.7266533374786377,
+          "screen_photo": 0.24408391118049622
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/061157f74a7b0f785758cd72e66a0eea7cddf5406d743abf3e9058d97a72f499.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8201567232608795,
+        "probabilities": {
+          "natural": 0.17640171200037003,
+          "screenshot": 0.8201567232608795,
+          "screen_photo": 0.003441536333411932
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/d2931945d47e9adc7ba50f999913c280287e92928173a0b5ffb9dd99ab87ea19.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.721165269613266,
+        "probabilities": {
+          "natural": 0.028254248201847076,
+          "screenshot": 0.721165269613266,
+          "screen_photo": 0.2505805492401123
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/79410093203a2ca20afb004ae9fbd79298988a7026f784d6d57c47650fcaf366.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8513440489768982,
+        "probabilities": {
+          "natural": 0.015270535834133625,
+          "screenshot": 0.8513440489768982,
+          "screen_photo": 0.13338544592261314
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/7a2a3c5a4c8979a842ee8dfdddb5843fbdd624ba31e94079f1e80d4d7726d32b.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8646798431873322,
+        "probabilities": {
+          "natural": 0.06341304257512093,
+          "screenshot": 0.8646798431873322,
+          "screen_photo": 0.07190714031457901
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/00c0025403da73f71486bd235e2cfa25_0.jpg",
+      "label": 1,
+      "result": {
+        "class": "unknown",
+        "confidence": 0.4052468091249466,
+        "probabilities": {
+          "natural": 0.2431594431400299,
+          "screenshot": 0.4052468091249466,
+          "screen_photo": 0.3515937179327011
+        },
+        "confidence_tier": "ood",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/ae75dd15b75e3eaee7516499089ea65c9bbec64483bd7fe4ee3a0d6ca68c3a07.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7305648326873779,
+        "probabilities": {
+          "natural": 0.018875260837376118,
+          "screenshot": 0.7305648326873779,
+          "screen_photo": 0.25055988878011703
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/zmd.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.640192061662674,
+        "probabilities": {
+          "natural": 0.011193504091352224,
+          "screenshot": 0.640192061662674,
+          "screen_photo": 0.3486144542694092
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/03166449d5c4f2564de1397df06ae45f9afc4f1fac68b024f85b2ee856df99ad.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7190428972244263,
+        "probabilities": {
+          "natural": 0.17015837132930756,
+          "screenshot": 0.7190428972244263,
+          "screen_photo": 0.11079872399568558
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/061cb10bb32de917f492792bdb44769d6f4128262ff1c1e5daa810a5ac8e10f1.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8880178928375244,
+        "probabilities": {
+          "natural": 0.0131767219863832,
+          "screenshot": 0.8880178928375244,
+          "screen_photo": 0.09880537912249565
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/e0e462f514b2b11660ea0a6f5b96bc7043c631124246fb43c177417aab5b720c.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9439646005630493,
+        "probabilities": {
+          "natural": 0.0476928036659956,
+          "screenshot": 0.9439646005630493,
+          "screen_photo": 0.008342572255060077
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/e272ef4dc22806f2435cb0cc875cd085543acc7cec892b48712cc21e4a817e13.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.6765967607498169,
+        "probabilities": {
+          "natural": 0.2702576369047165,
+          "screenshot": 0.6765967607498169,
+          "screen_photo": 0.053145626559853554
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/59f73fe0b623c8d8e839809d111253e7d4fa777bf9eae22273183d70aa694936.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.5552554726600647,
+        "probabilities": {
+          "natural": 0.015058982651680708,
+          "screenshot": 0.5552554726600647,
+          "screen_photo": 0.429685577750206
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/82f56ecd74dab001b70c16f9fba0f0ea8db8fa8499b070df269987edb2e5a21e.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9479594528675079,
+        "probabilities": {
+          "natural": 0.051420895382761955,
+          "screenshot": 0.9479594528675079,
+          "screen_photo": 0.0006196112080942839
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/edefd1f8a3a8fe2c5306e66a45ac4b9a62117ecaca2d20a97ea67eb5be171a6c.jpg",
+      "label": 1,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.6181603372097015,
+        "probabilities": {
+          "natural": 0.0027626478113234043,
+          "screenshot": 0.3790770322084427,
+          "screen_photo": 0.6181603372097015
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/77d90df7a5c3f96c77ff6c0ca97e7b7ef587c6505029072371f836adfbcef2ac.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8374111652374268,
+        "probabilities": {
+          "natural": 0.15742763131856918,
+          "screenshot": 0.8374111652374268,
+          "screen_photo": 0.00516122579574585
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/e91e65cb0c55338052b3aba6873e200a28d7ee74fab4b04e8559c0a784a85114.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.96297687292099,
+        "probabilities": {
+          "natural": 0.026692375540733337,
+          "screenshot": 0.96297687292099,
+          "screen_photo": 0.010330732446163893
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/a1c36ccc03437620f6e1282c9a46d99a6fdbcdec02012ec0dd81150c9ce1ea7f.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9200387001037598,
+        "probabilities": {
+          "natural": 0.06927349790930748,
+          "screenshot": 0.9200387001037598,
+          "screen_photo": 0.010687797330319881
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/ef6000a16de6632a4f3b598c0a5be3910f5e8df38095a75d1c25476677607b83.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.910241961479187,
+        "probabilities": {
+          "natural": 0.0841992050409317,
+          "screenshot": 0.910241961479187,
+          "screen_photo": 0.005558837205171585
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/48637b74707708d11bc3f95e4fe25485ae3be7fafe31cc08a182fb7b62247ed7.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8928446173667908,
+        "probabilities": {
+          "natural": 0.0007404737698379904,
+          "screenshot": 0.8928446173667908,
+          "screen_photo": 0.10641489550471306
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/3ff0c35bcf723be685cc137ef33e2512806314ffbfac3936f49b6346992b2ebb.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9011819064617157,
+        "probabilities": {
+          "natural": 0.05829118750989437,
+          "screenshot": 0.9011819064617157,
+          "screen_photo": 0.04052689112722874
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/e872f2719c1916f148cc65194562fc52b854e6acb27f5d9ec4a107d6e82904d1.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8104448914527893,
+        "probabilities": {
+          "natural": 0.112542774528265,
+          "screenshot": 0.8104448914527893,
+          "screen_photo": 0.0770123042166233
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/eb24f4ef0f9dad2b9b4d661dd0e6f0101338c686acf07547973867c7a0901cb0.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9792517423629761,
+        "probabilities": {
+          "natural": 0.0012280094088055193,
+          "screenshot": 0.9792517423629761,
+          "screen_photo": 0.019520278088748455
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/d23aa2761fdf21cc8307ec49f3adfa1b4e2bfba92624da45846780a2bab3e6d3.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.48235997557640076,
+        "probabilities": {
+          "natural": 0.4529394656419754,
+          "screenshot": 0.48235997557640076,
+          "screen_photo": 0.06470051035284996
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/d7b9e11b88e44f2a8683853f5de4111f~tplv-k3u1fbpfcp-jj-mark_3024_0_0_0_q75.webp",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8020900785923004,
+        "probabilities": {
+          "natural": 0.0009186812385451049,
+          "screenshot": 0.8020900785923004,
+          "screen_photo": 0.1969912275671959
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/5788.png_860.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.5222815871238708,
+        "probabilities": {
+          "natural": 0.3418378382921219,
+          "screenshot": 0.5222815871238708,
+          "screen_photo": 0.13588055968284607
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/b000acc34b4a67253c57caf147acbb1920834b277185f1a22a58b0d7dd260516.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7214557528495789,
+        "probabilities": {
+          "natural": 0.18854961544275284,
+          "screenshot": 0.7214557528495789,
+          "screen_photo": 0.0899946503341198
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/4803ee4babfea343fbe54ecfa5805b97226251c219899247c9595432a8180802.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8826498091220856,
+        "probabilities": {
+          "natural": 0.01737835444509983,
+          "screenshot": 0.8826498091220856,
+          "screen_photo": 0.09997182339429855
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/14cd4202346d3d55b6488e4e004fbe24.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9324080049991608,
+        "probabilities": {
+          "natural": 0.05860634706914425,
+          "screenshot": 0.9324080049991608,
+          "screen_photo": 0.008985673077404499
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/38d26ae1a482a3aea08f4207689e3306780e427ab79ba0cb2534f128baaa4a89.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.956978440284729,
+        "probabilities": {
+          "natural": 0.03132261475548148,
+          "screenshot": 0.956978440284729,
+          "screen_photo": 0.011698955902829766
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/a069f7faccb3edbe58bf547f833261ced762da8a68bbe7c8db17885cf6c59207.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.714115709066391,
+        "probabilities": {
+          "natural": 0.0496195312589407,
+          "screenshot": 0.714115709066391,
+          "screen_photo": 0.23626477271318436
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/018133f374232e4d3c5cd2eb42eaea98e4e583a0c07f2b03a629c4c079a48ebb.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.850368082523346,
+        "probabilities": {
+          "natural": 0.13027162104845047,
+          "screenshot": 0.850368082523346,
+          "screen_photo": 0.01936030015349388
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/decdb0888af3c8e65fb8524899d698507899915bc9dbbe0a6af5cc3fa5347f32.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.7138205468654633,
+        "probabilities": {
+          "natural": 0.03991258330643177,
+          "screenshot": 0.7138205468654633,
+          "screen_photo": 0.24626688659191132
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/9a467fb0d94015a9018168aefc23c55c.png",
+      "label": 1,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.6533885896205902,
+        "probabilities": {
+          "natural": 0.0007058713381411508,
+          "screenshot": 0.34590552747249603,
+          "screen_photo": 0.6533885896205902
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/4fbe814c1dafdc28f93d096caae66ea92299668b2145a5a6047deb2dda87e974.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8698166310787201,
+        "probabilities": {
+          "natural": 0.010705594206228852,
+          "screenshot": 0.8698166310787201,
+          "screen_photo": 0.1194777861237526
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/4eeec97f26a87b3fd179b15ab46a8cbf.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.5800484120845795,
+        "probabilities": {
+          "natural": 0.04132284689694643,
+          "screenshot": 0.5800484120845795,
+          "screen_photo": 0.37862876057624817
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screenshot/6331751cdcc1ab409b9e02d9f251e534a72e546812bf810aca3ab9020ac85599.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.9297705590724945,
+        "probabilities": {
+          "natural": 0.06814730912446976,
+          "screenshot": 0.9297705590724945,
+          "screen_photo": 0.002082131977658719
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screenshot/xchat2.jpg",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8400909602642059,
+        "probabilities": {
+          "natural": 0.006030845455825329,
+          "screenshot": 0.8400909602642059,
+          "screen_photo": 0.15387815237045288
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screenshot/f6cc541fea50697d2cdd020e7f198a3f3473702ab80a9d0f04fa67b1114a919f.png",
+      "label": 1,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.8480352461338043,
+        "probabilities": {
+          "natural": 0.14638804271817207,
+          "screenshot": 0.8480352461338043,
+          "screen_photo": 0.005576674244366586
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/IMG20260511210651.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.9724189341068268,
+        "probabilities": {
+          "natural": 0.0005846525600645691,
+          "screenshot": 0.026996424421668053,
+          "screen_photo": 0.9724189341068268
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/efce6f86f603238f90d09c7a3a8c8fcb.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.8177171945571899,
+        "probabilities": {
+          "natural": 0.08375688642263412,
+          "screenshot": 0.09852591902017593,
+          "screen_photo": 0.8177171945571899
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/8da60797879fe7c91878a8889cde2c58.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.8135952651500702,
+        "probabilities": {
+          "natural": 0.023377648554742336,
+          "screenshot": 0.16302704811096191,
+          "screen_photo": 0.8135952651500702
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/371c463f5fbc088c8d5785e12425e7d1.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.890072762966156,
+        "probabilities": {
+          "natural": 0.037061179522424936,
+          "screenshot": 0.07286606170237064,
+          "screen_photo": 0.890072762966156
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/2676d46414822bb98bd9cce4fc20ba33.png",
+      "label": 2,
+      "result": {
+        "class": "unknown",
+        "confidence": 0.4083423912525177,
+        "probabilities": {
+          "natural": 0.33109771460294724,
+          "screenshot": 0.4083423912525177,
+          "screen_photo": 0.2605598270893097
+        },
+        "confidence_tier": "ood",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/827e04bf571d459f25f00f2749a1352395a49f8f5be2423891f977eca38ec175.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.6151460111141205,
+        "probabilities": {
+          "natural": 0.1402149572968483,
+          "screenshot": 0.244639053940773,
+          "screen_photo": 0.6151460111141205
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/9c5344c470f246f738ab997780ea4ad27c1d8a30a61a9ca3c03df02381c405ef.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.6365005970001221,
+        "probabilities": {
+          "natural": 0.17400076985359192,
+          "screenshot": 0.18949861824512482,
+          "screen_photo": 0.6365005970001221
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/ui_poster_08.jpg",
+      "label": 2,
+      "result": {
+        "class": "screenshot",
+        "confidence": 0.5953743159770966,
+        "probabilities": {
+          "natural": 0.13848018646240234,
+          "screenshot": 0.5953743159770966,
+          "screen_photo": 0.2661455050110817
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/b4127e30fc09232824983a3389b6bdd4c9a19c82827451772b1f3ca612d97d71.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.4888894557952881,
+        "probabilities": {
+          "natural": 0.0783219076693058,
+          "screenshot": 0.432788610458374,
+          "screen_photo": 0.4888894557952881
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/2ff209b6099982979b7175f3c2a7a4e3058fa774ca15660efd16e562774ff90c.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.7293328046798706,
+        "probabilities": {
+          "natural": 0.09607989713549614,
+          "screenshot": 0.17458731681108475,
+          "screen_photo": 0.7293328046798706
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/19ef3464098778f7c0649c3711a97254f1154be5c67a20c225fba4d2e77fe3d4.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.8039011359214783,
+        "probabilities": {
+          "natural": 0.003751980373635888,
+          "screenshot": 0.19234691560268402,
+          "screen_photo": 0.8039011359214783
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/2cb700e69393596566cab4a886ec4c03908968cf3ded277ca12deb8b4de936ae.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.49545352160930634,
+        "probabilities": {
+          "natural": 0.02656892780214548,
+          "screenshot": 0.47797757387161255,
+          "screen_photo": 0.49545352160930634
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/d048ad1c1998299bd028e696254dfc47_720.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.6773802042007446,
+        "probabilities": {
+          "natural": 0.010781187564134598,
+          "screenshot": 0.3118385821580887,
+          "screen_photo": 0.6773802042007446
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/921978ccf1724849aad982af1a636a3adb978104701298c0a0c741399225d09e.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.6512607038021088,
+        "probabilities": {
+          "natural": 0.0020076698856428266,
+          "screenshot": 0.34673160314559937,
+          "screen_photo": 0.6512607038021088
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/30db8bad1f40c759abd113cd4a3b38b3f12288424cd3b061c0b8bb02e51be5ff.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.9588827192783356,
+        "probabilities": {
+          "natural": 0.02150315116159618,
+          "screenshot": 0.019614082761108875,
+          "screen_photo": 0.9588827192783356
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/8e8d62a264f7f4340a614733e37f387951e73899114ec8dc53c3467cf6a3c3c3.jpg",
+      "label": 2,
+      "result": {
+        "class": "natural",
+        "confidence": 0.45720547437667847,
+        "probabilities": {
+          "natural": 0.45720547437667847,
+          "screenshot": 0.14473816007375717,
+          "screen_photo": 0.3980563282966614
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/81be645a82d7ca87f0100037e3fda5d619076bbc5820778b43129da5486e17e3.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.8954471945762634,
+        "probabilities": {
+          "natural": 0.03484283946454525,
+          "screenshot": 0.06970995292067528,
+          "screen_photo": 0.8954471945762634
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/715e9d7bfc4d2eadf249a9a3e46dadb6f03372b7fbec9fea2b6c340975520d58.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.9021190702915192,
+        "probabilities": {
+          "natural": 0.0034013878903351724,
+          "screenshot": 0.09447952546179295,
+          "screen_photo": 0.9021190702915192
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/9ab61e8c4cc4aaa13ae948b626fde5c53125fa34f0c46524b82d1f1a69f25c70.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.8640526831150055,
+        "probabilities": {
+          "natural": 0.009063198929652572,
+          "screenshot": 0.1268841251730919,
+          "screen_photo": 0.8640526831150055
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/b7ed5ed9bd987a2ac03406f84d76fee1e5a3a2d86d526cca7c675ea9a398ef6f.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.7068084180355072,
+        "probabilities": {
+          "natural": 0.07123041711747646,
+          "screenshot": 0.2219611257314682,
+          "screen_photo": 0.7068084180355072
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/b95eed56c6a194831731ad0b24da9ad7_0.png",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.7339068651199341,
+        "probabilities": {
+          "natural": 0.1818131059408188,
+          "screenshot": 0.08428002893924713,
+          "screen_photo": 0.7339068651199341
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/5c59ebd59ab57c2a9841ea0d0511c4b7547e9f9ecd864c1d58dbb227c9fa97fb.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.8206626772880554,
+        "probabilities": {
+          "natural": 0.09241070598363876,
+          "screenshot": 0.0869266539812088,
+          "screen_photo": 0.8206626772880554
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/f117179f5c600d303e8fed145ff2dad3e884d8051f1ff693aac006f391f2fea4.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.8657910525798798,
+        "probabilities": {
+          "natural": 0.030362981371581554,
+          "screenshot": 0.10384596884250641,
+          "screen_photo": 0.8657910525798798
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/64a7c27800666047ef12c4d1a85e5f9f0f6c6fcef2eadc3289d9c487c14a3054.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.8596137464046478,
+        "probabilities": {
+          "natural": 0.07524726167321205,
+          "screenshot": 0.06513896025717258,
+          "screen_photo": 0.8596137464046478
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/8442a10cfcada903ecc933494c39ab6f4e9ac2b48c5eed2949bfe2b3dbbab762.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.8267610967159271,
+        "probabilities": {
+          "natural": 0.0821581594645977,
+          "screenshot": 0.09108073264360428,
+          "screen_photo": 0.8267610967159271
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/a0401e1c8c2363d19ce48c7aa761ff49e1f1c7f2b075b4a70055d84859c86cbc.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.7921778559684753,
+        "probabilities": {
+          "natural": 0.043309450848028064,
+          "screenshot": 0.16451271995902061,
+          "screen_photo": 0.7921778559684753
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/3191560231e3f392fb996478f959c3fd19fa40685188e5e7f27f9d374c977f87.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.5347975343465805,
+        "probabilities": {
+          "natural": 0.03531166911125183,
+          "screenshot": 0.42989081144332886,
+          "screen_photo": 0.5347975343465805
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/b1bfa98cd4b5fae7769c8ad3b05efd062553dd9956052e0804d12b4b86922cf3.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.9234693944454193,
+        "probabilities": {
+          "natural": 0.014702601358294487,
+          "screenshot": 0.06182800233364105,
+          "screen_photo": 0.9234693944454193
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/47db1e9eb833cfb8345901805d14e48753a1e483f2a1c94a82b8c5c1a68f5db2.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.6721349358558655,
+        "probabilities": {
+          "natural": 0.062113767489790916,
+          "screenshot": 0.26575126498937607,
+          "screen_photo": 0.6721349358558655
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/golden.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.664185643196106,
+        "probabilities": {
+          "natural": 0.16549118608236313,
+          "screenshot": 0.17032313346862793,
+          "screen_photo": 0.664185643196106
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/68f9193ba0d2eb3dfc395e9d39a753d03d1e5b0e93a014735fff8340673c1e96.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.8767291009426117,
+        "probabilities": {
+          "natural": 0.03417419083416462,
+          "screenshot": 0.08909670636057854,
+          "screen_photo": 0.8767291009426117
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/1922d19ccee2e2e64828be56b873665e74a26878489f5c01d244b26d5c9b8c7c.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.7809832692146301,
+        "probabilities": {
+          "natural": 0.02727563213557005,
+          "screenshot": 0.19174110889434814,
+          "screen_photo": 0.7809832692146301
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/00b41a7d07cb9a06af7f5a53f3c71f59_0.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.5834579467773438,
+        "probabilities": {
+          "natural": 0.13314306735992432,
+          "screenshot": 0.2833990156650543,
+          "screen_photo": 0.5834579467773438
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/eb9e3362558ab5198f1a7ac36dbae0157ca75483d3c69d8e1d3ace4413622cb2.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.9045591950416565,
+        "probabilities": {
+          "natural": 0.01329806074500084,
+          "screenshot": 0.08214274048805237,
+          "screen_photo": 0.9045591950416565
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/e99a826d1d9de00803d579bbf3fe796209a99a0609b80a1e6303ecde1171786d.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.6212472021579742,
+        "probabilities": {
+          "natural": 0.08593595772981644,
+          "screenshot": 0.29281681030988693,
+          "screen_photo": 0.6212472021579742
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/a2b33bf45e3458c72b906e595be51b8d766e037b3465a35d811ae947f7874cd5.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.7674863934516907,
+        "probabilities": {
+          "natural": 0.015611615497618914,
+          "screenshot": 0.216901957988739,
+          "screen_photo": 0.7674863934516907
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/75450e9913a5217ea45931c642fa180e047240b863f48fdee088a9f40ccc4adf.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.9681528806686401,
+        "probabilities": {
+          "natural": 0.013406586949713528,
+          "screenshot": 0.01844056835398078,
+          "screen_photo": 0.9681528806686401
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/1a21f94ab36d7febe8b31b3f0ec4ccc306539037bc5b1be06dcc57c36172b177.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.9036744236946106,
+        "probabilities": {
+          "natural": 0.005639957496896386,
+          "screenshot": 0.09068560600280762,
+          "screen_photo": 0.9036744236946106
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/b66861576680e7e0231ce823f200bc4aa0cf55671bd920066c7aa63e5810b3f5.png",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.9058573246002197,
+        "probabilities": {
+          "natural": 0.0026909610023722053,
+          "screenshot": 0.09145168587565422,
+          "screen_photo": 0.9058573246002197
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/4a968ced4abf236f41604a8ab643979c369bfddd6ce8e52020f159e6181e5546.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.8310641348361969,
+        "probabilities": {
+          "natural": 0.041328913532197475,
+          "screenshot": 0.12760693579912186,
+          "screen_photo": 0.8310641348361969
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/e009f2974dca9e9bd54b9c29979c45182c85e7faaaac2bcc2241dd1a6cb70baf.jpg",
+      "label": 2,
+      "result": {
+        "class": "unknown",
+        "confidence": 0.3749145567417145,
+        "probabilities": {
+          "natural": 0.3749145567417145,
+          "screenshot": 0.30994920432567596,
+          "screen_photo": 0.315136194229126
+        },
+        "confidence_tier": "ood",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/darkring1.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.9597330689430237,
+        "probabilities": {
+          "natural": 0.007672198349609971,
+          "screenshot": 0.03259474039077759,
+          "screen_photo": 0.9597330689430237
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/wchpc.png",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.7802571356296539,
+        "probabilities": {
+          "natural": 0.06718676723539829,
+          "screenshot": 0.15255608409643173,
+          "screen_photo": 0.7802571356296539
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/d686e31499b72ea28f230653918ff44a33c0f4eb43f2639cd2edb29cc799eae8.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.7183535397052765,
+        "probabilities": {
+          "natural": 0.06393439322710037,
+          "screenshot": 0.21771201491355896,
+          "screen_photo": 0.7183535397052765
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/f603839829995f34b3989b10e9c8ebd1c0526fc7ab3fbfc34ed4bfde56947e7d.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.9810939133167267,
+        "probabilities": {
+          "natural": 0.0007742808957118541,
+          "screenshot": 0.0181318623945117,
+          "screen_photo": 0.9810939133167267
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/9a865b38884e1a550e6a2c09f80b73d81af0897a87dc84556a0f50d23586323d.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.9179745316505432,
+        "probabilities": {
+          "natural": 0.006143039558082819,
+          "screenshot": 0.0758824422955513,
+          "screen_photo": 0.9179745316505432
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/0ca34aebbb691c12a84fddb1beaad7e8fc20cdffe48e1cdf9cd98d34139d033a.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.8779152929782867,
+        "probabilities": {
+          "natural": 0.003865978098474443,
+          "screenshot": 0.11821869760751724,
+          "screen_photo": 0.8779152929782867
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/54cc3dbcdc7a6526d4d90f32b5f2e57613512187f396ae27f55fd8e6a4d8b221.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.9147933125495911,
+        "probabilities": {
+          "natural": 0.022886209189891815,
+          "screenshot": 0.062320468947291374,
+          "screen_photo": 0.9147933125495911
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/80b36fa98912300c0d7710d670ca865825c52999d46aa449106f8e896ab84f02.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.9206390380859375,
+        "probabilities": {
+          "natural": 0.01596727315336466,
+          "screenshot": 0.06339366175234318,
+          "screen_photo": 0.9206390380859375
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/3f18596672bc992c1ab1e93890e2d4ff0646c7fcec295ab61793db2d34f7fd0a.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.7741081416606903,
+        "probabilities": {
+          "natural": 0.08978358283638954,
+          "screenshot": 0.13610824942588806,
+          "screen_photo": 0.7741081416606903
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/54d25779f09b20ae7384d183d1ba68799fcef5cd6897b1ab18cc39dbed0eb593.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.5396633744239807,
+        "probabilities": {
+          "natural": 0.004917391575872898,
+          "screenshot": 0.4554192125797272,
+          "screen_photo": 0.5396633744239807
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/v2-fcfeca0841b096908528d8625843e3af_r.png",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.8081265091896057,
+        "probabilities": {
+          "natural": 0.026431504637002945,
+          "screenshot": 0.16544198244810104,
+          "screen_photo": 0.8081265091896057
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/162fdb4118c9af886c0756a2105fcd7a.png",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.5140862762928009,
+        "probabilities": {
+          "natural": 0.38297225534915924,
+          "screenshot": 0.10294146463274956,
+          "screen_photo": 0.5140862762928009
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/0571ffa54f627b97827a18c277df9b23ad05f5a7e3b45a62ea80c7a551f88b3c.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.8388218581676483,
+        "probabilities": {
+          "natural": 0.06237504445016384,
+          "screenshot": 0.0988030806183815,
+          "screen_photo": 0.8388218581676483
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/ad254c1047fdf067ec0ba873808514e4.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.9647355377674103,
+        "probabilities": {
+          "natural": 0.0010889912082348019,
+          "screenshot": 0.0341754537075758,
+          "screen_photo": 0.9647355377674103
+        },
+        "confidence_tier": "high",
+        "action": "accept"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/zmd.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.5654992461204529,
+        "probabilities": {
+          "natural": 0.09057449549436569,
+          "screenshot": 0.3439262807369232,
+          "screen_photo": 0.5654992461204529
+        },
+        "confidence_tier": "low",
+        "action": "ignore"
+      }
+    },
+    {
+      "path": "data/input/screen_photo/d3ba8a0980da5607186f1eea80f7e885c6f273bbe575e55d5d57c387492245b9.jpg",
+      "label": 2,
+      "result": {
+        "class": "screen_photo",
+        "confidence": 0.8053081333637238,
+        "probabilities": {
+          "natural": 0.004580135690048337,
+          "screenshot": 0.1901116967201233,
+          "screen_photo": 0.8053081333637238
+        },
+        "confidence_tier": "medium",
+        "action": "review"
+      }
+    }
+  ]
+}
